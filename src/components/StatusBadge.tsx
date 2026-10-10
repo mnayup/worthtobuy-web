@@ -1,0 +1,118 @@
+import clsx from 'clsx';
+
+const statusDisplayMap: Record<string, string> = {
+  NEW: 'New',
+  OPEN: 'Open',
+  COMPLETED: 'Completed',
+  PAID: 'Paid',
+  VERIFIED: 'Verified',
+  PURCHASED: 'Purchased',
+  READY_TO_SHIP: 'Ready to Ship',
+  SHIPPED: 'Shipped',
+  DELIVERED: 'Delivered',
+  PENDING: 'Pending',
+  WAITING_DP: 'Awaiting Deposit',
+  WAITING_PURCHASE: 'Awaiting Purchase',
+  WAITING_PACKING: 'Awaiting Packing',
+  WAITING_SETTLEMENT: 'Awaiting Settlement',
+  SEARCHING: 'Searching',
+  CANCELLED: 'Cancelled',
+  REJECTED: 'Rejected',
+  UNAVAILABLE: 'Unavailable',
+  OUT_OF_STOCK: 'Out of Stock',
+  DRAFT: 'Draft',
+  ISSUED: 'Issued',
+  PARTIAL: 'Partially Paid',
+  OVERPAID: 'Overpaid',
+  REFUND_DUE: 'Refund Due',
+  REQUESTED: 'Requested',
+  APPROVED: 'Approved',
+  MANUAL: 'Manual',
+  OVERPAYMENT: 'Overpayment',
+  UNAVAILABLE_ITEM: 'Item Unavailable',
+  AVAILABLE: 'Available',
+  KEPT: 'Kept',
+  CATALOG: 'Catalog Item',
+  MANUAL_RECAP: 'Manual Recap',
+  READY_STOCK: 'Ready Stock',
+  EVENT: 'Event',
+  BOTH: 'Event & Catalog',
+  BELUM_DIBUAT: 'Not Generated',
+  FOUND: 'Found',
+  PRICE_CHANGED: 'Price Changed',
+  REPLACED: 'Replaced',
+  active: 'Active',
+  ACTIVE: 'Active',
+  inactive: 'Inactive',
+  INACTIVE: 'Inactive',
+  REGULAR: 'Regular',
+  PRIORITY: 'Priority VIP',
+  PROBLEM: 'Problem',
+};
+
+const badgeStyles: Record<string, string> = {
+  NEW: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
+  OPEN: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  COMPLETED: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  PAID: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  VERIFIED: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  PURCHASED: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  READY_TO_SHIP: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/20',
+  SHIPPED: 'bg-sky-50 text-sky-700 ring-1 ring-sky-600/20',
+  DELIVERED: 'bg-teal-50 text-teal-700 ring-1 ring-teal-600/20',
+  PENDING: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+  WAITING_DP: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+  WAITING_PURCHASE: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/20',
+  WAITING_PACKING: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+  WAITING_SETTLEMENT: 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20',
+  SEARCHING: 'bg-violet-50 text-violet-700 ring-1 ring-violet-600/20',
+  CANCELLED: 'bg-slate-100 text-slate-700 ring-1 ring-slate-400/20',
+  REJECTED: 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
+  UNAVAILABLE: 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
+  OUT_OF_STOCK: 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
+  DRAFT: 'bg-slate-100 text-slate-700 ring-1 ring-slate-400/20',
+  ISSUED: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
+  PARTIAL: 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20',
+  OVERPAID: 'bg-honey-100 text-honey-800 ring-1 ring-honey-600/20',
+  REFUND_DUE: 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
+  REQUESTED: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+  APPROVED: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
+  MANUAL: 'bg-brand-100 text-brand-700 ring-1 ring-brand-300',
+  OVERPAYMENT: 'bg-honey-100 text-honey-800 ring-1 ring-honey-600/20',
+  UNAVAILABLE_ITEM: 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
+  AVAILABLE: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  KEPT: 'bg-violet-50 text-violet-700 ring-1 ring-violet-600/20',
+  CATALOG: 'bg-brand-100 text-brand-700 ring-1 ring-brand-300',
+  MANUAL_RECAP: 'bg-sky-50 text-sky-700 ring-1 ring-sky-600/20',
+  READY_STOCK: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  EVENT: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/20',
+  BOTH: 'bg-violet-50 text-violet-700 ring-1 ring-violet-600/20',
+  BELUM_DIBUAT: 'bg-slate-100 text-slate-600 ring-1 ring-slate-400/20',
+  FOUND: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
+  PRICE_CHANGED: 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20',
+  REPLACED: 'bg-violet-50 text-violet-700 ring-1 ring-violet-600/20',
+  active: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  inactive: 'bg-slate-100 text-slate-700 ring-1 ring-slate-400/20',
+  REGULAR: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+  PRIORITY: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+  PROBLEM: 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
+  INACTIVE: 'bg-slate-100 text-slate-700 ring-1 ring-slate-400/20',
+};
+
+export function StatusBadge({ value }: { value: string }) {
+  if (!value) return null;
+  const label = statusDisplayMap[value] || value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const style = badgeStyles[value] || 'bg-brand-100 text-brand-700 ring-1 ring-brand-200';
+
+  return (
+    <span
+      className={clsx(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold tracking-tight shadow-sm',
+        style
+      )}
+    >
+      {label}
+    </span>
+  );
+}

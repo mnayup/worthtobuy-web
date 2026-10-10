@@ -1,0 +1,102 @@
+import { useMemo } from 'react';
+import { CrudPage } from '~/components/CrudPage';
+import { api } from '~/lib/api';
+import { date, money } from '~/lib/format';
+import { useAuth } from '~/context/AuthContext';
+import type { FieldConfig, Option } from '~/types';
+
+const responseRows = (response: any): any[] => {
+  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response?.data)) return response.data;
+  return [];
+};
+
+const loadPaginatedOptions = (endpoint: string, mapper: (row: any) => Option) => async (search: string): Promise<Option[]> => {
+  const [path, queryString] = endpoint.split('?');
+  const query = new URLSearchParams(queryString || '');
+  query.set('limit', '25');
+  if (search) query.set('search', search);
+  const response = await api.get(`${path}?${query}`);
+  return responseRows(response).map(mapper);
+};
+
+const loadPeriods = loadPaginatedOptions('/periods?status=OPEN', (row) => ({ value: row.id, label: `${row.code} • ${row.name}` }));
+
+export async function loader() {
+  const response = await api.get('/periods?limit=100');
+  return { periods: responseRows(response) };
+}
+
+export default function ExpensesRoute() {
+  const { user } = useAuth();
+  const fields = useMemo<FieldConfig[]>(
+    () => [
+      { name: 'expenseNumber', label: 'Expense number' },
+      { name: 'expenseDate', label: 'Date & Time', type: 'datetime-local' },
+      {
+        name: 'category',
+        label: 'Category',
+        type: 'select',
+        options: [
+          'Transportation',
+          'Accommodation',
+          'Event Tickets',
+          'Parking & Tolls',
+          'Packaging & Supplies',
+          'Shipping & Logistics',
+          'Bank & Admin Fees',
+          'Team Payroll',
+          'Shopper Commission',
+          'Marketing & Ads',
+          'Meals & Operations',
+          'Other Expenses',
+        ].map((value) => ({ value, label: value })),
+        required: true,
+      },
+      { name: 'periodId', label: 'Event', type: 'select', loadOptions: loadPeriods, searchable: true },
+      { name: 'amount', label: 'Amount (IDR)', type: 'currency', required: true },
+      { name: 'payee', label: 'Payee / Vendor' },
+      { name: 'paymentMethod', label: 'Payment method' },
+      { name: 'proofUrl', label: 'Transaction Receipt / Proof', type: 'file', entityType: 'expenses', fileType: 'all', colSpan: 2 },
+      { name: 'notes', label: 'Notes', type: 'textarea', colSpan: 2 },
+    ],
+    []
+  );
+
+  return (
+    <CrudPage
+      title="Operational Expenses"
+      description="Track event logistics, local vendor costs, and operational expenses in IDR."
+      endpoint="/expenses"
+      fields={fields}
+      searchPlaceholder="Search expense number, vendor / payee, notes..."
+      filters={[
+        {
+          key: 'category',
+          label: 'Expense Category',
+          placeholder: 'All Categories',
+          options: [
+            { label: 'Flight & Travel', value: 'Flight & Travel' },
+            { label: 'Cargo & Shipping', value: 'Cargo & Shipping' },
+            { label: 'Baggage Fee', value: 'Baggage Fee' },
+            { label: 'Hotel & Lodging', value: 'Hotel' },
+            { label: 'Meals & Food', value: 'Meals' },
+            { label: 'Packaging & Supplies', value: 'Packaging' },
+            { label: 'Local Transport', value: 'Transport' },
+            { label: 'Sim Card & Roaming', value: 'Sim Card' },
+            { label: 'Other Expenses', value: 'Other Expenses' },
+          ],
+        },
+      ]}
+      columns={[
+        { key: 'expenseNumber', label: 'Expense #' },
+        { key: 'expenseDate', label: 'Date', render: (row) => date(row.expenseDate) },
+        { key: 'category', label: 'Category' },
+        { key: 'period', label: 'Event', render: (row) => row.period?.code || '-' },
+        { key: 'amountIdr', label: 'Amount', render: (row) => <strong>{money(row.amountIdr)}</strong> },
+        { key: 'payee', label: 'Payee' },
+      ]}
+      canDelete={user?.role === 'OWNER' || user?.role === 'FINANCE'}
+    />
+  );
+}

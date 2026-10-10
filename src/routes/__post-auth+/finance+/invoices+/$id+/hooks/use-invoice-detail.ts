@@ -1,0 +1,268 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, errorMessage } from '~/lib/api';
+import type { Invoice } from '~/routes/__post-auth+/finance+/invoices+/types';
+import type {
+  PaymentSortCol,
+  PreviewStage,
+  PrintFormat,
+  RefundSortCol,
+  SortDir,
+  StageMode,
+} from '../types';
+
+export async function loader(id: string | number) {
+  const [invoiceResponse, settingResponse] = await Promise.all([
+    api.get(`/invoices/${id}`),
+    api.get('/settings'),
+  ]);
+  return {
+    invoice: invoiceResponse.data as Invoice,
+    settings: settingResponse.data,
+  };
+}
+
+export function useInvoiceDetail(id?: string) {
+  const navigate = useNavigate();
+  const [invoice, setInvoice] = useState<any>(null);
+  const [settings, setSettings] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [updatingScheme, setUpdatingScheme] = useState(false);
+
+  // Modals state
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: 'success' | 'error' | 'warning' | 'info';
+    title?: string;
+  } | null>(null);
+
+  // Sorting
+  const [paymentSortCol, setPaymentSortCol] = useState<PaymentSortCol>(null);
+  const [paymentSortDir, setPaymentSortDir] = useState<SortDir>('desc');
+  const [refundSortCol, setRefundSortCol] = useState<RefundSortCol>(null);
+  const [refundSortDir, setRefundSortDir] = useState<SortDir>('desc');
+
+  // Preview & Print
+  const [previewStage, setPreviewStage] = useState<PreviewStage>('AUTO');
+  const [printFormat, setPrintFormat] = useState<PrintFormat>('A4');
+  const [paymentInitialAmount, setPaymentInitialAmount] = useState<number | undefined>();
+  const [paymentInitialNotes, setPaymentInitialNotes] = useState<string | undefined>();
+
+  function openPaymentWith(amount?: number, notes?: string) {
+    setPaymentInitialAmount(amount);
+    setPaymentInitialNotes(notes);
+    setPaymentOpen(true);
+  }
+
+  async function updatePaymentScheme(model: 'DP' | 'FULL_PAYMENT', percent?: number) {
+    if (!invoice) return;
+    setUpdatingScheme(true);
+    try {
+      const payload: any = { billingModel: model };
+      if (model === 'DP') {
+        const pct = percent || invoice.dpPercent || 50;
+        payload.dpPercent = pct;
+        payload.dpAmount = Math.round((Number(invoice.totalBill || 0) * pct) / 100);
+        payload.dpSettlementNote =
+          invoice.dpSettlementNote || 'when products are ready to ship';
+      } else {
+        payload.dpPercent = null;
+        payload.dpAmount = null;
+      }
+
+      setInvoice((prev: any) => ({ ...prev, ...payload }));
+      await api.put(`/invoices/${invoice.id}`, payload);
+    } catch (caught) {
+      setToast({ message: errorMessage(caught), type: 'error' });
+      load();
+    } finally {
+      setUpdatingScheme(false);
+    }
+  }
+
+  async function load() {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const data = await loader(id);
+      setInvoice(data.invoice);
+      setSettings(data.settings);
+      setError('');
+      if (new URLSearchParams(window.location.search).get('print') === '1') {
+        setTimeout(() => window.print(), 450);
+      }
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, [id]);
+
+  const sortedPayments = useMemo(() => {
+    if (!invoice?.payments) return [];
+    const list = [...invoice.payments];
+    if (!paymentSortCol) return list;
+    const factor = paymentSortDir === 'asc' ? 1 : -1;
+    return list.sort((a, b) => {
+      if (paymentSortCol === 'date') {
+        return (new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()) * factor;
+      }
+      if (paymentSortCol === 'method') {
+        return String(a.method || '').localeCompare(String(b.method || '')) * factor;
+      }
+      if (paymentSortCol === 'amount') {
+        return (Number(a.amount || 0) - Number(b.amount || 0)) * factor;
+      }
+      if (paymentSortCol === 'status') {
+        return String(a.status || '').localeCompare(String(b.status || '')) * factor;
+      }
+      return 0;
+    });
+  }, [invoice?.payments, paymentSortCol, paymentSortDir]);
+
+  const sortedRefunds = useMemo(() => {
+    if (!invoice?.refunds) return [];
+    const list = [...invoice.refunds];
+    if (!refundSortCol) return list;
+    const factor = refundSortDir === 'asc' ? 1 : -1;
+    return list.sort((a, b) => {
+      if (refundSortCol === 'number') {
+        return String(a.refundNumber || '').localeCompare(String(b.refundNumber || '')) * factor;
+      }
+      if (refundSortCol === 'reason') {
+        return String(a.reason || '').localeCompare(String(b.reason || '')) * factor;
+      }
+      if (refundSortCol === 'amount') {
+        return (Number(a.amount || 0) - Number(b.amount || 0)) * factor;
+      }
+      if (refundSortCol === 'status') {
+        return String(a.status || '').localeCompare(String(b.status || '')) * factor;
+      }
+      return 0;
+    });
+  }, [invoice?.refunds, refundSortCol, refundSortDir]);
+
+  const isDpScheme =
+    invoice?.billingModel === 'DP' ||
+    (invoice?.dpAmount && Number(invoice?.dpAmount) > 0);
+  const totalBill = Number(invoice?.totalBill || 0);
+  const paidAmount = Number(invoice?.paidAmount || 0);
+  const outstandingAmount = Number(invoice?.outstandingAmount || 0);
+  const dpAmount = Number(
+    invoice?.dpAmount || Math.round(totalBill * ((invoice?.dpPercent || 50) / 100))
+  );
+
+  const currentStage: 'DP' | 'SETTLEMENT' | 'PAID' | 'FULL_UNPAID' = useMemo(() => {
+    if (!invoice) return 'FULL_UNPAID';
+    if (outstandingAmount <= 0 && paidAmount > 0) return 'PAID';
+    if (isDpScheme) {
+      if (paidAmount > 0) return 'SETTLEMENT';
+      return 'DP';
+    }
+    return 'FULL_UNPAID';
+  }, [invoice, isDpScheme, outstandingAmount, paidAmount]);
+
+  const activeDisplayMode: StageMode = useMemo(() => {
+    if (previewStage !== 'AUTO') return previewStage;
+    if (currentStage === 'DP') return 'DP';
+    if (currentStage === 'SETTLEMENT') return 'SETTLEMENT';
+    if (currentStage === 'PAID') return 'PAID';
+    return 'FULL';
+  }, [previewStage, currentStage]);
+
+  const paymentsChronological = useMemo(() => {
+    return [...(invoice?.payments || [])].sort((left: any, right: any) => {
+      const diff =
+        new Date(left.paymentDate).getTime() - new Date(right.paymentDate).getTime();
+      return diff || Number(left.id || 0) - Number(right.id || 0);
+    });
+  }, [invoice?.payments]);
+
+  async function removeInvoice() {
+    setDeleteSaving(true);
+    try {
+      await api.delete(`/invoices/${invoice.id}`);
+      navigate('/trash');
+    } catch (caught) {
+      setToast({ message: errorMessage(caught), type: 'error' });
+      setDeleteOpen(false);
+    } finally {
+      setDeleteSaving(false);
+    }
+  }
+
+  function handleSortPayment(col: NonNullable<PaymentSortCol>) {
+    if (paymentSortCol === col) {
+      setPaymentSortDir(paymentSortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setPaymentSortCol(col);
+      setPaymentSortDir('desc');
+    }
+  }
+
+  function handleSortRefund(col: NonNullable<RefundSortCol>) {
+    if (refundSortCol === col) {
+      setRefundSortDir(refundSortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setRefundSortCol(col);
+      setRefundSortDir('desc');
+    }
+  }
+
+  return {
+    invoice,
+    settings,
+    loading,
+    error,
+    updatingScheme,
+    paymentOpen,
+    setPaymentOpen,
+    whatsappOpen,
+    setWhatsappOpen,
+    depositModalOpen,
+    setDepositModalOpen,
+    deleteOpen,
+    setDeleteOpen,
+    deleteSaving,
+    toast,
+    setToast,
+    paymentSortCol,
+    paymentSortDir,
+    handleSortPayment,
+    refundSortCol,
+    refundSortDir,
+    handleSortRefund,
+    previewStage,
+    setPreviewStage,
+    printFormat,
+    setPrintFormat,
+    paymentInitialAmount,
+    setPaymentInitialAmount,
+    paymentInitialNotes,
+    setPaymentInitialNotes,
+    openPaymentWith,
+    updatePaymentScheme,
+    load,
+    sortedPayments,
+    sortedRefunds,
+    isDpScheme,
+    totalBill,
+    paidAmount,
+    outstandingAmount,
+    dpAmount,
+    currentStage,
+    activeDisplayMode,
+    paymentsChronological,
+    removeInvoice,
+  };
+}

@@ -1,0 +1,205 @@
+import React from 'react';
+import { AlertCircle, Box, Check, Copy } from 'lucide-react';
+import { money, number } from '~/lib/format';
+import { StatusBadge } from '~/components/StatusBadge';
+import { isShipmentFullyPaid, type Shipment } from '../types';
+
+export function getShipmentColumns({
+  copiedId,
+  onCopy,
+  onOpenDetail,
+}: {
+  copiedId: number | null;
+  onCopy: (id: number, text: string) => void;
+  onOpenDetail: (shipment: Shipment) => void;
+}) {
+  return [
+    {
+      key: 'trackingNumber',
+      label: 'Tracking # (Resi)',
+      render: (row: Shipment) =>
+        row.trackingNumber ? (
+          <div className="flex items-center gap-1.5">
+            <div className="flex flex-col">
+              <span className="font-mono font-black text-brand-900 text-xs tracking-wider">
+                {row.trackingNumber}
+              </span>
+              <span className="text-[10px] text-brand-500 font-semibold">
+                {row.courier || 'JNE'} {row.serviceType ? `• ${row.serviceType}` : ''}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopy(row.id, row.trackingNumber!);
+              }}
+              className={
+                'rounded-lg p-1 text-brand-400 hover:bg-brand-100 ' +
+                'hover:text-brand-700 transition cursor-pointer'
+              }
+              title="Copy Resi"
+            >
+              {copiedId === row.id ? (
+                <Check size={13} className="text-emerald-600" />
+              ) : (
+                <Copy size={13} />
+              )}
+            </button>
+          </div>
+        ) : (
+          <span
+            className={
+              'inline-flex items-center gap-1 rounded-lg bg-amber-50 ' +
+              'border border-amber-200/80 px-2 py-0.5 text-[11px] font-bold text-amber-700'
+            }
+          >
+            <AlertCircle size={12} />
+            Awaiting Resi
+          </span>
+        ),
+    },
+    {
+      key: 'order',
+      label: 'Order & Customer',
+      render: (row: Shipment) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-brand-900 text-xs">
+            {row.order?.orderNumber || '-'}
+          </span>
+          <span className="text-xs text-brand-600 font-medium truncate max-w-[140px]">
+            {row.customer?.fullName || '-'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'itemsToPack',
+      label: 'Items to Pack',
+      render: (row: Shipment) => {
+        const items = row.order?.items || [];
+        if (!items.length) {
+          return <span className="text-brand-400 text-xs italic">No items listed</span>;
+        }
+        const totalPcs = items.reduce((sum, it) => sum + (it.quantity || 1), 0);
+
+        return (
+          <div
+            className="flex flex-col max-w-[240px] cursor-pointer group"
+            onClick={() => onOpenDetail(row)}
+            title={
+              `Click to view checklist:\n` +
+              items
+                .map(
+                  (it) =>
+                    `• ${it.quantity}x ${it.product?.name || it.manualProductName || 'Item'}`
+                )
+                .join('\n')
+            }
+          >
+            <div
+              className={
+                'flex items-center gap-1.5 text-xs font-semibold text-brand-900 ' +
+                'truncate group-hover:text-indigo-600 transition'
+              }
+            >
+              <Box size={13} className="text-amber-500 shrink-0" />
+              <span className="truncate">
+                {items[0]?.product?.name || items[0]?.manualProductName || 'Item'}
+              </span>
+              {items.length > 1 && (
+                <span
+                  className={
+                    'rounded bg-indigo-50 border border-indigo-200 px-1 py-0.2 ' +
+                    'text-[10px] font-bold text-indigo-700 shrink-0'
+                  }
+                >
+                  +{items.length - 1} more
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-brand-400 font-medium">
+              Total: {totalPcs} pcs ({items.length} line{items.length > 1 ? 's' : ''})
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'address',
+      label: 'Destination Address',
+      render: (row: Shipment) => (
+        <span
+          className={
+            !row.address || row.address === '-'
+              ? 'text-amber-600 font-medium text-xs'
+              : 'text-xs text-brand-700 max-w-[190px] truncate block'
+          }
+          title={row.address}
+        >
+          {!row.address || row.address === '-' ? 'Address not specified' : row.address}
+        </span>
+      ),
+    },
+    {
+      key: 'weightKg',
+      label: 'Weight',
+      render: (row: Shipment) => (
+        <span className="text-xs text-brand-700 font-medium">
+          {row.weightKg ? `${number(row.weightKg)} kg` : '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'shippingCost',
+      label: 'Shipping Fee',
+      render: (row: Shipment) => (
+        <span className="text-xs text-brand-900 font-semibold">
+          {money(row.shippingCost)}
+        </span>
+      ),
+    },
+    {
+      key: 'paymentStatus',
+      label: 'Payment',
+      render: (row: Shipment) => {
+        const fullyPaid = isShipmentFullyPaid(row);
+        if (fullyPaid) {
+          return (
+            <span
+              className={
+                'inline-flex items-center gap-1.5 rounded-full bg-emerald-50 ' +
+                'border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700'
+              }
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Full Payment
+            </span>
+          );
+        }
+        const remaining = Number(row.order?.outstandingAmount || 0);
+        return (
+          <span
+            className={
+              'inline-flex items-center gap-1.5 rounded-full bg-rose-50 ' +
+              'border border-rose-200 px-2.5 py-0.5 text-[11px] font-bold text-rose-700'
+            }
+            title={
+              remaining > 0
+                ? `Unpaid balance: Rp${remaining.toLocaleString('id-ID')}`
+                : 'Payment not settled'
+            }
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+            Not Full Payment
+          </span>
+        );
+      },
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row: Shipment) => <StatusBadge value={row.status} />,
+    },
+  ];
+}

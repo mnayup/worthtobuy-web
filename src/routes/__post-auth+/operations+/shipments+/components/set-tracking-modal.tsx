@@ -1,0 +1,263 @@
+import React, { useState, useEffect, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Truck, AlertCircle } from 'lucide-react';
+import { api, errorMessage } from '~/lib/api';
+import { isShipmentFullyPaid, type Shipment } from '../types';
+import dayjs from 'dayjs';
+import { SetTrackingItemsPreview } from './set-tracking-items-preview';
+import {
+  SetTrackingCourierFields,
+  COMMON_COURIERS,
+} from './set-tracking-courier-fields';
+import { SetTrackingAdditionalFields } from './set-tracking-additional-fields';
+
+interface SetTrackingModalProps {
+  open: boolean;
+  shipment: Shipment | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+export function SetTrackingModal({
+  open,
+  shipment,
+  onClose,
+  onSaved,
+}: SetTrackingModalProps) {
+  const [courier, setCourier] = useState('JNE');
+  const [customCourier, setCustomCourier] = useState('');
+  const [serviceType, setServiceType] = useState('Regular (REG)');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [weightKg, setWeightKg] = useState<string>('');
+  const [shippingCost, setShippingCost] = useState<string>('');
+  const [shippedAt, setShippedAt] = useState('');
+  const [proofUrl, setProofUrl] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open && shipment) {
+      const isKnown = COMMON_COURIERS.includes(shipment.courier || 'JNE');
+      setCourier(isKnown ? shipment.courier || 'JNE' : 'Other');
+      setCustomCourier(isKnown ? '' : shipment.courier || '');
+      setServiceType(shipment.serviceType || 'Regular (REG)');
+      setTrackingNumber(shipment.trackingNumber || '');
+      setAddress(shipment.address || shipment.customer?.address || '');
+      setWeightKg(
+        shipment.weightKg !== null && shipment.weightKg !== undefined
+          ? String(shipment.weightKg)
+          : ''
+      );
+      setShippingCost(
+        shipment.shippingCost
+          ? String(shipment.shippingCost)
+          : shipment.order?.customerShipping
+          ? String(shipment.order.customerShipping)
+          : ''
+      );
+      setProofUrl(shipment.proofUrl || '');
+      setNotes(shipment.notes || '');
+
+      if (shipment.shippedAt) {
+        setShippedAt(dayjs(shipment.shippedAt).format('YYYY-MM-DDTHH:mm'));
+      } else {
+        setShippedAt(dayjs().format('YYYY-MM-DDTHH:mm'));
+      }
+      setError('');
+    }
+  }, [open, shipment]);
+
+  if (!open || !shipment) return null;
+
+  const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
+  const items = shipment.order?.items || [];
+  const fullyPaid = isShipmentFullyPaid(shipment);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!shipment) return;
+
+    if (!fullyPaid) {
+      setError('Penginputan nomor resi tidak dapat dilakukan karena pesanan belum lunas.');
+      return;
+    }
+
+    if (!trackingNumber.trim()) {
+      setError('Nomor Resi (Tracking Number) is required to ship the package.');
+      return;
+    }
+
+    if (!effectiveCourier) {
+      setError('Please select or specify a Courier name.');
+      return;
+    }
+
+    if (!address.trim() || address.trim() === '-') {
+      setError('Complete destination address is required before shipping.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      await api.put(`/shipments/${shipment.id}`, {
+        trackingNumber: trackingNumber.trim(),
+        courier: effectiveCourier,
+        serviceType: serviceType.trim() || null,
+        address: address.trim(),
+        weightKg: weightKg ? Number(weightKg) : null,
+        shippingCost: shippingCost ? Number(shippingCost) : 0,
+        shippedAt: shippedAt ? new Date(shippedAt).toISOString() : new Date().toISOString(),
+        proofUrl: proofUrl.trim() || null,
+        notes: notes.trim() || null,
+        status: 'IN_TRANSIT',
+      });
+      onSaved();
+      onClose();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div
+      className={
+        'fixed inset-0 z-[100] flex items-end justify-center ' +
+        'bg-brand-900/50 backdrop-blur-sm sm:items-center sm:p-4'
+      }
+    >
+      <div
+        className={
+          'w-full max-w-2xl max-h-[92vh] flex flex-col rounded-t-3xl bg-white ' +
+          'shadow-2xl sm:rounded-3xl overflow-hidden border border-brand-100 ' +
+          'animate-in fade-in-0 zoom-in-95 duration-200'
+        }
+      >
+        {/* Header */}
+        <div
+          className={
+            'flex items-center justify-between border-b border-brand-100 px-6 py-4 ' +
+            'bg-gradient-to-r from-brand-50/80 via-white to-indigo-50/50'
+          }
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={
+                'flex h-11 w-11 items-center justify-center rounded-2xl ' +
+                'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+              }
+            >
+              <Truck size={22} />
+            </div>
+            <div>
+              <h2 className="font-black text-brand-900 text-lg tracking-tight">
+                {shipment.trackingNumber
+                  ? 'Update Tracking Number (Resi)'
+                  : 'Set Tracking Number & Ship'}
+              </h2>
+              <p className="text-xs text-brand-500 font-medium">
+                Order{' '}
+                <strong className="font-bold text-brand-800">
+                  {shipment.order?.orderNumber || '-'}
+                </strong>{' '}
+                • Customer{' '}
+                <strong className="font-bold text-brand-800">
+                  {shipment.customer?.fullName || '-'}
+                </strong>
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className={
+              'rounded-xl p-2 text-brand-400 hover:bg-brand-100 ' +
+              'hover:text-brand-700 transition cursor-pointer'
+            }
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+          {error && (
+            <div
+              className={
+                'rounded-2xl bg-cherry-50 border border-cherry-200/80 p-3.5 ' +
+                'text-sm font-semibold text-cherry-700 flex items-center gap-2.5 shadow-xs'
+              }
+            >
+              <AlertCircle size={18} className="shrink-0 text-cherry-600" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {!fullyPaid && (
+            <div
+              className={
+                'rounded-2xl border border-rose-200 bg-rose-50/90 p-4 ' +
+                'text-xs text-rose-800 flex items-start gap-3 shadow-xs'
+              }
+            >
+              <AlertCircle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <strong className="font-bold text-rose-900 text-sm block">
+                  Status Pembayaran: Belum Lunas (Full Payment Required)
+                </strong>
+                <p className="text-xs text-rose-700 mt-1 leading-relaxed">
+                  Penginputan nomor resi tidak dapat diproses karena pembayaran pesanan ini
+                  belum lunas.
+                  {shipment.order?.outstandingAmount
+                    ? ` Sisa tagihan: Rp${Number(
+                        shipment.order.outstandingAmount
+                      ).toLocaleString('id-ID')}`
+                    : ''}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <SetTrackingItemsPreview items={items} />
+
+          <SetTrackingCourierFields
+            address={address}
+            setAddress={setAddress}
+            courier={courier}
+            setCourier={setCourier}
+            customCourier={customCourier}
+            setCustomCourier={setCustomCourier}
+            serviceType={serviceType}
+            setServiceType={setServiceType}
+            trackingNumber={trackingNumber}
+            setTrackingNumber={setTrackingNumber}
+          />
+
+          <SetTrackingAdditionalFields
+            weightKg={weightKg}
+            setWeightKg={setWeightKg}
+            shippingCost={shippingCost}
+            setShippingCost={setShippingCost}
+            shippedAt={shippedAt}
+            setShippedAt={setShippedAt}
+            proofUrl={proofUrl}
+            setProofUrl={setProofUrl}
+            notes={notes}
+            setNotes={setNotes}
+            orderNumber={shipment.order?.orderNumber}
+            saving={saving}
+            fullyPaid={fullyPaid}
+            trackingNumber={trackingNumber}
+            onClose={onClose}
+          />
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}
