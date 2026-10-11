@@ -49,26 +49,36 @@ export function CustomerOrdersSection({
           orders.map((order: any) => (
             <button
               key={order.id}
-              onClick={() =>
-                navigate(`/orders?search=${encodeURIComponent(order.orderNumber)}`)
-              }
+              onClick={() => {
+                const num = order.order_number || order.orderNumber;
+                navigate(`/orders?search=${encodeURIComponent(num)}`);
+              }}
               className={
                 'flex w-full items-center justify-between gap-4 px-5 py-4 ' +
                 'text-left hover:bg-brand-50 transition'
               }
             >
               <div>
-                <p className="font-black text-brand-900">{order.orderNumber}</p>
+                <p className="font-black text-brand-900">
+                  {order.order_number || order.orderNumber}
+                </p>
                 <p className="mt-1 text-xs text-brand-500">
-                  {order.period?.code} • {date(order.orderDate)} •{' '}
+                  {order.period?.code} • {date(order.order_date || order.orderDate)} •{' '}
                   {(order.items || [])
-                    .map((item: any) => item.product?.name || item.manualProductName)
+                    .map(
+                      (item: any) =>
+                        item.product?.name ||
+                        item.manual_product_name ||
+                        item.manualProductName
+                    )
                     .filter(Boolean)
                     .join(', ')}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-black text-brand-900">{money(order.totalBill)}</p>
+                <p className="font-black text-brand-900">
+                  {money(order.total_bill ?? order.totalBill)}
+                </p>
                 <StatusBadge value={order.status} />
               </div>
             </button>

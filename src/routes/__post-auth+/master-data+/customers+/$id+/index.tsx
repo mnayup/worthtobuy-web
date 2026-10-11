@@ -64,8 +64,8 @@ export default function CustomerDetailRoute() {
   return (
     <div className="animate-rise space-y-6">
       <CustomerHeader
-        fullName={customer.fullName}
-        customerCode={customer.customerCode}
+        fullName={customer.fullName || customer.full_name || ''}
+        customerCode={customer.customerCode || customer.customer_code || ''}
         whatsapp={customer.whatsapp}
         city={customer.city}
         phone={phone}
@@ -126,8 +126,8 @@ export default function CustomerDetailRoute() {
           <CustomerProfileCard
             email={customer.email}
             address={customer.address}
-            postalCode={customer.postalCode}
-            socialUsername={customer.socialUsername}
+            postalCode={customer.postalCode || customer.postal_code}
+            socialUsername={customer.socialUsername || customer.social_username}
             segment={derivedSegment}
             notes={customer.notes}
           />

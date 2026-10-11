@@ -28,6 +28,28 @@ export function MobileInvoiceFooter({
     3, 1, 4, 1, 5, 2, 4, 1, 5, 2, 4, 1, 3, 2, 5, 1, 4, 2, 4, 3, 1, 3, 2, 4,
   ];
 
+  const totalServiceFee = (invoice.orders || []).reduce(
+    (acc: number, link: any) =>
+      acc + Number(link.order?.service_fee ?? link.order?.serviceFee ?? 0),
+    0
+  );
+  const totalShipping = (invoice.orders || []).reduce(
+    (acc: number, link: any) =>
+      acc +
+      Number(
+        link.order?.customer_shipping ??
+          link.order?.customerShipping ??
+          link.order?.local_shipping ??
+          link.order?.localShipping ??
+          0
+      ),
+    0
+  );
+  const totalProductSubtotal = Math.max(
+    0,
+    totalBill - totalServiceFee - totalShipping
+  );
+
   return (
     <>
       {/* 5. Summary Breakdown */}
@@ -36,6 +58,25 @@ export function MobileInvoiceFooter({
           Billing Summary
         </p>
         <div className="space-y-1.5">
+          {totalProductSubtotal > 0 && (totalServiceFee > 0 || totalShipping > 0) && (
+            <div className="flex items-center justify-between text-brand-600">
+              <span>Product Subtotal:</span>
+              <span className="font-semibold">{money(totalProductSubtotal)}</span>
+            </div>
+          )}
+          {totalServiceFee > 0 && (
+            <div className="flex items-center justify-between text-cherry-700 font-semibold">
+              <span>Service Fee (Jastip Fee):</span>
+              <span className="font-bold">{money(totalServiceFee)}</span>
+            </div>
+          )}
+          {totalShipping > 0 && (
+            <div className="flex items-center justify-between text-sky-800 font-semibold">
+              <span>Estimated Shipping Cost (Ongkir):</span>
+              <span className="font-bold">{money(totalShipping)}</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <span className="text-brand-600 font-medium">Total Order Value:</span>
             <span className="font-black text-brand-950">{money(totalBill)}</span>
@@ -43,7 +84,7 @@ export function MobileInvoiceFooter({
 
           {Number(invoice.depositAmount) > 0 && (
             <div className="flex items-center justify-between text-purple-900 font-bold">
-              <span>Potongan Saldo Deposit:</span>
+              <span>Deposit Deduction (Potongan Deposit):</span>
               <span className="font-black">- {money(invoice.depositAmount)}</span>
             </div>
           )}

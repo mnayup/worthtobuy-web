@@ -2,9 +2,10 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { money } from '~/lib/format';
 import { useCreateInvoice } from '../hooks/use-create-invoice';
-import { CreateInvoiceSchemeStep } from './create-invoice-scheme-step';
 import { CreateInvoiceOrdersStep } from './create-invoice-orders-step';
+import { CreateInvoiceShippingStep } from './create-invoice-shipping-step';
 import { CreateInvoiceDepositStep } from './create-invoice-deposit-step';
+import { CreateInvoiceSchemeStep } from './create-invoice-scheme-step';
 import { CreateInvoiceDpConfigStep } from './create-invoice-dp-config-step';
 
 interface CreateInvoiceModalProps {
@@ -28,7 +29,10 @@ export function CreateInvoiceModal({
     setCustomerId,
     selected,
     setSelected,
+    selectedRows,
     setSelectedOrders,
+    orderShippingMap,
+    setOrderShipping,
     orderSearch,
     setOrderSearch,
     dueDate,
@@ -54,6 +58,8 @@ export function CreateInvoiceModal({
     setDepositAmount,
     depositLoading,
     total,
+    totalShipping,
+    totalServiceFee,
     calculatedDpFromPercent,
     loadCustomerOptions,
     handleToggleDeposit,
@@ -94,7 +100,7 @@ export function CreateInvoiceModal({
               Create Consolidated Invoice
             </h2>
             <p className="text-xs text-brand-500">
-              Select multiple orders for the same customer, across events.
+              Select multiple orders for the same customer, configure shipping, then choose payment scheme.
             </p>
           </div>
           <button
@@ -123,11 +129,7 @@ export function CreateInvoiceModal({
             </div>
           )}
 
-          <CreateInvoiceSchemeStep
-            billingModel={billingModel}
-            setBillingModel={setBillingModel}
-          />
-
+          {/* Step 1: Customer & Orders Selection */}
           <CreateInvoiceOrdersStep
             customers={customers}
             customerId={customerId}
@@ -149,6 +151,16 @@ export function CreateInvoiceModal({
             }}
           />
 
+          {/* Step 2: Estimated Shipping Cost (input before DP / Full scheme) */}
+          <CreateInvoiceShippingStep
+            selectedOrders={selectedRows}
+            orderShippingMap={orderShippingMap}
+            setOrderShipping={setOrderShipping}
+            totalShipping={totalShipping}
+            totalBill={total}
+          />
+
+          {/* Step 3: Customer Deposit Balance (Optional) */}
           {customerId && (
             <CreateInvoiceDepositStep
               availableDeposit={availableDeposit}
@@ -161,9 +173,18 @@ export function CreateInvoiceModal({
             />
           )}
 
+          {/* Step 4: Payment Scheme Selection (DP vs Full Payment) */}
+          <CreateInvoiceSchemeStep
+            billingModel={billingModel}
+            setBillingModel={setBillingModel}
+          />
+
+          {/* Step 5: Down Payment / Full Payment Configuration */}
           <CreateInvoiceDpConfigStep
             billingModel={billingModel}
             total={total}
+            totalShipping={totalShipping}
+            totalServiceFee={totalServiceFee}
             dpPercent={dpPercent}
             setDpPercent={setDpPercent}
             dpAmount={dpAmount}
@@ -175,13 +196,14 @@ export function CreateInvoiceModal({
             setDpSettlementNote={setDpSettlementNote}
           />
 
+          {/* Step 6: Invoice Notes */}
           <div className="mt-4">
-            <label className="label">Invoice Notes</label>
+            <label className="label">Step 6: Invoice Notes (Catatan Invoice - optional)</label>
             <textarea
               className="input min-h-20"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Payment instructions, bank accounts, notes..."
+              placeholder="Payment instructions, bank accounts, delivery notes..."
             />
           </div>
 
@@ -194,6 +216,7 @@ export function CreateInvoiceModal({
             <div>
               <p className="text-xs font-bold text-brand-400">
                 {selected.length} orders selected
+                {totalShipping > 0 && ` • Shipping: ${money(totalShipping)}`}
               </p>
               <div className="flex items-baseline gap-2">
                 <p className="text-xl font-black text-brand-900">{finalTotal}</p>

@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import type { FieldConfig } from '~/types';
 import {
   loadCustomers,
@@ -7,6 +6,8 @@ import {
   loadUsers,
   getNowDateTimeLocal,
 } from './order-options.helper';
+
+export { prepareInitialOrder, prepareSubmitOrder } from './order-form-submit.helper';
 
 export function getOrderFields(user: any): FieldConfig[] {
   return [
@@ -24,13 +25,10 @@ export function getOrderFields(user: any): FieldConfig[] {
       type: 'datetime-local',
       defaultValue: getNowDateTimeLocal,
       max: (form) => {
-        if (
-          form?.periodId_option?.code !== 'READY-STOCK' &&
-          form?.periodId_option?.orderCloseAt
-        ) {
-          return String(form.periodId_option.orderCloseAt).slice(0, 16);
-        }
-        return undefined;
+        const opt = form?.periodId_option;
+        return opt?.code !== 'READY-STOCK' && opt?.orderCloseAt
+          ? String(opt.orderCloseAt).slice(0, 16)
+          : undefined;
       },
       required: true,
     },
@@ -92,12 +90,25 @@ export function getOrderFields(user: any): FieldConfig[] {
       dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
     },
     {
-      name: 'newProductImageUrl',
-      label: 'Product Photo / Image',
-      type: 'image',
-      entityType: 'orders',
-      fileType: 'image',
-      placeholder: 'Upload product photo...',
+      name: 'newProductVariant',
+      label: 'Available Variants (Colors / Patterns)',
+      placeholder: 'Type variant & press Enter (e.g. Crimson, Navy Blue)',
+      type: 'tags',
+      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
+    },
+    {
+      name: 'newProductSize',
+      label: 'Available Sizes',
+      placeholder: 'Type size & press Enter (e.g. S, M, L, XL, 42)',
+      type: 'tags',
+      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
+    },
+    {
+      name: 'newProductImageUrls',
+      label: 'Product Photos (Variant / Color / Details)',
+      type: 'images',
+      entityType: 'products',
+      placeholder: 'Upload multiple product photos...',
       colSpan: 2,
       dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
     },
@@ -105,20 +116,22 @@ export function getOrderFields(user: any): FieldConfig[] {
       name: 'newProductNotes',
       label: 'Product Notes',
       type: 'textarea',
-      placeholder: 'Variant notes, size instructions, etc.',
+      placeholder: 'Special instructions or general notes...',
       colSpan: 2,
       dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
     },
     {
-      name: 'quantity',
-      label: 'Quantity',
-      type: 'number',
-      defaultValue: 1,
-      required: true,
-      max: (form) =>
-        form.productId === '__NEW_PRODUCT__'
-          ? undefined
-          : form.productId_option?.stock ?? undefined,
+      name: 'unitPriceForeign',
+      label: 'Base Item Price (IDR)',
+      type: 'currency',
+      placeholder: 'Default price across variants',
+    },
+    {
+      name: 'variantItems',
+      label: 'Variant, Size & Quantities',
+      type: 'variant-quantities',
+      colSpan: 2,
+      dependsOn: (form) => Boolean(form.productId),
     },
     {
       name: 'adminId',
@@ -130,13 +143,7 @@ export function getOrderFields(user: any): FieldConfig[] {
       disabled: true,
       options: user ? [{ value: user.id, label: user.name }] : [],
     },
-    {
-      name: 'unitPriceForeign',
-      label: 'Item Price (IDR)',
-      type: 'currency',
-      required: true,
-    },
-    { name: 'keptUntil', label: 'Hold Until Date', type: 'date' },
+    { name: 'keptUntil', label: 'Keep Until Date', type: 'date' },
     {
       name: 'serviceFeeMode',
       label: 'Concierge Fee Mode',
@@ -176,122 +183,17 @@ export function getOrderFields(user: any): FieldConfig[] {
       defaultValue: 0,
       dependsOn: (form) => form.serviceFeeMode === 'MANUAL',
     },
-    { name: 'customerNotes', label: 'Customer Notes', type: 'textarea', colSpan: 2 },
-    { name: 'internalNotes', label: 'Internal Staff Notes', type: 'textarea', colSpan: 2 },
+    {
+      name: 'customerNotes',
+      label: 'Customer Notes',
+      type: 'textarea',
+      colSpan: 2,
+    },
+    {
+      name: 'internalNotes',
+      label: 'Internal Staff Notes',
+      type: 'textarea',
+      colSpan: 2,
+    },
   ];
-}
-
-export function prepareInitialOrder(row: any) {
-  return {
-    ...row,
-    orderDate: row.orderDate
-      ? dayjs(row.orderDate).format('YYYY-MM-DDTHH:mm')
-      : getNowDateTimeLocal(),
-    dueDate: row.dueDate ? String(row.dueDate).slice(0, 10) : '',
-    productId: row.items?.[0]?.productId || '',
-    fulfillmentStatus: row.items?.[0]?.fulfillmentStatus || 'PENDING',
-    keptUntil: row.items?.[0]?.keptUntil ? String(row.items[0].keptUntil).slice(0, 10) : '',
-    quantity: row.items?.[0]?.quantity,
-    unitPriceForeign: row.items?.[0]?.unitPriceForeign,
-    serviceFeeMode:
-      row.serviceFeeMode === 'AUTO'
-        ? 'AUTO_CUSTOMER'
-        : row.serviceFeeMode || 'AUTO_CUSTOMER',
-  };
-}
-
-export function prepareSubmitOrder(form: any) {
-  const {
-    productId,
-    newProductName,
-    newProductBrand,
-    newProductCategory,
-    newProductStoreLocation,
-    newProductImageUrl,
-    newProductNotes,
-    keptUntil,
-    quantity,
-    unitPriceForeign,
-    ...order
-  } = form;
-
-  const isAutoFee =
-    order.serviceFeeMode === 'AUTO' ||
-    order.serviceFeeMode === 'AUTO_CUSTOMER' ||
-    order.serviceFeeMode === 'AUTO_RESELLER';
-
-  if (isAutoFee) {
-    order.serviceFee = 0;
-    order.localShipping = 0;
-    order.customerShipping = 0;
-    order.additionalFee = 0;
-    order.discount = 0;
-    order.serviceFeeNote = '';
-  }
-
-  const isCreatingProduct = productId === '__NEW_PRODUCT__';
-  if (isCreatingProduct && !newProductName?.trim()) {
-    throw new Error('Please enter a name for the new product.');
-  }
-
-  const isReadyStock = isCreatingProduct
-    ? false
-    : form.productId_option?.stockMode === 'READY_STOCK';
-
-  const orderDateObj = order.orderDate ? new Date(order.orderDate) : new Date();
-  const periodOption = form.periodId_option;
-
-  if (periodOption && periodOption.code !== 'READY-STOCK') {
-    if (periodOption.orderCloseAt && orderDateObj > new Date(periodOption.orderCloseAt)) {
-      throw new Error('Order date cannot be later than event order closing date.');
-    }
-  }
-
-  const newProductPayload = isCreatingProduct
-    ? {
-        name: newProductName.trim(),
-        brandName: newProductBrand?.trim() || undefined,
-        category: newProductCategory?.trim() || undefined,
-        storeLocation: newProductStoreLocation?.trim() || undefined,
-        buyPrice: Number(unitPriceForeign || 0),
-        sellingPrice: Number(unitPriceForeign || 0),
-        stockMode: periodOption?.code === 'READY-STOCK' ? 'READY_STOCK' : 'EVENT',
-        stockQuantity: 0,
-        imageUrl: newProductImageUrl?.trim() || undefined,
-        notes: newProductNotes?.trim() || undefined,
-        periodId: Number(order.periodId),
-      }
-    : undefined;
-
-  const isPriority = form.customerId_option?.segment === 'PRIORITY';
-  const defaultInitialStatus = isPriority ? 'WAITING_PURCHASE' : 'NEW';
-
-  return {
-    ...order,
-    orderDate: order.orderDate
-      ? new Date(order.orderDate).toISOString()
-      : new Date().toISOString(),
-    status: defaultInitialStatus,
-    adminId: order.adminId ? Number(order.adminId) : undefined,
-    serviceFeeMode: order.serviceFeeMode || 'AUTO_CUSTOMER',
-    serviceFee: Number(order.serviceFee || 0),
-    localShipping: Number(order.localShipping || 0),
-    customerShipping: Number(order.customerShipping || 0),
-    additionalFee: Number(order.additionalFee || 0),
-    discount: Number(order.discount || 0),
-    items: [
-      {
-        productId: isCreatingProduct ? undefined : productId || undefined,
-        newProduct: newProductPayload,
-        manualProductName: isCreatingProduct ? newProductName.trim() : undefined,
-        brandName: isCreatingProduct ? newProductBrand?.trim() || undefined : undefined,
-        sourceType: isReadyStock ? 'READY_STOCK' : 'CATALOG',
-        fulfillmentStatus: isReadyStock ? 'AVAILABLE' : 'PENDING',
-        keptUntil: keptUntil ? new Date(keptUntil).toISOString() : undefined,
-        quantity: Number(quantity || 1),
-        unitPriceForeign: Number(unitPriceForeign || 0),
-        targetPriceIdr: Number(unitPriceForeign || 0),
-      },
-    ],
-  };
 }

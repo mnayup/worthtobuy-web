@@ -13,21 +13,28 @@ const responseRows = (response: any): any[] => {
   return [];
 };
 
-const loadPaginatedOptions = (endpoint: string, mapper: (row: any) => Option) => async (search: string): Promise<Option[]> => {
-  const query = new URLSearchParams({ limit: '25' });
-  if (search) query.set('search', search);
-  const response = await api.get(`${endpoint}?${query}`);
-  return responseRows(response).map(mapper);
-};
+const loadPaginatedOptions =
+  (endpoint: string, mapper: (row: any) => Option) =>
+  async (search: string): Promise<Option[]> => {
+    const query = new URLSearchParams({ limit: '25' });
+    if (search) query.set('search', search);
+    const response = await api.get(`${endpoint}?${query}`);
+    return responseRows(response).map(mapper);
+  };
 
-const loadInvoices = loadPaginatedOptions('/invoices', (row) => ({
-  value: row.id,
-  label: `${row.invoiceNumber} • ${row.customer?.fullName || '-'} • remaining ${money(row.outstandingAmount)}`,
-}));
-const loadOrders = loadPaginatedOptions('/orders', (row) => ({
-  value: row.id,
-  label: `${row.orderNumber} • ${row.customer?.fullName || '-'} • ${money(row.totalBill)}`,
-}));
+const loadInvoices = loadPaginatedOptions('/invoices', (row) => {
+  const num = row.invoice_number || row.invoiceNumber;
+  const cust = row.customer?.full_name || row.customer?.fullName || '-';
+  const rem = money(row.outstanding_amount ?? row.outstandingAmount);
+  return { value: row.id, label: `${num} • ${cust} • remaining ${rem}` };
+});
+
+const loadOrders = loadPaginatedOptions('/orders', (row) => {
+  const num = row.order_number || row.orderNumber;
+  const cust = row.customer?.full_name || row.customer?.fullName || '-';
+  const total = money(row.total_bill ?? row.totalBill);
+  return { value: row.id, label: `${num} • ${cust} • ${total}` };
+});
 
 export async function loader() {
   const [invoicesRes, ordersRes] = await Promise.allSettled([
@@ -49,22 +56,53 @@ export default function PaymentsRoute() {
   const fields = useMemo<FieldConfig[]>(
     () => [
       { name: 'paymentNumber', label: 'Payment number' },
-      { name: 'invoiceId', label: 'Invoice (recommended)', type: 'select', loadOptions: loadInvoices, searchable: true },
-      { name: 'orderId', label: 'Legacy order without invoice', type: 'select', loadOptions: loadOrders, searchable: true },
+      {
+        name: 'invoiceId',
+        label: 'Invoice (recommended)',
+        type: 'select',
+        loadOptions: loadInvoices,
+        searchable: true,
+      },
+      {
+        name: 'orderId',
+        label: 'Legacy order without invoice',
+        type: 'select',
+        loadOptions: loadOrders,
+        searchable: true,
+      },
       { name: 'paymentDate', label: 'Payment date', type: 'datetime-local' },
       { name: 'amount', label: 'Amount', type: 'currency', required: true },
       {
         name: 'method',
         label: 'Method',
         type: 'select',
-        options: ['Bank Transfer', 'QRIS', 'E-Wallet', 'Cash', 'Credit Card', 'Payment Gateway', 'Shopee Checkout'].map(
-          (value) => ({ value, label: value })
-        ),
+        options: [
+          'Bank Transfer',
+          'QRIS',
+          'E-Wallet',
+          'Cash',
+          'Credit Card',
+          'Payment Gateway',
+          'Shopee Checkout',
+        ].map((value) => ({ value, label: value })),
         required: true,
       },
       { name: 'destinationAccount', label: 'Destination bank / account' },
-      { name: 'proofUrl', label: 'Proof of payment / Receipt', type: 'file', entityType: 'payments', fileType: 'all', colSpan: 2 },
-      { name: 'status', label: 'Verification status', type: 'select', options: paymentStatusOptions, defaultValue: 'PENDING' },
+      {
+        name: 'proofUrl',
+        label: 'Proof of payment / Receipt',
+        type: 'file',
+        entityType: 'payments',
+        fileType: 'all',
+        colSpan: 2,
+      },
+      {
+        name: 'status',
+        label: 'Verification status',
+        type: 'select',
+        options: paymentStatusOptions,
+        defaultValue: 'PENDING',
+      },
       { name: 'notes', label: 'Installment / payment notes', type: 'textarea', colSpan: 2 },
     ],
     []
@@ -73,7 +111,10 @@ export default function PaymentsRoute() {
   return (
     <CrudPage
       title="Payments"
-      description="Track customer deposits, installments, full settlements, and Shopee checkout verifications."
+      description={
+        'Track customer deposits, installments, full settlements, ' +
+        'and Shopee checkout verifications.'
+      }
       endpoint="/payments"
       fields={fields}
       searchPlaceholder="Search payment number, customer, invoice / order, account..."
@@ -104,23 +145,68 @@ export default function PaymentsRoute() {
         },
       ]}
       columns={[
-        { key: 'paymentNumber', label: 'Payment #' },
+        {
+          key: 'paymentNumber',
+          label: 'Payment #',
+          render: (row) => row.payment_number || row.paymentNumber,
+        },
         {
           key: 'target',
           label: 'Invoice / Order',
-          render: (row) => row.invoice?.invoiceNumber || row.order?.orderNumber || '-',
+          render: (row) =>
+            row.invoice?.invoice_number ||
+            row.invoice?.invoiceNumber ||
+            row.order?.order_number ||
+            row.order?.orderNumber ||
+            '-',
         },
         {
           key: 'customer',
           label: 'Customer',
-          render: (row) => row.invoice?.customer?.fullName || row.order?.customer?.fullName || '-',
+          render: (row) =>
+            row.invoice?.customer?.full_name ||
+            row.invoice?.customer?.fullName ||
+            row.order?.customer?.full_name ||
+            row.order?.customer?.fullName ||
+            '-',
         },
-        { key: 'amount', label: 'Amount', render: (row) => <strong>{money(row.amount)}</strong> },
-        { key: 'method', label: 'Method' },
-        { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> },
-        { key: 'paymentDate', label: 'Date', render: (row) => date(row.paymentDate) },
+        {
+          key: 'amount',
+          label: 'Amount',
+          render: (row) => <strong>{money(row.amount)}</strong>,
+        },
+        {
+          key: 'method',
+          label: 'Method',
+          render: (row) => row.payment_method || row.method,
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          render: (row) => <StatusBadge value={row.status} />,
+        },
+        {
+          key: 'paymentDate',
+          label: 'Date',
+          render: (row) => date(row.payment_date || row.paymentDate),
+        },
       ]}
       canDelete={user?.role === 'OWNER' || user?.role === 'FINANCE'}
+      prepareInitial={(row) => ({
+        ...row,
+        paymentNumber: row.payment_number || row.paymentNumber,
+        invoiceId: row.invoice_id ?? row.invoiceId,
+        orderId: row.order_id ?? row.orderId,
+        paymentDate: row.payment_date
+          ? String(row.payment_date).slice(0, 16)
+          : row.paymentDate
+          ? String(row.paymentDate).slice(0, 16)
+          : '',
+        amount: Number(row.amount || 0),
+        method: row.payment_method || row.method,
+        destinationAccount: row.destination_account || row.destinationAccount,
+        proofUrl: row.proof_url || row.proofUrl,
+      })}
       bulkStatus={{
         label: 'Payment status',
         options: paymentStatusOptions,

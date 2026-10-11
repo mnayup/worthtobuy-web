@@ -37,7 +37,7 @@ export const STATUS_CARDS = [
   },
   {
     key: 'WAITING_DP',
-    label: 'Waiting Deposit',
+    label: 'Waiting DP',
     icon: CreditCard,
     theme: {
       active: 'bg-amber-600 border-transparent shadow-amber-500/30',

@@ -9,12 +9,15 @@ export interface ShoppingListItem {
   purchaseNotes?: string;
   brandName?: string;
   manualProductName?: string;
+  variation?: string;
+  size?: string;
   product?: {
     name: string;
     brandName?: string;
     storeLocation?: string;
     imageUrl?: string;
-    productUrl?: string;
+    variant?: string;
+    size?: string;
   };
   order?: {
     orderNumber: string;
@@ -23,4 +26,11 @@ export interface ShoppingListItem {
   };
 }
 
-export const shoppingStatuses = ['PENDING', 'FOUND', 'PURCHASED', 'OUT_OF_STOCK', 'PRICE_CHANGED', 'REPLACED'];
+export const shoppingStatuses = [
+  'PENDING',
+  'FOUND',
+  'PURCHASED',
+  'OUT_OF_STOCK',
+  'PRICE_CHANGED',
+  'REPLACED',
+];

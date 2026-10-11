@@ -72,7 +72,9 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
               <Wallet size={16} />
             </div>
             <div>
-              <h2 className="text-base font-black text-brand-950">Kelola Saldo Deposit Invoice</h2>
+              <h2 className="text-base font-black text-brand-950">
+                Manage Customer Deposit Balance (Saldo Deposit)
+              </h2>
               <p className="text-xs text-brand-500">{invoice.invoiceNumber} • {invoice.customer?.fullName}</p>
             </div>
           </div>
@@ -91,13 +93,13 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
           {/* Deposit Info */}
           <div className="rounded-2xl border border-purple-200 bg-purple-50/60 p-4 mb-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-900">Total Saldo Deposit Tersedia Pelanggan:</span>
+              <span className="text-xs font-bold text-purple-900">Available Customer Deposit Balance:</span>
               <span className="text-sm font-black text-purple-950">
-                {loading ? 'Memuat...' : money(availableDeposit)}
+                {loading ? 'Loading...' : money(availableDeposit)}
               </span>
             </div>
             <p className="text-[11px] text-purple-700 mt-1 leading-relaxed">
-              Saldo ini berasal dari refund yang diproses sebagai deposit. Kamu bebas memilih apakah ingin menggunakan saldo ini pada order/invoice ini atau tidak.
+              This credit balance originates from refunds processed as deposits. You can decide whether to apply this balance toward this invoice or keep it for future orders.
             </p>
           </div>
 
@@ -116,9 +118,9 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
                 }}
               />
               <div>
-                <p className="text-xs font-black text-brand-900">Gunakan Saldo Deposit untuk Memotong Tagihan Ini</p>
+                <p className="text-xs font-black text-brand-900">Apply Deposit Balance to Deduct from This Invoice</p>
                 <p className="text-[11px] text-brand-500 mt-0.5">
-                  Centang untuk memotong total pembayaran invoice ini. Hilangkan centang jika pelanggan tidak ingin menggunakan deposit pada pesanan ini.
+                  Check to deduct from total invoice payment. Uncheck if customer chooses not to use deposit on this order.
                 </p>
               </div>
             </label>
@@ -127,13 +129,13 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
               <div className="rounded-xl border border-purple-200 bg-white p-4 space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-brand-700">Nominal Deposit yang Digunakan:</label>
+                    <label className="text-xs font-bold text-brand-700">Deposit Amount to Use:</label>
                     <button
                       type="button"
                       onClick={() => setDepositAmount(maxCanUse)}
                       className="text-xs font-extrabold text-purple-700 hover:underline"
                     >
-                      Gunakan Maksimal ({money(maxCanUse)})
+                      Use Maximum ({money(maxCanUse)})
                     </button>
                   </div>
                   <input
@@ -155,15 +157,15 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
 
                 <div className="rounded-lg bg-brand-50 p-2.5 text-xs space-y-1">
                   <div className="flex justify-between text-brand-600">
-                    <span>Total Tagihan Pesanan:</span>
+                    <span>Total Order Bill:</span>
                     <span className="font-bold">{money(totalBill)}</span>
                   </div>
                   <div className="flex justify-between text-purple-800 font-bold">
-                    <span>Potongan Deposit:</span>
+                    <span>Deposit Deduction (Potongan Deposit):</span>
                     <span>- {money(depositAmount)}</span>
                   </div>
                   <div className="flex justify-between text-brand-950 font-black border-t border-brand-200 pt-1">
-                    <span>Sisa Bersih yang Perlu Dibayar:</span>
+                    <span>Net Amount Due to Pay (Tagihan Bersih):</span>
                     <span className="text-sm">{money(Math.max(0, totalBill - depositAmount))}</span>
                   </div>
                 </div>
@@ -173,17 +175,17 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
 
           <div className="mt-6 flex items-center justify-end gap-2 border-t border-brand-100 pt-4">
             <button type="button" onClick={onClose} className="btn-secondary" disabled={saving}>
-              Batal
+              Cancel
             </button>
             <button
               type="submit"
               className="btn bg-purple-600 text-white hover:bg-purple-700"
               disabled={saving}
             >
-              {saving ? 'Menyimpan...' : (
+              {saving ? 'Saving...' : (
                 <>
                   <CheckCircle2 size={16} />
-                  <span>{useDeposit && depositAmount > 0 ? 'Terapkan Deposit' : 'Simpan (Tanpa Deposit)'}</span>
+                  <span>{useDeposit && depositAmount > 0 ? 'Apply Deposit' : 'Save (Without Deposit)'}</span>
                 </>
               )}
             </button>

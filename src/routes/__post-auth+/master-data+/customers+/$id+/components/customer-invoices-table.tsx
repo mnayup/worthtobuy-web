@@ -101,14 +101,16 @@ export function CustomerInvoicesTable({
                   onClick={() => navigate(`/invoices/${invoice.id}`)}
                 >
                   <td className="table-cell font-black text-brand-900">
-                    {invoice.invoiceNumber}
+                    {invoice.invoice_number || invoice.invoiceNumber}
                   </td>
-                  <td className="table-cell">{date(invoice.invoiceDate)}</td>
+                  <td className="table-cell">
+                    {date(invoice.invoice_date || invoice.invoiceDate)}
+                  </td>
                   <td className="table-cell font-bold text-brand-900">
-                    {money(invoice.totalBill)}
+                    {money(invoice.total_bill ?? invoice.totalBill)}
                   </td>
                   <td className="table-cell font-semibold text-brand-700">
-                    {money(invoice.outstandingAmount)}
+                    {money(invoice.outstanding_amount ?? invoice.outstandingAmount)}
                   </td>
                   <td className="table-cell">
                     <StatusBadge value={invoice.status} />

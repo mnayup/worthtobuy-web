@@ -23,12 +23,13 @@ export function CustomerShipmentsCard({ shipments }: CustomerShipmentsCardProps)
             <div key={shipment.id} className="px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-black text-brand-900">
-                  {shipment.trackingNumber || 'No tracking yet'}
+                  {shipment.tracking_number || shipment.trackingNumber || 'No tracking yet'}
                 </p>
                 <StatusBadge value={shipment.status} />
               </div>
               <p className="mt-1 text-xs text-brand-500">
-                {shipment.courier} • {shipment.order?.orderNumber}
+                {shipment.courier} •{' '}
+                {shipment.order?.order_number || shipment.order?.orderNumber}
               </p>
             </div>
           ))

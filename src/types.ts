@@ -18,7 +18,25 @@ export type Option={label:string;value:string|number;[key:string]:any};
 export type FieldConfig={
   name:string;
   label:string;
-  type?:'text'|'number'|'currency'|'date'|'datetime-local'|'datetimerange'|'textarea'|'select'|'email'|'url'|'file'|'image'|'document'|'toggle'|'tel';
+  type?:
+    | 'text'
+    | 'number'
+    | 'currency'
+    | 'date'
+    | 'datetime-local'
+    | 'datetimerange'
+    | 'textarea'
+    | 'select'
+    | 'email'
+    | 'url'
+    | 'file'
+    | 'image'
+    | 'images'
+    | 'document'
+    | 'toggle'
+    | 'tel'
+    | 'tags'
+    | 'variant-quantities';
   fileType?:'image'|'document'|'all';
   entityType?:string;
   accept?:string;
@@ -31,8 +49,13 @@ export type FieldConfig={
   loadOptions?:(search:string, form?:Record<string,any>)=>Promise<Option[]>;
   dependsOn?:(form:Record<string,any>)=>boolean;
   max?:number | string | ((form:Record<string,any>)=>number | string | undefined);
-  disabled?:boolean | ((form:Record<string,any>)=>boolean);
-  onChange?:(value:any, option:Option|undefined, set:(field:string, value:any)=>void, form?:Record<string,any>)=>void;
+  disabled?: boolean | ((form: any) => boolean);
+  onChange?: (
+    value: any,
+    option: Option | undefined,
+    set: (field: string, value: any) => void,
+    form?: Record<string, any>
+  ) => void;
 };
 export type ColumnConfig={
   key:string;

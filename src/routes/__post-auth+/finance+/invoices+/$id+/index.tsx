@@ -98,6 +98,7 @@ export default function InvoiceDetailRoute() {
         updatingScheme={d.updatingScheme}
         setPreviewStage={d.setPreviewStage}
         updatePaymentScheme={d.updatePaymentScheme}
+        updateShippingCost={d.updateShippingCost}
         onOpenWhatsapp={() => d.setWhatsappOpen(true)}
         openPaymentWith={d.openPaymentWith}
       />

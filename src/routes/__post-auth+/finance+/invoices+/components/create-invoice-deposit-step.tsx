@@ -23,7 +23,7 @@ export function CreateInvoiceDepositStep({
   const maxDeposit = Math.min(availableDeposit, total);
 
   return (
-    <div className="mt-5 rounded-2xl border border-purple-200 bg-purple-50/50 p-4">
+    <div className="mb-5 rounded-2xl border border-purple-200 bg-purple-50/50 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
           <div
@@ -37,11 +37,11 @@ export function CreateInvoiceDepositStep({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-black uppercase tracking-wider text-purple-900">
-                Saldo Deposit Pelanggan
+                Step 3: Customer Deposit Balance (Saldo Deposit - Optional)
               </span>
               {depositLoading ? (
                 <span className="text-[11px] text-purple-500 animate-pulse">
-                  Memeriksa saldo...
+                  Checking balance...
                 </span>
               ) : (
                 <span
@@ -56,9 +56,9 @@ export function CreateInvoiceDepositStep({
             </div>
             <p className="mt-1 text-xs text-purple-700 leading-relaxed">
               {availableDeposit > 0
-                ? 'Pelanggan memiliki saldo dari refund sebelumnya. ' +
-                  'Kamu bisa menggunakannya untuk memotong tagihan invoice ini (opsional).'
-                : 'Pelanggan ini tidak memiliki saldo deposit aktif saat ini.'}
+                ? 'Customer has available credit balance from previous refunds. ' +
+                  'You can apply this to deduct from this invoice total (optional).'
+                : 'This customer has no active deposit balance at this time.'}
             </p>
           </div>
         </div>
@@ -77,7 +77,7 @@ export function CreateInvoiceDepositStep({
               onChange={(e) => onToggleDeposit(e.target.checked)}
             />
             <span className="text-xs font-extrabold text-purple-950">
-              Gunakan Deposit Pelanggan untuk Invoice Ini (Opsional)
+              Apply Customer Deposit to Deduct from This Invoice (Optional)
             </span>
           </label>
 
@@ -91,7 +91,7 @@ export function CreateInvoiceDepositStep({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1">
                   <label className="text-[11px] font-bold text-brand-600">
-                    Nominal Deposit Digunakan (Rp)
+                    Deposit Amount Used (Rp)
                   </label>
                   <input
                     type="number"
@@ -118,7 +118,7 @@ export function CreateInvoiceDepositStep({
                       'text-purple-700 border-purple-200 hover:bg-purple-50'
                     }
                   >
-                    Gunakan Maksimal ({money(maxDeposit)})
+                    Use Maximum ({money(maxDeposit)})
                   </button>
                 </div>
               </div>
@@ -130,11 +130,11 @@ export function CreateInvoiceDepositStep({
                 }
               >
                 <div className="flex justify-between text-brand-600">
-                  <span>Total Pesanan Terpilih:</span>
+                  <span>Selected Orders Total:</span>
                   <span className="font-bold">{money(total)}</span>
                 </div>
                 <div className="flex justify-between text-purple-800 font-bold">
-                  <span>Potongan Saldo Deposit:</span>
+                  <span>Deposit Deduction (Potongan Deposit):</span>
                   <span>- {money(depositAmount)}</span>
                 </div>
                 <div
@@ -143,7 +143,7 @@ export function CreateInvoiceDepositStep({
                     'border-t border-purple-200 pt-1'
                   }
                 >
-                  <span>Sisa Tagihan Bersih (Harus Dibayar):</span>
+                  <span>Net Bill to Pay (Tagihan Bersih):</span>
                   <span className="text-sm text-purple-950">
                     {money(Math.max(0, total - depositAmount))}
                   </span>

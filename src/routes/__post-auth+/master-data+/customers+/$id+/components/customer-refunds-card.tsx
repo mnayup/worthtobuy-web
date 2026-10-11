@@ -23,7 +23,9 @@ export function CustomerRefundsCard({ refunds }: CustomerRefundsCardProps) {
           refunds.map((refund: any) => (
             <div key={refund.id} className="px-5 py-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-black text-brand-900">{refund.refundNumber}</p>
+                <p className="font-black text-brand-900">
+                  {refund.refund_number || refund.refundNumber}
+                </p>
                 <p className="font-black text-brand-900">{money(refund.amount)}</p>
               </div>
               <div className="mt-1 flex items-center justify-between">

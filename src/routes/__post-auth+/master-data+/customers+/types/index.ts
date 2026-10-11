@@ -1,13 +1,17 @@
 export interface Customer {
   id: number;
-  customerCode: string;
-  fullName: string;
+  customerCode?: string;
+  customer_code?: string;
+  fullName?: string;
+  full_name?: string;
   whatsapp: string;
   email?: string;
   address?: string;
   city?: string;
   postalCode?: string;
+  postal_code?: string;
   socialUsername?: string;
+  social_username?: string;
   segment: 'REGULAR' | 'PRIORITY' | 'PROBLEM' | 'INACTIVE';
   status: 'active' | 'inactive';
   notes?: string;

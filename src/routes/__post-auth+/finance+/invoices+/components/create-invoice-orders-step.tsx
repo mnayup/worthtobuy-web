@@ -36,16 +36,30 @@ export function CreateInvoiceOrdersStep({
   onCustomerReset,
 }: CreateInvoiceOrdersStepProps) {
   return (
-    <>
+    <div className="mb-5">
+      <div className="mb-3">
+        <span className="text-xs font-black uppercase tracking-wider text-brand-700">
+          Step 1: Customer & Orders Selection
+        </span>
+        <p className="text-[11px] font-semibold text-brand-500">
+          Select customer, payment due date, and orders to combine into this invoice
+        </p>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label">Customer *</label>
           <SearchableSelect
             value={customerId}
-            options={customers.map((c) => ({
-              value: c.id,
-              label: `${c.customerCode} • ${c.fullName} • ${c.whatsapp}`,
-            }))}
+            options={customers.map((c) => {
+              const code = c.customer_code || c.customerCode || '';
+              const name = c.full_name || c.fullName || '';
+              const wa = c.whatsapp || c.phone || '';
+              const labelParts = [code, name, wa].filter(Boolean).join(' • ');
+              return {
+                value: c.id,
+                label: labelParts || `Customer #${c.id}`,
+              };
+            })}
             loadOptions={loadCustomerOptions}
             onChange={(value) => {
               setCustomerId(String(value));
@@ -146,25 +160,27 @@ export function CreateInvoiceOrdersStep({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-extrabold text-brand-900">
-                        {order.orderNumber}
+                        {order.order_number || order.orderNumber}
                       </p>
                       <span className="pill text-[11px] !py-0.5">
                         {order.period?.code}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-brand-500 font-medium">
-                      {date(order.orderDate)} •{' '}
+                      {date(order.order_date || order.orderDate)} •{' '}
                       {(order.items || [])
                         .map(
                           (item: any) =>
-                            item.product?.name || item.manualProductName
+                            item.product?.name ||
+                            item.manual_product_name ||
+                            item.manualProductName
                         )
                         .filter(Boolean)
                         .join(', ') || 'Manual order item'}
                     </p>
                   </div>
                   <p className="shrink-0 font-black text-brand-900">
-                    {money(order.totalBill)}
+                    {money(order.total_bill ?? order.totalBill ?? 0)}
                   </p>
                 </button>
               );
@@ -176,6 +192,6 @@ export function CreateInvoiceOrdersStep({
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -58,14 +58,14 @@ export function MobileInvoiceHeader({
             }
           >
             <Receipt size={10} className="text-cherry-400" />
-            <span>Digital Receipt & Tagihan</span>
+            <span>Digital Receipt & Billing</span>
           </div>
 
           <p className="mt-1 font-mono text-xs font-black text-brand-200 tracking-wide">
             {invoice.invoiceNumber}
           </p>
           <p className="text-[10px] font-medium text-brand-300">
-            Tgl: {dateTime(invoice.invoiceDate || invoice.createdAt)}
+            Date: {dateTime(invoice.invoiceDate || invoice.createdAt)}
           </p>
         </div>
 
@@ -82,13 +82,13 @@ export function MobileInvoiceHeader({
                   'px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-950'
                 }
               >
-                Tagihan Uang Muka (DP {invoice.dpPercent || 50}%)
+                Down Payment Bill (Tagihan DP {invoice.dpPercent || 50}%)
               </span>
               <p className="mt-1 text-2xl font-black text-amber-950 tracking-tight leading-none">
                 {money(dpAmount)}
               </p>
               <p className="mt-1 text-[10px] font-bold text-amber-800">
-                Sisa pelunasan nanti: {money(Math.max(0, totalBill - dpAmount))}
+                Settlement balance later: {money(Math.max(0, totalBill - dpAmount))}
               </p>
               <div
                 className={
@@ -98,7 +98,7 @@ export function MobileInvoiceHeader({
                 }
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />{' '}
-                Menunggu Pembayaran DP
+                Awaiting Down Payment (Menunggu DP)
               </div>
             </div>
           ) : activeDisplayMode === 'SETTLEMENT' ? (
@@ -113,13 +113,13 @@ export function MobileInvoiceHeader({
                   'px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-cherry-950'
                 }
               >
-                Tagihan Sisa Settlement
+                Remaining Settlement Bill
               </span>
               <p className="mt-1 text-2xl font-black text-cherry-950 tracking-tight leading-none">
                 {money(outstandingAmount)}
               </p>
               <p className="mt-1 text-[10px] font-bold text-cherry-800">
-                ✓ DP {money(paidAmount)} telah diterima sebelumnya
+                ✓ DP {money(paidAmount)} received previously
               </p>
               <div
                 className={
@@ -129,7 +129,7 @@ export function MobileInvoiceHeader({
                 }
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-cherry-600 animate-pulse" />{' '}
-                Menunggu Settlement
+                Awaiting Settlement (Menunggu Pelunasan)
               </div>
             </div>
           ) : activeDisplayMode === 'PAID' ? (
@@ -144,13 +144,13 @@ export function MobileInvoiceHeader({
                   'px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-950'
                 }
               >
-                Bukti Pembayaran Resmi (Receipt)
+                Official Payment Receipt (Bukti Pembayaran)
               </span>
               <p className="mt-1 text-2xl font-black text-emerald-950 tracking-tight leading-none">
-                PAID (PAID)
+                PAID IN FULL (LUNAS)
               </p>
               <p className="mt-1 text-[10px] font-bold text-emerald-800">
-                Total {money(paidAmount)} terverifikasi lunas
+                Total {money(paidAmount)} verified paid in full
               </p>
               <div
                 className={
@@ -159,7 +159,7 @@ export function MobileInvoiceHeader({
                   'text-emerald-950'
                 }
               >
-                <Check size={11} /> Terverifikasi Sah
+                <Check size={11} /> Officially Verified
               </div>
             </div>
           ) : (
@@ -174,13 +174,13 @@ export function MobileInvoiceHeader({
                   'text-[9px] font-black uppercase tracking-wider text-brand-900'
                 }
               >
-                Tagihan Pembayaran Penuh (100%)
+                Direct Full Payment Bill (100% Upfront)
               </span>
               <p className="mt-1 text-2xl font-black text-brand-950 tracking-tight leading-none">
                 {money(totalBill)}
               </p>
               <p className="mt-1 text-[10px] font-bold text-brand-700">
-                Jatuh tempo: {date(invoice.dueDate)}
+                Due date: {date(invoice.dueDate)}
               </p>
               <div
                 className={
@@ -190,7 +190,7 @@ export function MobileInvoiceHeader({
                 }
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-700 animate-pulse" />{' '}
-                Menunggu Pembayaran
+                Awaiting Payment (Menunggu Pembayaran)
               </div>
             </div>
           )}

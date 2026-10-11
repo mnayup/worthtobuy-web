@@ -7,7 +7,8 @@ import { titleCase } from '~/lib/format';
 import { useAuth } from '~/context/AuthContext';
 import type { FieldConfig, Option } from '~/types';
 
-const opts = (values: string[]): Option[] => values.map((value) => ({ value, label: titleCase(value) }));
+const opts = (values: string[]): Option[] =>
+  values.map((value) => ({ value, label: titleCase(value) }));
 
 export async function loader() {
   const response = await api.get('/customers?limit=100');
@@ -20,7 +21,13 @@ export default function CustomersRoute() {
 
   const fields: FieldConfig[] = [
     { name: 'fullName', label: 'Full name', required: true },
-    { name: 'whatsapp', label: 'WhatsApp number', type: 'tel', required: true, placeholder: 'e.g. 0812... or +62...' },
+    {
+      name: 'whatsapp',
+      label: 'WhatsApp number',
+      type: 'tel',
+      required: true,
+      placeholder: 'e.g. 0812... or +62...',
+    },
     { name: 'email', label: 'Email (optional)', type: 'email' },
     { name: 'socialUsername', label: 'Social media handle' },
     { name: 'address', label: 'Address', type: 'textarea', colSpan: 2 },
@@ -72,19 +79,35 @@ export default function CustomersRoute() {
         },
       ]}
       columns={[
-        { key: 'customerCode', label: 'Customer ID' },
-        { key: 'fullName', label: 'Full Name' },
+        {
+          key: 'customerCode',
+          label: 'Customer ID',
+          render: (row) => row.customer_code || row.customerCode,
+        },
+        {
+          key: 'fullName',
+          label: 'Full Name',
+          render: (row) => row.full_name || row.fullName,
+        },
         { key: 'whatsapp', label: 'WhatsApp' },
         { key: 'city', label: 'City' },
-        { key: 'segment', label: 'Segment', render: (row) => {
-          let segment = row.segment;
-          const orderCount = row._count?.orders || row.orders?.length || 0;
-          if (segment === 'REGULAR' && orderCount >= 24) {
-            segment = 'PRIORITY';
-          }
-          return <StatusBadge value={segment} />;
-        }},
-        { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status || 'inactive'} /> },
+        {
+          key: 'segment',
+          label: 'Segment',
+          render: (row) => {
+            let segment = row.segment;
+            const orderCount = row._count?.orders || row.orders?.length || 0;
+            if (segment === 'REGULAR' && orderCount >= 24) {
+              segment = 'PRIORITY';
+            }
+            return <StatusBadge value={segment} />;
+          },
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          render: (row) => <StatusBadge value={row.status || 'inactive'} />,
+        },
       ]}
       canDelete={user?.role === 'OWNER'}
       prepareSubmit={(form) => {
@@ -111,6 +134,9 @@ export default function CustomersRoute() {
         }
         return {
           ...row,
+          fullName: row.full_name || row.fullName,
+          socialUsername: row.social_username || row.socialUsername,
+          postalCode: row.postal_code || row.postalCode,
           segment,
           status: row.status === 'active',
         };

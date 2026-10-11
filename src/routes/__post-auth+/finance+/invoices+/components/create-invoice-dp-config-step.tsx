@@ -3,6 +3,8 @@ import { money } from '~/lib/format';
 interface CreateInvoiceDpConfigStepProps {
   billingModel: 'DP' | 'FULL_PAYMENT';
   total: number;
+  totalShipping?: number;
+  totalServiceFee?: number;
   dpPercent: number;
   setDpPercent: (pct: number) => void;
   dpAmount: number;
@@ -17,6 +19,8 @@ interface CreateInvoiceDpConfigStepProps {
 export function CreateInvoiceDpConfigStep({
   billingModel,
   total,
+  totalShipping = 0,
+  totalServiceFee = 0,
   dpPercent,
   setDpPercent,
   dpAmount,
@@ -28,23 +32,46 @@ export function CreateInvoiceDpConfigStep({
   setDpSettlementNote,
 }: CreateInvoiceDpConfigStepProps) {
   if (billingModel !== 'DP') {
+    const productSubtotal = Math.max(0, total - totalShipping - totalServiceFee);
     return (
-      <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 text-xs">
-        <div className="flex items-center gap-2 font-black text-emerald-900">
-          <span>✓ Direct Full Payment Scheme</span>
+      <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 text-xs">
+        <div className="flex items-center gap-2 font-black text-emerald-900 text-sm">
+          <span>✓ Step 5: Direct Full Payment Summary (100% Upfront)</span>
         </div>
         <p className="mt-1 text-emerald-800">
-          This invoice will bill the full order total of{' '}
-          <strong>{money(total)}</strong> upfront without a DP system.
+          This invoice will bill the entire order total upfront without a down payment scheme.
         </p>
+
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-xl bg-white p-3 border border-emerald-200 text-xs">
+          <div>
+            <span className="text-brand-500 text-[11px]">Product Subtotal:</span>
+            <p className="font-extrabold text-brand-900">{money(productSubtotal)}</p>
+          </div>
+          <div>
+            <span className="text-brand-500 text-[11px]">Service Fee (Jastip):</span>
+            <p className="font-extrabold text-cherry-700">{money(totalServiceFee)}</p>
+          </div>
+          <div>
+            <span className="text-brand-500 text-[11px]">Shipping Cost (Ongkir):</span>
+            <p className="font-extrabold text-sky-800">{money(totalShipping)}</p>
+          </div>
+          <div>
+            <span className="text-brand-500 text-[11px]">Total Bill (100%):</span>
+            <p className="font-black text-emerald-950 text-sm">{money(total)}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
+  const productSubtotal = Math.max(0, total - totalShipping - totalServiceFee);
+
   return (
-    <div className="mt-5 rounded-2xl border border-brand-200 bg-brand-50/50 p-4">
+    <div className="mb-5 rounded-2xl border border-brand-200 bg-brand-50/50 p-4">
       <div className="mb-3">
-        <p className="font-extrabold text-brand-900">Perhitungan Otomatis DP</p>
+        <p className="font-extrabold text-brand-900">
+          Step 5: Down Payment (DP) Calculation
+        </p>
         <p className="text-xs text-brand-500">
           Determine the percentage or down payment amount the customer must pay upfront.
         </p>
@@ -54,7 +81,7 @@ export function CreateInvoiceDpConfigStep({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-brand-700">Preset DP Percent:</span>
-            {[30, 50, 70].map((pct) => (
+            {[30, 50, 75].map((pct) => (
               <button
                 type="button"
                 key={pct}
@@ -106,7 +133,7 @@ export function CreateInvoiceDpConfigStep({
             />
           </div>
           <div>
-            <label className="label">DP Amount *</label>
+            <label className="label">DP Amount (Rp) *</label>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-brand-600">
                 Rp.
@@ -126,10 +153,25 @@ export function CreateInvoiceDpConfigStep({
           </div>
         </div>
 
-        <p className="text-[11px] text-brand-500">
-          Automatically calculated from the total order bill ({money(total)}) —
-          amount can still be adjusted manually.
-        </p>
+        {/* Breakdown Box */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-xl bg-white p-3 border border-brand-200 text-xs">
+          <div>
+            <span className="text-brand-500 text-[11px]">Product Subtotal:</span>
+            <p className="font-extrabold text-brand-900">{money(productSubtotal)}</p>
+          </div>
+          <div>
+            <span className="text-brand-500 text-[11px]">Service Fee (Jastip):</span>
+            <p className="font-extrabold text-cherry-700">{money(totalServiceFee)}</p>
+          </div>
+          <div>
+            <span className="text-brand-500 text-[11px]">Shipping Cost (Ongkir):</span>
+            <p className="font-extrabold text-sky-800">{money(totalShipping)}</p>
+          </div>
+          <div>
+            <span className="text-brand-500 text-[11px]">Total Order Value:</span>
+            <p className="font-black text-brand-950 text-sm">{money(total)}</p>
+          </div>
+        </div>
 
         {isManualDp && dpAmount !== calculatedDpFromPercent && (
           <div
@@ -160,11 +202,11 @@ export function CreateInvoiceDpConfigStep({
 
         <div className="grid grid-cols-2 gap-3 rounded-xl bg-white p-3 border border-brand-200/80 text-xs">
           <div>
-            <span className="text-brand-500">Current DP Bill:</span>
+            <span className="text-brand-500">Down Payment Bill (Tagihan DP):</span>
             <p className="text-sm font-black text-cherry-600">{money(dpAmount)}</p>
           </div>
           <div>
-            <span className="text-brand-500">Balance at Settlement:</span>
+            <span className="text-brand-500">Balance at Settlement (Sisa Pelunasan):</span>
             <p className="text-sm font-black text-brand-900">
               {money(Math.max(0, total - dpAmount))}
             </p>
@@ -172,7 +214,7 @@ export function CreateInvoiceDpConfigStep({
         </div>
 
         <div>
-          <label className="label">Remaining settled... (optional)</label>
+          <label className="label">Settlement Note (Catatan Pelunasan - optional)</label>
           <input
             type="text"
             className="input"
@@ -181,7 +223,7 @@ export function CreateInvoiceDpConfigStep({
             placeholder="when products are ready to ship"
           />
           <p className="mt-1 text-[11px] text-brand-400">
-            Text read by customers on invoices and WA messages, e.g.,
+            Text displayed on customer invoices and WhatsApp messages, e.g.,
             "when products arrive in Indonesia" or "when orders are ready to ship".
           </p>
         </div>

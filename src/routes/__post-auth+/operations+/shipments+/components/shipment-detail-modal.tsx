@@ -45,8 +45,9 @@ export function ShipmentDetailModal({
   const fullyPaid = isShipmentFullyPaid(shipment);
 
   const copyTracking = () => {
-    if (!shipment?.trackingNumber) return;
-    navigator.clipboard.writeText(shipment.trackingNumber);
+    const trackingNum = shipment?.tracking_number || shipment?.trackingNumber;
+    if (!trackingNum) return;
+    navigator.clipboard.writeText(trackingNum);
     setCopiedResi(true);
     setTimeout(() => setCopiedResi(false), 2000);
   };
@@ -72,10 +73,12 @@ export function ShipmentDetailModal({
 
   const cleanWaNumber = (shipment.customer?.whatsapp || '').replace(/[^0-9]/g, '');
   const waPrefix = cleanWaNumber.startsWith('0') ? `62${cleanWaNumber.slice(1)}` : cleanWaNumber;
+  const custName = shipment.customer?.full_name || shipment.customer?.fullName || '';
+  const orderNum = shipment.order?.order_number || shipment.order?.orderNumber || '';
   const waLink = cleanWaNumber
     ? `https://wa.me/${waPrefix}?text=Halo%20kak%20${encodeURIComponent(
-        shipment.customer?.fullName || ''
-      )}%2C%20update%20pengiriman%20pesanan%20${shipment.order?.orderNumber || ''}`
+        custName
+      )}%2C%20update%20pengiriman%20pesanan%20${orderNum}`
     : null;
 
   return createPortal(
@@ -194,7 +197,12 @@ export function ShipmentDetailModal({
           />
 
           {shipment.notes && (
-            <div className="rounded-2xl border border-brand-100 bg-brand-50/30 p-3.5 text-xs text-brand-700">
+            <div
+              className={
+                'rounded-2xl border border-brand-100 bg-brand-50/30 p-3.5 ' +
+                'text-xs text-brand-700'
+              }
+            >
               <span className="font-bold text-brand-900 block mb-1">Notes:</span>
               <p className="leading-relaxed whitespace-pre-wrap">{shipment.notes}</p>
             </div>

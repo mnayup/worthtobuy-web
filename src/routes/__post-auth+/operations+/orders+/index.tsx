@@ -29,28 +29,32 @@ export async function loader() {
         ? responseRows(periodsRes.value).map((row: any) => ({
             value: row.id,
             label: `${row.code} • ${row.name}`,
-            orderOpenAt: row.orderOpenAt,
-            orderCloseAt: row.orderCloseAt,
+            orderOpenAt: row.order_open_at || row.orderOpenAt,
+            orderCloseAt: row.order_close_at || row.orderCloseAt,
           }))
         : [],
     customers:
       customersRes.status === 'fulfilled'
         ? responseRows(customersRes.value).map((row: any) => ({
             value: row.id,
-            label: row.fullName,
+            label: row.full_name || row.fullName,
           }))
         : [],
     products:
       productsRes.status === 'fulfilled'
         ? responseRows(productsRes.value).map((row: any) => {
-            const isReady = ['READY_STOCK', 'BOTH'].includes(row.stockMode);
-            const stock = Math.max(0, (row.stockQuantity || 0) - (row.reservedQuantity || 0));
+            const mode = row.stock_mode || row.stockMode;
+            const isReady = ['READY_STOCK', 'BOTH'].includes(mode);
+            const stockQty = row.stock_quantity ?? row.stockQuantity ?? 0;
+            const resQty = row.reserved_quantity ?? row.reservedQuantity ?? 0;
+            const stock = Math.max(0, stockQty - resQty);
+            const price = Number(row.selling_price ?? row.sellingPrice ?? 0);
             return {
               value: row.id,
               label: `${row.sku} • ${row.name}${isReady ? ` • stock ${stock}` : ''}`,
               stock: isReady ? stock : undefined,
-              stockMode: row.stockMode,
-              price: Number(row.sellingPrice || 0),
+              stockMode: mode,
+              price,
             };
           })
         : [],
@@ -140,8 +144,8 @@ export default function OrdersRoute() {
         }
         columns={columns}
         canDelete={user?.role === 'OWNER'}
-        canEditRow={(row) => Number(row.paidAmount || 0) === 0}
-        canDeleteRow={(row) => Number(row.paidAmount || 0) === 0}
+        canEditRow={(row) => Number(row.paid_amount ?? row.paidAmount ?? 0) === 0}
+        canDeleteRow={(row) => Number(row.paid_amount ?? row.paidAmount ?? 0) === 0}
         renderActions={(row) => renderOrderActions(row, navigate, setInvoiceModal)}
         prepareInitial={prepareInitialOrder}
         prepareSubmit={prepareSubmitOrder}

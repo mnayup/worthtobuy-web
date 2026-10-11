@@ -3,7 +3,11 @@ import { StatusBadge } from '~/components/StatusBadge';
 import { api } from '~/lib/api';
 import { money, number } from '~/lib/format';
 import { useAuth } from '~/context/AuthContext';
-import type { FieldConfig } from '~/types';
+import {
+  getProductFields,
+  prepareProductSubmit,
+  prepareProductInitial,
+} from './helpers/product-form-fields.helper';
 
 export async function loader() {
   const response = await api.get('/products?limit=100');
@@ -12,51 +16,19 @@ export async function loader() {
 
 export default function ProductsRoute() {
   const { user } = useAuth();
-  const fields: FieldConfig[] = [
-    { name: 'sku', label: 'SKU' },
-    { name: 'name', label: 'Product name', required: true },
-    { name: 'category', label: 'Category' },
-    { name: 'brandName', label: 'Brand' },
-    { name: 'storeLocation', label: 'Store location / tenant' },
-    {
-      name: 'stockMode',
-      label: 'Product type',
-      type: 'select',
-      options: [
-        { value: 'EVENT', label: 'Event Product' },
-        { value: 'READY_STOCK', label: 'Ready Stock' },
-      ],
-      defaultValue: 'EVENT',
-      required: true,
-    },
-    {
-      name: 'periodId',
-      label: 'Event',
-      type: 'select',
-      searchable: true,
-      loadOptions: async (search) => {
-        const res = await api.get(`/periods?search=${search}&limit=50&status=OPEN`);
-        return res.data.data.map((p: any) => ({ label: p.name, value: p.id }));
-      },
-      dependsOn: (form) => form.stockMode === 'EVENT',
-      required: true,
-    },
-    { name: 'stockQuantity', label: 'Physical stock', type: 'number', defaultValue: 0, dependsOn: (form) => form.stockMode === 'READY_STOCK' },
-    { name: 'buyPrice', label: 'Buy price', type: 'currency', defaultValue: 0 },
-    { name: 'sellingPrice', label: 'Selling price', type: 'currency', defaultValue: 0 },
-    { name: 'productUrl', label: 'Product link', type: 'url', colSpan: 2, placeholder: 'https://store-link.com/item' },
-    { name: 'imageUrl', label: 'Product Photo / Image', type: 'image', entityType: 'products', fileType: 'image', colSpan: 2 },
-    { name: 'notes', label: 'Notes', type: 'textarea', colSpan: 2 },
-  ];
+  const fields = getProductFields();
 
   return (
     <CrudPage
       title="Products & Catalog"
       entityName="Product"
-      description="Curated product database for events and ready stock inventory. Available stock automatically adjusts for reserved orders."
+      description={
+        'Curated product database for events and ready stock inventory. ' +
+        'Available stock automatically adjusts for reserved orders.'
+      }
       endpoint="/products"
       fields={fields}
-      searchPlaceholder="Search product name, SKU, brand, tenant location..."
+      searchPlaceholder="Search product name, SKU, brand, variant, size, tenant location..."
       filters={[
         {
           key: 'stockMode',
@@ -86,62 +58,133 @@ export default function ProductsRoute() {
         {
           key: 'imageUrl',
           label: 'Photo',
-          render: (row) => (
-            <img src={row.imageUrl || 'https://placehold.co/48'} className="h-10 w-10 rounded-xl object-cover" alt="" />
-          ),
+          render: (row) => {
+            const raw = row.image_urls || row.imageUrls;
+            const imgs = Array.isArray(raw) && raw.length > 0
+              ? raw
+              : row.image_url || row.imageUrl
+              ? [row.image_url || row.imageUrl]
+              : [];
+            const primary = imgs[0] || row.image_url || row.imageUrl;
+            return (
+              <div className="relative inline-block">
+                <img
+                  src={primary || 'https://placehold.co/48'}
+                  className="h-10 w-10 rounded-xl object-cover border border-brand-100"
+                  alt=""
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/48';
+                  }}
+                />
+                {imgs.length > 1 && (
+                  <span
+                    className={
+                      'absolute -bottom-1 -right-1 rounded-full bg-brand-900/85 ' +
+                      'px-1 py-0.2 text-[9px] font-bold text-white shadow-xs'
+                    }
+                  >
+                    +{imgs.length - 1}
+                  </span>
+                )}
+              </div>
+            );
+          },
         },
         { key: 'sku', label: 'SKU' },
-        { key: 'name', label: 'Product' },
-        { key: 'brandName', label: 'Brand' },
-        { key: 'stockMode', label: 'Type', render: (row) => <StatusBadge value={row.stockMode} /> },
+        {
+          key: 'name',
+          label: 'Product',
+          render: (row) => {
+            const variant = row.variant || row.variation;
+            const size = row.size;
+            return (
+              <div className="flex flex-col max-w-[220px]">
+                <span className="font-semibold text-brand-900 truncate">{row.name}</span>
+                {(variant || size) && (
+                  <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                    {variant && (
+                      <span
+                        className={
+                          'rounded-md bg-brand-50 border border-brand-200 ' +
+                          'px-1.5 py-0.2 text-[10px] font-semibold text-brand-700'
+                        }
+                      >
+                        {variant}
+                      </span>
+                    )}
+                    {size && (
+                      <span
+                        className={
+                          'rounded-md bg-amber-50 border border-amber-200 ' +
+                          'px-1.5 py-0.2 text-[10px] font-semibold text-amber-700'
+                        }
+                      >
+                        Size: {size}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          },
+        },
+        {
+          key: 'brandName',
+          label: 'Brand',
+          render: (row) => row.brand_name || row.brandName || '-',
+        },
+        {
+          key: 'stockMode',
+          label: 'Type',
+          render: (row) => <StatusBadge value={row.stock_mode || row.stockMode} />,
+        },
         {
           key: 'stockQuantity',
           label: 'Stock',
-          render: (row) => (
-            <div>
-              <strong>{number(row.stockQuantity)}</strong>
-              <p className="text-[11px] text-brand-400">Reserved {number(row.reservedQuantity)}</p>
-            </div>
-          ),
+          render: (row) => {
+            const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
+            const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
+            return (
+              <div>
+                <strong>{number(qty)}</strong>
+                <p className="text-[11px] text-brand-400">Reserved {number(reserved)}</p>
+              </div>
+            );
+          },
         },
         {
           key: 'availableStock',
           label: 'Available',
-          render: (row) => (
-            <strong
-              className={
-                Number(row.stockQuantity) - Number(row.reservedQuantity) <= Number(row.lowStockThreshold)
-                  ? 'text-cherry-600'
-                  : 'text-emerald-600'
-              }
-            >
-              {number(Math.max(0, Number(row.stockQuantity) - Number(row.reservedQuantity)))}
-            </strong>
-          ),
+          render: (row) => {
+            const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
+            const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
+            const low = row.low_stock_threshold ?? row.lowStockThreshold ?? 0;
+            const avail = Math.max(0, Number(qty) - Number(reserved));
+            return (
+              <strong className={avail <= Number(low) ? 'text-cherry-600' : 'text-emerald-600'}>
+                {number(avail)}
+              </strong>
+            );
+          },
         },
-        { key: 'buyPrice', label: 'Buy Price', render: (row) => money(row.buyPrice || 0) },
-        { key: 'sellingPrice', label: 'Selling Price', render: (row) => money(row.sellingPrice) },
+        {
+          key: 'buyPrice',
+          label: 'Buy Price',
+          render: (row) => money(row.buy_price ?? row.buyPrice ?? 0),
+        },
+        {
+          key: 'sellingPrice',
+          label: 'Selling Price',
+          render: (row) => money(row.selling_price ?? row.sellingPrice ?? 0),
+        },
       ]}
       canDelete={user?.role === 'OWNER' || user?.role === 'ADMIN'}
       importConfig={{
         entityType: 'products',
         sampleFileName: 'products-template.xlsx',
       }}
-      prepareSubmit={(form) => {
-        const { periodId_option, stockMode_option, ...rest } = form;
-        return {
-          ...rest,
-          stockMode: form.stockMode || 'EVENT',
-          periodId: form.stockMode === 'EVENT' && form.periodId ? Number(form.periodId) : null,
-          buyPrice: Number(form.buyPrice || 0),
-          sellingPrice: Number(form.sellingPrice || 0),
-          stockQuantity: form.stockMode === 'READY_STOCK' ? Number(form.stockQuantity || 0) : 0,
-        };
-      }}
-      prepareInitial={(row) => ({
-        ...row,
-        periodId: row.periodId ? String(row.periodId) : '',
-      })}
+      prepareSubmit={prepareProductSubmit}
+      prepareInitial={prepareProductInitial}
     />
   );
 }

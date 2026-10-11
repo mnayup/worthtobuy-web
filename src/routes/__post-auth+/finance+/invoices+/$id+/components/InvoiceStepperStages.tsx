@@ -136,7 +136,7 @@ export function InvoiceStepperStages({
               step={3}
               title="Stage 3: Official Receipt"
               subtitle="Official Payment Proof"
-              statusLabel={currentStage === 'PAID' ? '✓ Paid in Full' : 'Belum Completed'}
+              statusLabel={currentStage === 'PAID' ? '✓ Paid in Full' : 'Pending (Belum Selesai)'}
               statusType={currentStage === 'PAID' ? 'success' : 'muted'}
               isActive={activeDisplayMode === 'PAID'}
               isCompleted={currentStage === 'PAID'}
@@ -152,7 +152,7 @@ export function InvoiceStepperStages({
               subtitle={`Total: ${money(totalBill)}`}
               statusLabel={
                 currentStage === 'PAID'
-                  ? '✓ Diterima Paid in Full'
+                  ? '✓ Paid in Full (Lunas)'
                   : '● Awaiting Payment'
               }
               statusType={currentStage === 'PAID' ? 'success' : 'warning'}
@@ -164,9 +164,9 @@ export function InvoiceStepperStages({
 
             <StageCard
               step={2}
-              title="Tahap 2: Kuitansi Paid in Full"
+              title="Stage 2: Official Receipt (Kuitansi Lunas)"
               subtitle="Official Payment Proof"
-              statusLabel={currentStage === 'PAID' ? '✓ Paid in Full' : 'Belum Completed'}
+              statusLabel={currentStage === 'PAID' ? '✓ Paid in Full' : 'Pending (Belum Selesai)'}
               statusType={currentStage === 'PAID' ? 'success' : 'muted'}
               isActive={activeDisplayMode === 'PAID'}
               isCompleted={currentStage === 'PAID'}

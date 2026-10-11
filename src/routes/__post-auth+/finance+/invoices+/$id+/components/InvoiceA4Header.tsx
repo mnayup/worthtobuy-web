@@ -22,7 +22,7 @@ export function InvoiceA4Header({
       : activeDisplayMode === 'SETTLEMENT'
         ? 'Settlement Bill'
         : activeDisplayMode === 'PAID'
-          ? 'Bukti Pembayaran Paid in Full (Official Receipt)'
+          ? 'Official Payment Receipt (Bukti Pembayaran Lunas)'
           : activeDisplayMode === 'REKAP'
             ? 'Consolidated Invoice (Master Ledger)'
             : 'Invoice Bill';
@@ -109,21 +109,26 @@ export function InvoiceA4Header({
         </div>
       </header>
 
-      <div className="grid gap-4 border-b border-brand-200 pb-3 sm:grid-cols-2 text-xs">
+      <div
+        className={
+          'grid gap-4 border-b border-brand-200 bg-white px-6 py-4 sm:px-8 ' +
+          'sm:grid-cols-2 text-xs'
+        }
+      >
         <div>
           <p className="text-[10px] font-black uppercase text-brand-500 tracking-wider">
             Billed To
           </p>
           <p className="text-base font-black text-brand-950 mt-0.5">
-            {invoice.customer?.fullName}
+            {invoice.customer?.fullName || invoice.customer?.full_name || '-'}
           </p>
           <p className="mt-1 text-xs leading-relaxed text-brand-700">
-            {invoice.customer?.whatsapp}
+            {invoice.customer?.whatsapp || '-'}
             {invoice.customer?.email ? ` • ${invoice.customer.email}` : ''}
             <br />
             {invoice.customer?.address || ''}
             {invoice.customer?.city ? `, ${invoice.customer.city}` : ''}{' '}
-            {invoice.customer?.postalCode || ''}
+            {invoice.customer?.postalCode || invoice.customer?.postal_code || ''}
           </p>
         </div>
         <div className="sm:text-right">

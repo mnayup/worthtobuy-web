@@ -53,7 +53,7 @@ export function InvoiceA4StageBanner({
           }
         >
           <p className="text-[9px] font-extrabold uppercase tracking-wider text-amber-800">
-            DP Amount Harus Dibayar
+            Down Payment Due (Tagihan DP)
           </p>
           <p className="text-lg font-black text-amber-950 leading-tight">
             {money(dpAmount)}
@@ -131,7 +131,7 @@ export function InvoiceA4StageBanner({
           </div>
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-emerald-950">
-              Kuitansi Sah Pembayaran Paid in Full (Official Receipt)
+              Official Payment Receipt (Kuitansi Lunas)
             </p>
             <p className="text-[11px] text-emerald-900 font-medium mt-0.5">
               Order fully paid amounting to <strong>{money(paidAmount)}</strong>.

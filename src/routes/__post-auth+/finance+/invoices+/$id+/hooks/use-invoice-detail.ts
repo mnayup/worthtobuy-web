@@ -65,22 +65,49 @@ export function useInvoiceDetail(id?: string) {
     setUpdatingScheme(true);
     try {
       const payload: any = { billingModel: model };
+      const currentTotal = Number(invoice.total_bill ?? invoice.totalBill ?? 0);
       if (model === 'DP') {
-        const pct = percent || invoice.dpPercent || 50;
+        const pct = percent || invoice.dp_percent || invoice.dpPercent || 50;
         payload.dpPercent = pct;
-        payload.dpAmount = Math.round((Number(invoice.totalBill || 0) * pct) / 100);
+        payload.dpAmount = Math.round((currentTotal * pct) / 100);
         payload.dpSettlementNote =
-          invoice.dpSettlementNote || 'when products are ready to ship';
+          invoice.dp_settlement_note || invoice.dpSettlementNote || 'when products are ready to ship';
       } else {
         payload.dpPercent = null;
         payload.dpAmount = null;
       }
 
-      setInvoice((prev: any) => ({ ...prev, ...payload }));
+      setInvoice((prev: any) => ({
+        ...prev,
+        ...payload,
+        dp_percent: payload.dpPercent,
+        dp_amount: payload.dpAmount,
+        dp_settlement_note: payload.dpSettlementNote,
+      }));
       await api.put(`/invoices/${invoice.id}`, payload);
     } catch (caught) {
       setToast({ message: errorMessage(caught), type: 'error' });
       load();
+    } finally {
+      setUpdatingScheme(false);
+    }
+  }
+
+  async function updateShippingCost(orderId: number, shippingCost: number) {
+    if (!invoice) return;
+    setUpdatingScheme(true);
+    try {
+      await api.put(`/orders/${orderId}`, {
+        customerShipping: shippingCost,
+        customer_shipping: shippingCost,
+      });
+      setToast({
+        message: 'Estimated shipping cost updated successfully.',
+        type: 'success',
+      });
+      await load();
+    } catch (caught) {
+      setToast({ message: errorMessage(caught), type: 'error' });
     } finally {
       setUpdatingScheme(false);
     }
@@ -104,9 +131,7 @@ export function useInvoiceDetail(id?: string) {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, [id]);
+  useEffect(() => { load(); }, [id]);
 
   const sortedPayments = useMemo(() => {
     if (!invoice?.payments) return [];
@@ -115,10 +140,10 @@ export function useInvoiceDetail(id?: string) {
     const factor = paymentSortDir === 'asc' ? 1 : -1;
     return list.sort((a, b) => {
       if (paymentSortCol === 'date') {
-        return (new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()) * factor;
+        return (new Date(a.payment_date || a.paymentDate).getTime() - new Date(b.payment_date || b.paymentDate).getTime()) * factor;
       }
       if (paymentSortCol === 'method') {
-        return String(a.method || '').localeCompare(String(b.method || '')) * factor;
+        return String(a.payment_method || a.method || '').localeCompare(String(b.payment_method || b.method || '')) * factor;
       }
       if (paymentSortCol === 'amount') {
         return (Number(a.amount || 0) - Number(b.amount || 0)) * factor;
@@ -137,7 +162,7 @@ export function useInvoiceDetail(id?: string) {
     const factor = refundSortDir === 'asc' ? 1 : -1;
     return list.sort((a, b) => {
       if (refundSortCol === 'number') {
-        return String(a.refundNumber || '').localeCompare(String(b.refundNumber || '')) * factor;
+        return String(a.refund_number || a.refundNumber || '').localeCompare(String(b.refund_number || b.refundNumber || '')) * factor;
       }
       if (refundSortCol === 'reason') {
         return String(a.reason || '').localeCompare(String(b.reason || '')) * factor;
@@ -153,14 +178,18 @@ export function useInvoiceDetail(id?: string) {
   }, [invoice?.refunds, refundSortCol, refundSortDir]);
 
   const isDpScheme =
-    invoice?.billingModel === 'DP' ||
-    (invoice?.dpAmount && Number(invoice?.dpAmount) > 0);
-  const totalBill = Number(invoice?.totalBill || 0);
-  const paidAmount = Number(invoice?.paidAmount || 0);
-  const outstandingAmount = Number(invoice?.outstandingAmount || 0);
-  const dpAmount = Number(
-    invoice?.dpAmount || Math.round(totalBill * ((invoice?.dpPercent || 50) / 100))
-  );
+    invoice?.billingModel === 'DP' || invoice?.billing_model === 'DP' ||
+    Number(invoice?.dpAmount ?? invoice?.dp_amount ?? 0) > 0;
+  const totalBill = Number(invoice?.totalBill ?? invoice?.total_bill ?? 0);
+  const paidAmount = Number(invoice?.paidAmount ?? invoice?.paid_amount ?? 0);
+  const outstandingAmount = Number(invoice?.outstandingAmount ?? invoice?.outstanding_amount ?? 0);
+  const rawDpAmount = Number(invoice?.dpAmount ?? invoice?.dp_amount ?? 0);
+  const dpPercentValue = Number(invoice?.dpPercent ?? invoice?.dp_percent ?? 50);
+  const dpAmount = isDpScheme
+    ? rawDpAmount > 0 && !invoice?.dp_percent && !invoice?.dpPercent
+      ? rawDpAmount
+      : Math.round((totalBill * dpPercentValue) / 100)
+    : 0;
 
   const currentStage: 'DP' | 'SETTLEMENT' | 'PAID' | 'FULL_UNPAID' = useMemo(() => {
     if (!invoice) return 'FULL_UNPAID';
@@ -182,9 +211,9 @@ export function useInvoiceDetail(id?: string) {
 
   const paymentsChronological = useMemo(() => {
     return [...(invoice?.payments || [])].sort((left: any, right: any) => {
-      const diff =
-        new Date(left.paymentDate).getTime() - new Date(right.paymentDate).getTime();
-      return diff || Number(left.id || 0) - Number(right.id || 0);
+      const leftDate = new Date(left.payment_date || left.paymentDate).getTime();
+      const rightDate = new Date(right.payment_date || right.paymentDate).getTime();
+      return leftDate - rightDate || Number(left.id || 0) - Number(right.id || 0);
     });
   }, [invoice?.payments]);
 
@@ -220,49 +249,17 @@ export function useInvoiceDetail(id?: string) {
   }
 
   return {
-    invoice,
-    settings,
-    loading,
-    error,
-    updatingScheme,
-    paymentOpen,
-    setPaymentOpen,
-    whatsappOpen,
-    setWhatsappOpen,
-    depositModalOpen,
-    setDepositModalOpen,
-    deleteOpen,
-    setDeleteOpen,
-    deleteSaving,
-    toast,
-    setToast,
-    paymentSortCol,
-    paymentSortDir,
-    handleSortPayment,
-    refundSortCol,
-    refundSortDir,
-    handleSortRefund,
-    previewStage,
-    setPreviewStage,
-    printFormat,
-    setPrintFormat,
-    paymentInitialAmount,
-    setPaymentInitialAmount,
-    paymentInitialNotes,
-    setPaymentInitialNotes,
-    openPaymentWith,
-    updatePaymentScheme,
-    load,
-    sortedPayments,
-    sortedRefunds,
-    isDpScheme,
-    totalBill,
-    paidAmount,
-    outstandingAmount,
-    dpAmount,
-    currentStage,
-    activeDisplayMode,
-    paymentsChronological,
+    invoice, settings, loading, error, updatingScheme,
+    paymentOpen, setPaymentOpen, whatsappOpen, setWhatsappOpen,
+    depositModalOpen, setDepositModalOpen, deleteOpen, setDeleteOpen,
+    deleteSaving, toast, setToast, paymentSortCol, paymentSortDir,
+    handleSortPayment, refundSortCol, refundSortDir, handleSortRefund,
+    previewStage, setPreviewStage, printFormat, setPrintFormat,
+    paymentInitialAmount, setPaymentInitialAmount, paymentInitialNotes,
+    setPaymentInitialNotes, openPaymentWith, updatePaymentScheme,
+    updateShippingCost, load, sortedPayments, sortedRefunds,
+    isDpScheme, totalBill, paidAmount, outstandingAmount,
+    dpAmount, currentStage, activeDisplayMode, paymentsChronological,
     removeInvoice,
   };
 }

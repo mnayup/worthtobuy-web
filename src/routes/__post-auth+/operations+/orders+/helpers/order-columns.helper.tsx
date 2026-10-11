@@ -6,11 +6,15 @@ import { StatusBadge } from '~/components/StatusBadge';
 
 export function getOrderColumns() {
   return [
-    { key: 'orderNumber', label: 'Order Number' },
+    {
+      key: 'orderNumber',
+      label: 'Order Number',
+      render: (row: any) => row.order_number || row.orderNumber,
+    },
     {
       key: 'customer',
       label: 'Customer',
-      render: (row: any) => row.customer?.fullName,
+      render: (row: any) => row.customer?.full_name || row.customer?.fullName,
     },
     {
       key: 'period',
@@ -27,22 +31,53 @@ export function getOrderColumns() {
     },
     {
       key: 'item',
-      label: 'Items',
-      render: (row: any) =>
-        row.items?.[0]?.product?.name || row.items?.[0]?.manualProductName || '-',
+      label: 'Items & Variants',
+      render: (row: any) => {
+        const items = row.items || [];
+        if (items.length === 0) return '-';
+        const totalPcs = items.reduce(
+          (sum: number, it: any) => sum + Number(it.quantity || 1),
+          0
+        );
+        const first = items[0];
+        const name =
+          first.product?.name ||
+          first.manual_product_name ||
+          first.manualProductName ||
+          'Product';
+        const variantSummary = [
+          first.variation || first.variant,
+          first.size ? `Sz ${first.size}` : null,
+        ]
+          .filter(Boolean)
+          .join(' / ');
+        const extraCount = items.length - 1;
+
+        return (
+          <div className="flex flex-col text-xs leading-relaxed">
+            <span className="font-bold text-brand-900">{name}</span>
+            <span className="text-brand-500 font-medium">
+              <span className="font-bold text-cherry-600">{totalPcs} pcs</span>
+              {variantSummary ? ` • ${variantSummary}` : ''}
+              {extraCount > 0 ? ` (+${extraCount} more)` : ''}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'feeMode',
       label: 'Fee Mode',
       render: (row: any) => {
-        if (row.serviceFeeMode === 'AUTO_RESELLER') {
+        const mode = row.service_fee_mode || row.serviceFeeMode;
+        if (mode === 'AUTO_RESELLER') {
           return (
             <span className="pill bg-indigo-50 text-indigo-700 border border-indigo-200">
               Auto (Reseller)
             </span>
           );
         }
-        if (row.serviceFeeMode === 'AUTO' || row.serviceFeeMode === 'AUTO_CUSTOMER') {
+        if (mode === 'AUTO' || mode === 'AUTO_CUSTOMER') {
           return (
             <span className="pill bg-cherry-50 text-cherry-700 border border-cherry-200">
               Auto (Customer)
@@ -59,22 +94,25 @@ export function getOrderColumns() {
     {
       key: 'totalBill',
       label: 'Total',
-      render: (row: any) => <strong>{money(row.totalBill)}</strong>,
+      render: (row: any) => <strong>{money(row.total_bill ?? row.totalBill ?? 0)}</strong>,
     },
     {
       key: 'outstandingAmount',
       label: 'Balance',
-      render: (row: any) => (
-        <span
-          className={
-            Number(row.outstandingAmount) > 0
-              ? 'font-semibold text-cherry-600'
-              : 'text-emerald-600 font-semibold'
-          }
-        >
-          {money(row.outstandingAmount)}
-        </span>
-      ),
+      render: (row: any) => {
+        const balance = Number(row.outstanding_amount ?? row.outstandingAmount ?? 0);
+        return (
+          <span
+            className={
+              balance > 0
+                ? 'font-semibold text-cherry-600'
+                : 'text-emerald-600 font-semibold'
+            }
+          >
+            {money(balance)}
+          </span>
+        );
+      },
     },
     {
       key: 'status',
@@ -89,7 +127,10 @@ export function renderOrderActions(
   navigate: NavigateFunction,
   setInvoiceModal: (id: number) => void
 ) {
-  const invoiceId = row.invoiceLinks?.[0]?.invoiceId;
+  const invoiceId =
+    row.invoice_links?.[0]?.invoice_id ??
+    row.invoice_links?.[0]?.invoiceId ??
+    row.invoiceLinks?.[0]?.invoiceId;
   return (
     <div className="flex gap-1">
       <button

@@ -28,7 +28,7 @@ function InfoCard({
 
 export function InvoicesInfoCards({ total, invoices }: InvoicesInfoCardsProps) {
   const unpaidBalance = invoices.reduce(
-    (sum, row) => sum + Number(row.outstandingAmount || 0),
+    (sum, row) => sum + Number(row.outstandingAmount ?? row.outstanding_amount ?? 0),
     0
   );
   const refundsDueCount = invoices.filter(

@@ -49,7 +49,7 @@ export function ShipmentDetailLogistics({
 
         <div>
           <p className="font-black text-brand-900 text-sm">
-            {shipment.customer?.fullName || '-'}
+            {shipment.customer?.full_name || shipment.customer?.fullName || '-'}
           </p>
           <p className="text-xs text-brand-500 font-mono">
             {shipment.customer?.whatsapp || '-'}
@@ -87,13 +87,13 @@ export function ShipmentDetailLogistics({
                   'border-indigo-100 px-2 py-0.5 rounded-full ml-1'
                 }
               >
-                {shipment.serviceType || 'Regular (REG)'}
+                {shipment.service_type || shipment.serviceType || 'Regular (REG)'}
               </span>
             </p>
           </div>
         </div>
 
-        {shipment.trackingNumber ? (
+        {(shipment.tracking_number || shipment.trackingNumber) ? (
           <div
             className={
               'flex items-center justify-between rounded-xl bg-white ' +
@@ -103,7 +103,7 @@ export function ShipmentDetailLogistics({
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase text-brand-400">Nomor Resi</p>
               <p className="font-mono font-black text-brand-900 text-sm tracking-wider truncate">
-                {shipment.trackingNumber}
+                {shipment.tracking_number || shipment.trackingNumber}
               </p>
             </div>
             <button
@@ -111,7 +111,8 @@ export function ShipmentDetailLogistics({
               onClick={onCopyTracking}
               className={
                 'flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 ' +
-                'text-xs font-bold text-brand-700 hover:bg-brand-100 transition shrink-0 cursor-pointer'
+                'text-xs font-bold text-brand-700 hover:bg-brand-100 ' +
+                'transition shrink-0 cursor-pointer'
               }
               title="Copy Resi"
             >
@@ -120,7 +121,12 @@ export function ShipmentDetailLogistics({
             </button>
           </div>
         ) : (
-          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-2 text-xs text-amber-800 font-semibold">
+          <div
+            className={
+              'rounded-xl border border-amber-200 bg-amber-50/70 p-2 ' +
+              'text-xs text-amber-800 font-semibold'
+            }
+          >
             Tracking number not yet assigned. Pack the items first or click "Set Resi".
           </div>
         )}
@@ -133,11 +139,15 @@ export function ShipmentDetailLogistics({
         >
           <div>
             <span className="text-brand-400 block text-[10px]">Weight:</span>
-            <strong className="text-brand-900 font-bold">{shipment.weightKg || 0} kg</strong>
+            <strong className="text-brand-900 font-bold">
+              {shipment.weight_kg ?? shipment.weightKg ?? 0} kg
+            </strong>
           </div>
           <div>
             <span className="text-brand-400 block text-[10px]">Shipping Cost:</span>
-            <strong className="text-brand-900 font-bold">{money(shipment.shippingCost)}</strong>
+            <strong className="text-brand-900 font-bold">
+              {money(shipment.shipping_cost ?? shipment.shippingCost ?? 0)}
+            </strong>
           </div>
         </div>
       </div>

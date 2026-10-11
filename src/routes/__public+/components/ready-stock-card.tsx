@@ -11,14 +11,24 @@ const FALLBACK_IMAGE =
 
 export function ReadyStockCard({ prod, onSelectProduct }: ReadyStockCardProps) {
   const sellingPrice = prod.selling_price ?? prod.sellingPrice;
-  const imageUrl = prod.image_url ?? prod.imageUrl;
+  const rawImgs = prod.image_urls || prod.imageUrls;
+  const images = Array.isArray(rawImgs) && rawImgs.length > 0
+    ? rawImgs
+    : prod.image_url || prod.imageUrl
+    ? [prod.image_url || prod.imageUrl]
+    : [];
+  const imageUrl = images[0] || prod.image_url || prod.imageUrl;
   const brandName = prod.brand_name ?? prod.brandName;
   const stockQuantity = prod.stock_quantity ?? prod.stockQuantity;
+  const variant = prod.variant ?? prod.variation;
+  const size = prod.size;
 
   const waUrl =
     'https://wa.me/6281234567890?text=' +
     encodeURIComponent(
       `Halo Admin Worthtobuy, saya mau pesan Ready Stock: *${prod.name}* ` +
+        (variant ? `(Variant: ${variant}) ` : '') +
+        (size ? `(Size: ${size}) ` : '') +
         `(SKU: ${prod.sku}) seharga ${money(sellingPrice)}. Apakah masih tersedia?`
     );
 
@@ -45,7 +55,7 @@ export function ReadyStockCard({ prod, onSelectProduct }: ReadyStockCardProps) {
             }
             loading="lazy"
           />
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
             <span
               className={
                 'rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] ' +
@@ -54,6 +64,16 @@ export function ReadyStockCard({ prod, onSelectProduct }: ReadyStockCardProps) {
             >
               {brandName || 'Brand'}
             </span>
+            {variant && (
+              <span
+                className={
+                  'rounded-full bg-brand-900/75 px-2 py-0.5 text-[9px] ' +
+                  'font-bold text-white backdrop-blur-xs'
+                }
+              >
+                {variant}
+              </span>
+            )}
           </div>
 
           <div className="absolute top-3 right-3">
@@ -66,6 +86,19 @@ export function ReadyStockCard({ prod, onSelectProduct }: ReadyStockCardProps) {
               Ready {stockQuantity} pcs
             </span>
           </div>
+
+          {images.length > 1 && (
+            <div className="absolute bottom-2.5 right-2.5">
+              <span
+                className={
+                  'rounded-full bg-slate-900/70 px-2 py-0.5 text-[9px] ' +
+                  'font-bold text-white backdrop-blur-xs'
+                }
+              >
+                +{images.length - 1} photos
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="p-5">
@@ -81,6 +114,11 @@ export function ReadyStockCard({ prod, onSelectProduct }: ReadyStockCardProps) {
           >
             {prod.name}
           </h3>
+          {size && (
+            <p className="mt-1 text-[11px] font-medium text-slate-500">
+              Size: <span className="text-slate-800 font-bold">{size}</span>
+            </p>
+          )}
           <p className="mt-3 text-lg font-black text-rose-600">
             {money(sellingPrice)}
           </p>

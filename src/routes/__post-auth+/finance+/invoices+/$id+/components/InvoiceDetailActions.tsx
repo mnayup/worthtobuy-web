@@ -79,7 +79,7 @@ export function InvoiceDetailActions({
               size={14}
               className={printFormat === 'MOBILE' ? 'text-cherry-600' : ''}
             />
-            Format Mobile (Struk)
+            Mobile Format (Receipt / Struk)
           </button>
         </div>
 
@@ -92,13 +92,13 @@ export function InvoiceDetailActions({
               ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 font-extrabold'
               : 'btn-secondary text-purple-700 hover:bg-purple-50'
           )}
-          title="Kelola potongan saldo deposit pelanggan untuk invoice ini"
+          title="Manage customer deposit balance deduction for this invoice"
         >
           <Wallet size={16} className="text-purple-600" />
           <span>
             {Number(invoice.depositAmount) > 0
               ? `Deposit: -${money(invoice.depositAmount)}`
-              : 'Gunakan Deposit'}
+              : 'Use Deposit (Gunakan Deposit)'}
           </span>
         </button>
 

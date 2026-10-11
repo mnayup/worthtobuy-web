@@ -22,17 +22,23 @@ export const loadPeriods = loadPaginatedOptions('/periods?status=OPEN', (row) =>
   value: row.id,
   label: `${row.code} • ${row.name}`,
   code: row.code,
-  orderOpenAt: row.orderOpenAt,
-  orderCloseAt: row.orderCloseAt,
+  orderOpenAt: row.orderOpenAt || row.order_open_at,
+  orderCloseAt: row.orderCloseAt || row.order_close_at,
 }));
 
-export const loadCustomers = loadPaginatedOptions('/customers', (row) => ({
-  value: row.id,
-  label:
-    `${row.customerCode} • ${row.fullName} • ${row.whatsapp}` +
-    (row.segment === 'PRIORITY' ? ' (VIP Priority)' : ''),
-  segment: row.segment,
-}));
+export const loadCustomers = loadPaginatedOptions('/customers', (row) => {
+  const code = row.customerCode || row.customer_code || '';
+  const name = row.fullName || row.full_name || row.name || '';
+  const wa = row.whatsapp || row.phone || '';
+  const labelParts = [code, name, wa].filter(Boolean).join(' • ');
+  const vip = row.segment === 'PRIORITY' ? ' (VIP Priority)' : '';
+  return {
+    value: row.id,
+    label: (labelParts || `Customer #${row.id}`) + vip,
+    segment: row.segment,
+    raw: row,
+  };
+});
 
 export const loadProducts = async (
   search: string,
@@ -44,14 +50,23 @@ export const loadProducts = async (
   else query.set('activePeriod', 'true');
   const response = await api.get(`/products?${query}`);
   const items = responseRows(response).map((row: any) => {
-    const isReady = ['READY_STOCK', 'BOTH'].includes(row.stockMode);
-    const availStock = Math.max(0, (row.stockQuantity || 0) - (row.reservedQuantity || 0));
+    const isReady = ['READY_STOCK', 'BOTH'].includes(row.stock_mode || row.stockMode);
+    const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
+    const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
+    const availStock = Math.max(0, qty - reserved);
+    const variant = row.variant || row.variation;
+    const size = row.size;
+    const details = [variant, size ? `Size: ${size}` : ''].filter(Boolean).join(' • ');
+    const detailSuffix = details ? ` (${details})` : '';
+    const stockSuffix = isReady ? ` • stock ${availStock}` : '';
+
     return {
       value: row.id,
-      label: `${row.sku} • ${row.name}${isReady ? ` • stock ${availStock}` : ''}`,
+      label: `${row.sku} • ${row.name}${detailSuffix}${stockSuffix}`,
       stock: isReady ? availStock : undefined,
-      stockMode: row.stockMode,
-      price: Number(row.sellingPrice || 0),
+      stockMode: row.stock_mode || row.stockMode,
+      price: Number(row.selling_price ?? row.sellingPrice ?? 0),
+      raw: row,
     };
   });
   return [

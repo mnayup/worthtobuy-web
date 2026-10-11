@@ -17,22 +17,24 @@ export function getShipmentColumns({
     {
       key: 'trackingNumber',
       label: 'Tracking # (Resi)',
-      render: (row: Shipment) =>
-        row.trackingNumber ? (
+      render: (row: Shipment) => {
+        const tracking = row.tracking_number || row.trackingNumber;
+        const service = row.service_type || row.serviceType;
+        return tracking ? (
           <div className="flex items-center gap-1.5">
             <div className="flex flex-col">
               <span className="font-mono font-black text-brand-900 text-xs tracking-wider">
-                {row.trackingNumber}
+                {tracking}
               </span>
               <span className="text-[10px] text-brand-500 font-semibold">
-                {row.courier || 'JNE'} {row.serviceType ? `• ${row.serviceType}` : ''}
+                {row.courier || 'JNE'} {service ? `• ${service}` : ''}
               </span>
             </div>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onCopy(row.id, row.trackingNumber!);
+                onCopy(row.id, tracking);
               }}
               className={
                 'rounded-lg p-1 text-brand-400 hover:bg-brand-100 ' +
@@ -57,7 +59,8 @@ export function getShipmentColumns({
             <AlertCircle size={12} />
             Awaiting Resi
           </span>
-        ),
+        );
+      },
     },
     {
       key: 'order',
@@ -65,10 +68,10 @@ export function getShipmentColumns({
       render: (row: Shipment) => (
         <div className="flex flex-col">
           <span className="font-bold text-brand-900 text-xs">
-            {row.order?.orderNumber || '-'}
+            {row.order?.order_number || row.order?.orderNumber || '-'}
           </span>
           <span className="text-xs text-brand-600 font-medium truncate max-w-[140px]">
-            {row.customer?.fullName || '-'}
+            {row.customer?.full_name || row.customer?.fullName || '-'}
           </span>
         </div>
       ),
@@ -90,10 +93,14 @@ export function getShipmentColumns({
             title={
               `Click to view checklist:\n` +
               items
-                .map(
-                  (it) =>
-                    `• ${it.quantity}x ${it.product?.name || it.manualProductName || 'Item'}`
-                )
+                .map((it) => {
+                  const name =
+                    it.product?.name ||
+                    it.manual_product_name ||
+                    it.manualProductName ||
+                    'Item';
+                  return `• ${it.quantity}x ${name}`;
+                })
                 .join('\n')
             }
           >
@@ -105,7 +112,10 @@ export function getShipmentColumns({
             >
               <Box size={13} className="text-amber-500 shrink-0" />
               <span className="truncate">
-                {items[0]?.product?.name || items[0]?.manualProductName || 'Item'}
+                {items[0]?.product?.name ||
+                  items[0]?.manual_product_name ||
+                  items[0]?.manualProductName ||
+                  'Item'}
               </span>
               {items.length > 1 && (
                 <span
@@ -144,18 +154,21 @@ export function getShipmentColumns({
     {
       key: 'weightKg',
       label: 'Weight',
-      render: (row: Shipment) => (
-        <span className="text-xs text-brand-700 font-medium">
-          {row.weightKg ? `${number(row.weightKg)} kg` : '-'}
-        </span>
-      ),
+      render: (row: Shipment) => {
+        const weight = row.weight_kg ?? row.weightKg;
+        return (
+          <span className="text-xs text-brand-700 font-medium">
+            {weight ? `${number(weight)} kg` : '-'}
+          </span>
+        );
+      },
     },
     {
       key: 'shippingCost',
       label: 'Shipping Fee',
       render: (row: Shipment) => (
         <span className="text-xs text-brand-900 font-semibold">
-          {money(row.shippingCost)}
+          {money(row.shipping_cost ?? row.shippingCost ?? 0)}
         </span>
       ),
     },
@@ -177,7 +190,9 @@ export function getShipmentColumns({
             </span>
           );
         }
-        const remaining = Number(row.order?.outstandingAmount || 0);
+        const remaining = Number(
+          row.order?.outstanding_amount ?? row.order?.outstandingAmount ?? 0
+        );
         return (
           <span
             className={

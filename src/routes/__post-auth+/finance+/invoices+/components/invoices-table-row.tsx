@@ -22,10 +22,9 @@ export function InvoicesTableRow({
 }: InvoicesTableRowProps) {
   const navigate = useNavigate();
 
-  const overdue =
-    invoice.dueDate &&
-    new Date(invoice.dueDate) < new Date() &&
-    Number(invoice.outstandingAmount) > 0;
+  const dueDate = invoice.dueDate || invoice.due_date;
+  const outstanding = Number(invoice.outstandingAmount ?? invoice.outstanding_amount ?? 0);
+  const overdue = dueDate && new Date(dueDate) < new Date() && outstanding > 0;
 
   const eventCodes = [
     ...new Set<string>(
@@ -35,9 +34,20 @@ export function InvoicesTableRow({
     ),
   ];
 
+  const totalBill = Number(invoice.totalBill ?? invoice.total_bill ?? 0);
+  const paidAmount = Number(invoice.paidAmount ?? invoice.paid_amount ?? 0);
+  const depositAmt = Number(invoice.depositAmount ?? invoice.deposit_amount ?? 0);
+  const dpAmt = Number(
+    invoice.dpAmount ?? invoice.dp_amount ?? Math.round(totalBill * 0.5)
+  );
+  const dpPct = invoice.dpPercent ?? invoice.dp_percent ?? 50;
+  const invNum = invoice.invoiceNumber || invoice.invoice_number;
+  const custName = invoice.customer?.fullName || invoice.customer?.full_name;
+
   const hasDp =
     invoice.billingModel === 'DP' ||
-    (invoice.dpAmount && Number(invoice.dpAmount) > 0);
+    invoice.billing_model === 'DP' ||
+    Number(invoice.dpAmount ?? invoice.dp_amount ?? 0) > 0;
 
   return (
     <tr
@@ -56,7 +66,7 @@ export function InvoicesTableRow({
               'h-4 w-4 cursor-pointer rounded border-brand-300 ' +
               'accent-cherry-500 transition focus:ring-2 focus:ring-cherry-400'
             }
-            aria-label={`Select invoice ${invoice.invoiceNumber}`}
+            aria-label={`Select invoice ${invNum}`}
             checked={isSelected}
             onChange={(e) => onToggle(e.target.checked)}
           />
@@ -65,7 +75,7 @@ export function InvoicesTableRow({
 
       <td className="table-cell">
         <div className="flex items-center gap-1.5">
-          <p className="font-extrabold text-brand-900">{invoice.invoiceNumber}</p>
+          <p className="font-extrabold text-brand-900">{invNum}</p>
           {hasDp && (
             <span
               className={
@@ -73,18 +83,18 @@ export function InvoicesTableRow({
                 'font-black text-amber-800'
               }
             >
-              DP {invoice.dpPercent || 50}%
+              DP {dpPct}%
             </span>
           )}
-          {Number(invoice.depositAmount) > 0 && (
+          {depositAmt > 0 && (
             <span
               className={
                 'rounded-md bg-purple-100 px-1.5 py-0.5 text-[10px] ' +
                 'font-black text-purple-800'
               }
-              title={`Potongan Saldo Deposit: ${money(invoice.depositAmount)}`}
+              title={`Deposit Deduction (Potongan Deposit): ${money(depositAmt)}`}
             >
-              Deposit: -{money(invoice.depositAmount)}
+              Deposit: -{money(depositAmt)}
             </span>
           )}
         </div>
@@ -94,7 +104,7 @@ export function InvoicesTableRow({
       </td>
 
       <td className="table-cell">
-        <p className="font-bold text-brand-800">{invoice.customer?.fullName}</p>
+        <p className="font-bold text-brand-800">{custName}</p>
         <p className="text-xs text-brand-400">{invoice.customer?.whatsapp}</p>
       </td>
 
@@ -113,25 +123,25 @@ export function InvoicesTableRow({
       </td>
 
       <td className="table-cell font-black text-brand-900">
-        {money(invoice.totalBill)}
+        {money(totalBill)}
       </td>
 
       <td className="table-cell">
-        <p className="font-bold text-emerald-600">{money(invoice.paidAmount)}</p>
-        {hasDp && Number(invoice.paidAmount || 0) === 0 ? (
+        <p className="font-bold text-emerald-600">{money(paidAmount)}</p>
+        {hasDp && paidAmount === 0 ? (
           <p className="text-xs font-bold text-amber-600">
-            Bill DP: {money(invoice.dpAmount || Math.round(Number(invoice.totalBill) * 0.5))}
+            Bill DP: {money(dpAmt)}
           </p>
         ) : (
           <p className="text-xs text-cherry-500 font-semibold">
-            Due: {money(invoice.outstandingAmount)}
+            Due: {money(outstanding)}
           </p>
         )}
       </td>
 
       <td className="table-cell">
         <p className={overdue ? 'font-black text-rose-600' : 'text-brand-700'}>
-          {date(invoice.dueDate)}
+          {date(dueDate)}
         </p>
         {overdue && <p className="text-[11px] font-bold text-rose-500">Overdue</p>}
       </td>

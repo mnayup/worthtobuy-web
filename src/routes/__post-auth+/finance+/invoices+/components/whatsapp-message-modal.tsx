@@ -95,15 +95,15 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Whatsa
                   setMessage(createInvoiceWhatsappTemplate({ invoice, templateType: val, billingModel, eventValue: selectedEvent }));
                 }}
               >
-                <option value="DP">Tagihan DP (Down Payment / Uang Muka)</option>
-                <option value="SETTLEMENT">Penagihan Pelunasan (Outstanding)</option>
-                <option value="FULL_PAYMENT">Konfirmasi Pembayaran Lunas</option>
-                <option value="BILLING">Tagihan Umum (Billing Statement)</option>
-                <option value="OVERDUE">Pengingat Lewat Jatuh Tempo (Overdue)</option>
-                <option value="PAYMENT_CONFIRMATION">Bukti Penerimaan Pembayaran</option>
-                <option value="UNAVAILABLE_ITEM">Pemberitahuan Barang Kosong</option>
-                <option value="READY_TO_SHIP">Barang Siap Dikirim (Ready to Ship)</option>
-                <option value="TRACKING">Informasi Ekspedisi & Nomor Resi</option>
+                <option value="DP">Down Payment Bill (Tagihan DP)</option>
+                <option value="SETTLEMENT">Settlement Billing (Tagihan Pelunasan)</option>
+                <option value="FULL_PAYMENT">Payment in Full Confirmation (Konfirmasi Lunas)</option>
+                <option value="BILLING">General Billing Statement (Tagihan Umum)</option>
+                <option value="OVERDUE">Overdue Reminder (Pengingat Jatuh Tempo)</option>
+                <option value="PAYMENT_CONFIRMATION">Payment Receipt Confirmation (Konfirmasi Pembayaran)</option>
+                <option value="UNAVAILABLE_ITEM">Unavailable Item Notice (Barang Kosong)</option>
+                <option value="READY_TO_SHIP">Ready to Ship Notice (Barang Siap Kirim)</option>
+                <option value="TRACKING">Shipping & Tracking Info (Resi Pengiriman)</option>
               </select>
             </div>
             <div>

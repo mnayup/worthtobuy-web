@@ -42,26 +42,27 @@ export function SetTrackingModal({
       const isKnown = COMMON_COURIERS.includes(shipment.courier || 'JNE');
       setCourier(isKnown ? shipment.courier || 'JNE' : 'Other');
       setCustomCourier(isKnown ? '' : shipment.courier || '');
-      setServiceType(shipment.serviceType || 'Regular (REG)');
-      setTrackingNumber(shipment.trackingNumber || '');
+      const rawWeight = shipment.weight_kg ?? shipment.weightKg;
+      const rawCost = shipment.shipping_cost ?? shipment.shippingCost;
+      const rawCustShipping = shipment.order?.customer_shipping ?? shipment.order?.customerShipping;
+      const rawShippedAt = shipment.shipped_at || shipment.shippedAt;
+
+      setServiceType(shipment.service_type || shipment.serviceType || 'Regular (REG)');
+      setTrackingNumber(shipment.tracking_number || shipment.trackingNumber || '');
       setAddress(shipment.address || shipment.customer?.address || '');
-      setWeightKg(
-        shipment.weightKg !== null && shipment.weightKg !== undefined
-          ? String(shipment.weightKg)
-          : ''
-      );
+      setWeightKg(rawWeight !== null && rawWeight !== undefined ? String(rawWeight) : '');
       setShippingCost(
-        shipment.shippingCost
-          ? String(shipment.shippingCost)
-          : shipment.order?.customerShipping
-          ? String(shipment.order.customerShipping)
+        rawCost
+          ? String(rawCost)
+          : rawCustShipping
+          ? String(rawCustShipping)
           : ''
       );
-      setProofUrl(shipment.proofUrl || '');
+      setProofUrl(shipment.proof_url || shipment.proofUrl || '');
       setNotes(shipment.notes || '');
 
-      if (shipment.shippedAt) {
-        setShippedAt(dayjs(shipment.shippedAt).format('YYYY-MM-DDTHH:mm'));
+      if (rawShippedAt) {
+        setShippedAt(dayjs(rawShippedAt).format('YYYY-MM-DDTHH:mm'));
       } else {
         setShippedAt(dayjs().format('YYYY-MM-DDTHH:mm'));
       }

@@ -22,6 +22,61 @@ export function InvoiceA4FinancialBox({
   outstandingAmount,
   dpAmount,
 }: InvoiceA4FinancialBoxProps) {
+  const totalServiceFee = (invoice.orders || []).reduce(
+    (acc: number, link: any) =>
+      acc + Number(link.order?.service_fee ?? link.order?.serviceFee ?? 0),
+    0
+  );
+  const totalShipping = (invoice.orders || []).reduce(
+    (acc: number, link: any) =>
+      acc +
+      Number(
+        link.order?.customer_shipping ??
+          link.order?.customerShipping ??
+          link.order?.local_shipping ??
+          link.order?.localShipping ??
+          0
+      ),
+    0
+  );
+  const totalProductSubtotal = Math.max(
+    0,
+    totalBill - totalServiceFee - totalShipping
+  );
+
+  const depositUsed = Number(invoice.depositAmount || invoice.deposit_amount || 0);
+
+  const renderBreakdown = () => (
+    <>
+      {totalServiceFee > 0 || totalShipping > 0 ? (
+        <>
+          <SummaryLine label="Product Subtotal" value={money(totalProductSubtotal)} />
+          {totalServiceFee > 0 && (
+            <SummaryLine
+              label="Service Fee (Jastip Fee)"
+              value={money(totalServiceFee)}
+            />
+          )}
+          {totalShipping > 0 && (
+            <SummaryLine
+              label="Estimated Shipping Cost (Ongkir)"
+              value={money(totalShipping)}
+            />
+          )}
+          <SummaryLine label="Total Order Value" value={money(totalBill)} strong />
+        </>
+      ) : (
+        <SummaryLine label="Total Order Value" value={money(totalBill)} strong />
+      )}
+      {depositUsed > 0 && (
+        <SummaryLine
+          label="Deposit Deduction (Potongan Deposit)"
+          value={`- ${money(depositUsed)}`}
+        />
+      )}
+    </>
+  );
+
   return (
     <div
       className={
@@ -43,7 +98,7 @@ export function InvoiceA4FinancialBox({
               a.n. {invoiceSettings.accountHolder || 'WORTHTOBUY'}
             </p>
             <p className="text-[10px] text-brand-500 mt-1 leading-tight">
-              * Please include Invoice No. <strong>{invoice.invoiceNumber}</strong> in notes.
+              * Please include Invoice No. <strong>{invoice.invoiceNumber || invoice.invoice_number}</strong> in notes.
             </p>
           </div>
         ) : activeDisplayMode === 'PAID' ? (
@@ -52,7 +107,7 @@ export function InvoiceA4FinancialBox({
               Payment Status
             </p>
             <p className="text-sm font-black text-emerald-950 mt-0.5 flex items-center gap-1.5">
-              <span>✓</span> Pembayaran Telah Diterima Paid in Full
+              <span>✓</span> Payment Received in Full (Lunas)
             </p>
             <p className="text-[10px] text-emerald-800 mt-0.5">
               This document serves as an official payment receipt.
@@ -84,26 +139,18 @@ export function InvoiceA4FinancialBox({
       >
         {activeDisplayMode === 'DP' ? (
           <>
-            <SummaryLine label="Total Order Value" value={money(totalBill)} />
-            {Number(invoice.depositAmount) > 0 && (
-              <>
-                <SummaryLine
-                  label="Potongan Saldo Deposit"
-                  value={`- ${money(invoice.depositAmount)}`}
-                />
-                <SummaryLine
-                  label="Tagihan Bersih"
-                  value={money(
-                    Math.max(0, totalBill - Number(invoice.depositAmount))
-                  )}
-                  strong
-                />
-              </>
+            {renderBreakdown()}
+            {depositUsed > 0 && (
+              <SummaryLine
+                label="Net Bill (Tagihan Bersih)"
+                value={money(Math.max(0, totalBill - depositUsed))}
+                strong
+              />
             )}
             <div className="my-1.5 rounded-lg bg-amber-100/90 border border-amber-300 p-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-amber-950">
-                  Tagihan DP ({invoice.dpPercent || 50}%):
+                  Down Payment Bill (Tagihan DP {invoice.dpPercent || invoice.dp_percent || 50}%):
                 </span>
                 <span className="text-base font-black text-amber-950">
                   {money(dpAmount)}
@@ -111,29 +158,18 @@ export function InvoiceA4FinancialBox({
               </div>
             </div>
             <SummaryLine
-              label="Balance at Settlement"
-              value={money(
-                Math.max(
-                  0,
-                  totalBill - dpAmount - Number(invoice.depositAmount || 0)
-                )
-              )}
+              label="Balance at Settlement (Sisa Pelunasan)"
+              value={money(Math.max(0, totalBill - dpAmount - depositUsed))}
             />
           </>
         ) : activeDisplayMode === 'SETTLEMENT' ? (
           <>
-            <SummaryLine label="Total Order Value" value={money(totalBill)} />
-            {Number(invoice.depositAmount) > 0 && (
-              <SummaryLine
-                label="Potongan Saldo Deposit"
-                value={`- ${money(invoice.depositAmount)}`}
-              />
-            )}
+            {renderBreakdown()}
             <SummaryLine label="Already Paid (DP)" value={`- ${money(paidAmount)}`} />
             <div className="my-1.5 rounded-lg bg-cherry-100/90 border border-cherry-300 p-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-cherry-950">
-                  Sisa Perlu Settled:
+                  Settlement Balance Due (Sisa Pelunasan):
                 </span>
                 <span className="text-base font-black text-cherry-950">
                   {money(outstandingAmount)}
@@ -143,13 +179,7 @@ export function InvoiceA4FinancialBox({
           </>
         ) : activeDisplayMode === 'PAID' ? (
           <>
-            <SummaryLine label="Total Order Value" value={money(totalBill)} />
-            {Number(invoice.depositAmount) > 0 && (
-              <SummaryLine
-                label="Potongan Saldo Deposit"
-                value={`- ${money(invoice.depositAmount)}`}
-              />
-            )}
+            {renderBreakdown()}
             <SummaryLine label="Total Paid" value={money(paidAmount)} />
             <div className="my-1.5 rounded-lg bg-emerald-100/90 border border-emerald-300 p-2">
               <div className="flex items-center justify-between">
@@ -157,32 +187,24 @@ export function InvoiceA4FinancialBox({
                   Remaining Balance:
                 </span>
                 <span className="text-base font-black text-emerald-950">
-                  Rp 0 (LUNAS)
+                  Rp 0 (PAID IN FULL)
                 </span>
               </div>
             </div>
           </>
         ) : (
           <>
-            <SummaryLine label="Total Bill" value={money(totalBill)} strong />
-            {Number(invoice.depositAmount) > 0 && (
-              <>
-                <SummaryLine
-                  label="Potongan Saldo Deposit"
-                  value={`- ${money(invoice.depositAmount)}`}
-                />
-                <SummaryLine
-                  label="Tagihan Bersih"
-                  value={money(
-                    Math.max(0, totalBill - Number(invoice.depositAmount))
-                  )}
-                  strong
-                />
-              </>
+            {renderBreakdown()}
+            {depositUsed > 0 && (
+              <SummaryLine
+                label="Net Bill (Tagihan Bersih)"
+                value={money(Math.max(0, totalBill - depositUsed))}
+                strong
+              />
             )}
             <SummaryLine label="Total Paid" value={money(paidAmount)} />
             <SummaryLine
-              label="Sisa Tagihan"
+              label="Outstanding Balance (Sisa Tagihan)"
               value={money(outstandingAmount)}
               strong
             />

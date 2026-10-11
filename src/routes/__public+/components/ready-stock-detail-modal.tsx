@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { money } from '~/lib/format';
 
@@ -11,14 +12,32 @@ const FALLBACK_IMAGE =
 
 export function ReadyStockDetailModal({ product, onClose }: ReadyStockDetailModalProps) {
   const sellingPrice = product.selling_price ?? product.sellingPrice;
-  const imageUrl = product.image_url ?? product.imageUrl;
+  const rawImgs = product.image_urls || product.imageUrls;
+  const images: string[] =
+    Array.isArray(rawImgs) && rawImgs.length > 0
+      ? rawImgs
+      : product.image_url || product.imageUrl
+      ? [product.image_url || product.imageUrl]
+      : [FALLBACK_IMAGE];
+  const [activeImage, setActiveImage] = useState<string>(images[0] || FALLBACK_IMAGE);
+
   const brandName = product.brand_name ?? product.brandName;
   const stockQuantity = product.stock_quantity ?? product.stockQuantity;
+  const variant = product.variant ?? product.variation;
+  const size = product.size;
+
+  const varText = [
+    variant ? `Variant: ${variant}` : '',
+    size ? `Size: ${size}` : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   const waUrl =
     'https://wa.me/6281234567890?text=' +
     encodeURIComponent(
       `Halo Admin Worthtobuy, saya mau beli Ready Stock: *${product.name}* ` +
+        (varText ? `(${varText}) ` : '') +
         `(SKU: ${product.sku}) seharga ${money(sellingPrice)}.`
     );
 
@@ -47,17 +66,43 @@ export function ReadyStockDetailModal({ product, onClose }: ReadyStockDetailModa
         </button>
 
         <div className="grid grid-cols-1 sm:grid-cols-2">
-          <div className="relative aspect-square sm:aspect-auto w-full bg-slate-100">
-            <img
-              src={imageUrl || FALLBACK_IMAGE}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
+          <div className="flex flex-col bg-slate-100 p-3 sm:p-5">
+            <div
+              className={
+                'relative aspect-square w-full rounded-2xl overflow-hidden ' +
+                'bg-white shadow-xs'
+              }
+            >
+              <img
+                src={activeImage}
+                alt={product.name}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            {images.length > 1 && (
+              <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-1">
+                {images.map((img, idx) => (
+                  <button
+                    key={`${img}-${idx}`}
+                    type="button"
+                    onClick={() => setActiveImage(img)}
+                    className={
+                      'h-11 w-11 rounded-xl overflow-hidden shrink-0 border-2 transition ' +
+                      (activeImage === img
+                        ? 'border-cherry-600 shadow-xs'
+                        : 'border-transparent opacity-70 hover:opacity-100')
+                    }
+                  >
+                    <img src={img} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="p-6 sm:p-8 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span
                   className={
                     'rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] ' +
@@ -74,6 +119,26 @@ export function ReadyStockDetailModal({ product, onClose }: ReadyStockDetailModa
                 >
                   {brandName || 'Brand'}
                 </span>
+                {variant && (
+                  <span
+                    className={
+                      'rounded-full bg-brand-50 px-2.5 py-0.5 text-[10px] ' +
+                      'font-bold text-brand-700 border border-brand-200'
+                    }
+                  >
+                    {variant}
+                  </span>
+                )}
+                {size && (
+                  <span
+                    className={
+                      'rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] ' +
+                      'font-bold text-rose-700 border border-rose-200'
+                    }
+                  >
+                    Size: {size}
+                  </span>
+                )}
               </div>
 
               <h3 className="mt-3 text-xl font-black text-slate-900 leading-snug">

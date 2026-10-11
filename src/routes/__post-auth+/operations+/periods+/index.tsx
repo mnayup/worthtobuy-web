@@ -29,9 +29,28 @@ export default function PeriodsRoute() {
         return `EVT-${month}${year}-${random}`;
       }
     },
-    { name: 'name', label: 'Event Name', placeholder: 'e.g. Bangkok Shopping Spree', required: true },
-    { name: 'city', label: 'Destination City', placeholder: 'e.g. Bangkok, Thailand', required: true },
-    { name: 'type', label: 'Event Type', type: 'select', options: [{ label: 'Local', value: 'LOCAL' }, { label: 'International', value: 'INTERNATIONAL' }], required: true },
+    {
+      name: 'name',
+      label: 'Event Name',
+      placeholder: 'e.g. Bangkok Shopping Spree',
+      required: true,
+    },
+    {
+      name: 'city',
+      label: 'Destination City',
+      placeholder: 'e.g. Bangkok, Thailand',
+      required: true,
+    },
+    {
+      name: 'type',
+      label: 'Event Type',
+      type: 'select',
+      options: [
+        { label: 'Local', value: 'LOCAL' },
+        { label: 'International', value: 'INTERNATIONAL' },
+      ],
+      required: true,
+    },
     { 
       name: 'eventPeriod', 
       label: 'Event Period', 
@@ -48,17 +67,43 @@ export default function PeriodsRoute() {
       colSpan: 2,
       dependsOn: (form) => form.code !== 'READY-STOCK',
     },
-    { name: 'estimatedShippingAt', label: 'Estimated Shipping Date', type: 'datetime-local', dependsOn: (form) => form.code !== 'READY-STOCK' },
-    { name: 'status', label: 'Status', type: 'select', options: periodStatusOptions, required: true, defaultValue: 'DRAFT', disabled: (form) => form.code === 'READY-STOCK' },
-    { name: 'maxItems', label: 'Max Item Quota', type: 'number', dependsOn: (form) => form.type === 'INTERNATIONAL' && form.code !== 'READY-STOCK' },
-    { name: 'baggageCapacityKg', label: 'Luggage Capacity (kg)', type: 'number', dependsOn: (form) => form.type === 'INTERNATIONAL' && form.code !== 'READY-STOCK' },
+    {
+      name: 'estimatedShippingAt',
+      label: 'Estimated Shipping Date',
+      type: 'datetime-local',
+      dependsOn: (form) => form.code !== 'READY-STOCK',
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      options: periodStatusOptions,
+      required: true,
+      defaultValue: 'DRAFT',
+      disabled: (form) => form.code === 'READY-STOCK',
+    },
+    {
+      name: 'maxItems',
+      label: 'Max Item Quota',
+      type: 'number',
+      dependsOn: (form) => form.type === 'INTERNATIONAL' && form.code !== 'READY-STOCK',
+    },
+    {
+      name: 'baggageCapacityKg',
+      label: 'Luggage Capacity (kg)',
+      type: 'number',
+      dependsOn: (form) => form.type === 'INTERNATIONAL' && form.code !== 'READY-STOCK',
+    },
     { name: 'notes', label: 'Notes', type: 'textarea', colSpan: 2 },
   ];
 
   return (
     <CrudPage
       title="Events"
-      description="Manage concierge itineraries, target cities, order open/close windows, and luggage quotas."
+      description={
+        'Manage concierge itineraries, target cities, order open/close windows, ' +
+        'and luggage quotas.'
+      }
       endpoint="/periods"
       fields={fields}
       searchPlaceholder="Search event name, code, destination city..."
@@ -94,7 +139,12 @@ export default function PeriodsRoute() {
             <div className="flex items-center gap-1.5 font-semibold">
               <span>{row.code}</span>
               {row.code === 'READY-STOCK' && (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                <span
+                  className={
+                    'rounded-full bg-emerald-100 px-2 py-0.5 ' +
+                    'text-[10px] font-bold text-emerald-700'
+                  }
+                >
                   System
                 </span>
               )}
@@ -103,16 +153,47 @@ export default function PeriodsRoute() {
         },
         { key: 'name', label: 'Event Name' },
         { key: 'city', label: 'Destination' },
-        { key: 'type', label: 'Type', render: (row) => row.type === 'LOCAL' ? 'Local' : row.type === 'INTERNATIONAL' ? 'International' : row.type },
-        { key: 'departureAt', label: 'Event Period', render: (row) => row.code === 'READY-STOCK' ? 'Permanent' : `${date(row.departureAt)} - ${date(row.returnAt)}` },
-        { key: 'orderOpenAt', label: 'Orders Period', render: (row) => row.code === 'READY-STOCK' ? 'Always Open' : `${date(row.orderOpenAt)} - ${date(row.orderCloseAt)}` },
-        { key: 'status', label: 'Status', render: (row) => {
-          let currentStatus = row.status;
-          if (row.code !== 'READY-STOCK' && currentStatus === 'OPEN' && row.orderCloseAt && new Date() > new Date(row.orderCloseAt)) {
-            currentStatus = 'CLOSED';
-          }
-          return <StatusBadge value={currentStatus} />;
-        }},
+        {
+          key: 'type',
+          label: 'Type',
+          render: (row) =>
+            row.type === 'LOCAL'
+              ? 'Local'
+              : row.type === 'INTERNATIONAL'
+              ? 'International'
+              : row.type,
+        },
+        {
+          key: 'departureAt',
+          label: 'Event Period',
+          render: (row) => {
+            const dep = row.departure_at ?? row.departureAt;
+            const ret = row.return_at ?? row.returnAt;
+            return row.code === 'READY-STOCK' ? 'Permanent' : `${date(dep)} - ${date(ret)}`;
+          },
+        },
+        {
+          key: 'orderOpenAt',
+          label: 'Orders Period',
+          render: (row) => {
+            const open = row.order_open_at ?? row.orderOpenAt;
+            const close = row.order_close_at ?? row.orderCloseAt;
+            return row.code === 'READY-STOCK' ? 'Always Open' : `${date(open)} - ${date(close)}`;
+          },
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          render: (row) => {
+            let currentStatus = row.status;
+            const closeAt = row.order_close_at ?? row.orderCloseAt;
+            const isExpired = closeAt && new Date() > new Date(closeAt);
+            if (row.code !== 'READY-STOCK' && currentStatus === 'OPEN' && isExpired) {
+              currentStatus = 'CLOSED';
+            }
+            return <StatusBadge value={currentStatus} />;
+          },
+        },
       ]}
       canCreate={user?.role !== 'SHOPPER' && user?.role !== 'FINANCE'}
       canEdit={user?.role === 'OWNER' || user?.role === 'ADMIN'}
@@ -121,15 +202,22 @@ export default function PeriodsRoute() {
       prepareSubmit={(form) => {
         if (form.code === 'READY-STOCK') {
           const { eventPeriod: _ep, ordersPeriod: _op, ...rest } = form;
+          const openIso = new Date('2020-01-01T00:00:00.000Z').toISOString();
+          const farIso = new Date('2099-12-31T23:59:59.000Z').toISOString();
           return {
             ...rest,
             code: 'READY-STOCK',
             status: 'OPEN',
-            orderOpenAt: new Date('2020-01-01T00:00:00.000Z').toISOString(),
-            orderCloseAt: new Date('2099-12-31T23:59:59.000Z').toISOString(),
-            departureAt: new Date('2099-12-31T23:59:59.000Z').toISOString(),
-            returnAt: new Date('2099-12-31T23:59:59.000Z').toISOString(),
-            estimatedShippingAt: new Date('2099-12-31T23:59:59.000Z').toISOString(),
+            order_open_at: openIso,
+            orderOpenAt: openIso,
+            order_close_at: farIso,
+            orderCloseAt: farIso,
+            departure_at: farIso,
+            departureAt: farIso,
+            return_at: farIso,
+            returnAt: farIso,
+            estimated_shipping_at: farIso,
+            estimatedShippingAt: farIso,
           };
         }
 
@@ -148,35 +236,47 @@ export default function PeriodsRoute() {
         }
 
         const { eventPeriod: _ep, ordersPeriod: _op, ...rest } = form;
+        const estShip = form.estimated_shipping_at || form.estimatedShippingAt;
 
         return {
           ...rest,
+          order_open_at: orderOpenAt ? orderOpenAt.toISOString() : undefined,
           orderOpenAt: orderOpenAt ? orderOpenAt.toISOString() : undefined,
+          order_close_at: orderCloseAt ? orderCloseAt.toISOString() : undefined,
           orderCloseAt: orderCloseAt ? orderCloseAt.toISOString() : undefined,
+          departure_at: departureAt ? departureAt.toISOString() : undefined,
           departureAt: departureAt ? departureAt.toISOString() : undefined,
+          return_at: returnAt ? returnAt.toISOString() : undefined,
           returnAt: returnAt ? returnAt.toISOString() : undefined,
-          estimatedShippingAt: form.estimatedShippingAt ? new Date(form.estimatedShippingAt).toISOString() : undefined,
+          estimated_shipping_at: estShip ? new Date(estShip).toISOString() : undefined,
+          estimatedShippingAt: estShip ? new Date(estShip).toISOString() : undefined,
           maxItems: form.maxItems ? Number(form.maxItems) : null,
           baggageCapacityKg: form.baggageCapacityKg ? Number(form.baggageCapacityKg) : null,
         };
       }}
       prepareInitial={(row) => {
         let currentStatus = row.status;
-        if (currentStatus === 'OPEN' && row.orderCloseAt && new Date() > new Date(row.orderCloseAt)) {
+        const closeAt = row.order_close_at ?? row.orderCloseAt;
+        const depAt = row.departure_at ?? row.departureAt;
+        const retAt = row.return_at ?? row.returnAt;
+        const openAt = row.order_open_at ?? row.orderOpenAt;
+        const estShip = row.estimated_shipping_at ?? row.estimatedShippingAt;
+
+        if (currentStatus === 'OPEN' && closeAt && new Date() > new Date(closeAt)) {
           currentStatus = 'CLOSED';
         }
         return {
           ...row,
           status: currentStatus,
           eventPeriod: [
-            row.departureAt ? dayjs(row.departureAt).format('YYYY-MM-DDTHH:mm') : '',
-            row.returnAt ? dayjs(row.returnAt).format('YYYY-MM-DDTHH:mm') : ''
+            depAt ? dayjs(depAt).format('YYYY-MM-DDTHH:mm') : '',
+            retAt ? dayjs(retAt).format('YYYY-MM-DDTHH:mm') : ''
           ],
           ordersPeriod: [
-            row.orderOpenAt ? dayjs(row.orderOpenAt).format('YYYY-MM-DDTHH:mm') : '',
-            row.orderCloseAt ? dayjs(row.orderCloseAt).format('YYYY-MM-DDTHH:mm') : ''
+            openAt ? dayjs(openAt).format('YYYY-MM-DDTHH:mm') : '',
+            closeAt ? dayjs(closeAt).format('YYYY-MM-DDTHH:mm') : ''
           ],
-          estimatedShippingAt: row.estimatedShippingAt ? dayjs(row.estimatedShippingAt).format('YYYY-MM-DDTHH:mm') : '',
+          estimatedShippingAt: estShip ? dayjs(estShip).format('YYYY-MM-DDTHH:mm') : '',
         };
       }}
       importConfig={{

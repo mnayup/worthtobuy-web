@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Image as ImageIcon,
   Tag,
-  ExternalLink,
   Check,
   PackageX,
 } from 'lucide-react';
@@ -61,18 +60,15 @@ export function ShoppingItemRow({ item, onSetStatus }: ShoppingItemRowProps) {
           <span className="pill bg-white border border-brand-200 font-semibold text-brand-800">
             Target {money(targetPrice)}
           </span>
-          {item.product?.productUrl && (
-            <a
-              className={
-                'pill bg-white border border-brand-200 hover:text-cherry-600 ' +
-                'hover:border-cherry-200 transition'
-              }
-              href={item.product.productUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink size={12} /> View Product
-            </a>
+          {item.variation && (
+            <span className="pill bg-cherry-50 text-cherry-700 border border-cherry-200">
+              Var: {item.variation}
+            </span>
+          )}
+          {item.size && (
+            <span className="pill bg-brand-50 text-brand-700 border border-brand-200">
+              Size: {item.size}
+            </span>
           )}
         </div>
         {item.purchaseNotes && (
