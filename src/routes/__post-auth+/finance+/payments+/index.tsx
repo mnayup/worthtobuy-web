@@ -153,12 +153,27 @@ export default function PaymentsRoute() {
         {
           key: 'target',
           label: 'Invoice / Order',
-          render: (row) =>
-            row.invoice?.invoice_number ||
-            row.invoice?.invoiceNumber ||
-            row.order?.order_number ||
-            row.order?.orderNumber ||
-            '-',
+          render: (row) => {
+            const num =
+              row.invoice?.invoice_number ||
+              row.invoice?.invoiceNumber;
+            const invId = row.invoice_id ?? row.invoice?.id;
+            if (num && invId) {
+              return (
+                <a
+                  href={`/invoices/${invId}`}
+                  className="font-bold text-cherry-600 hover:underline"
+                >
+                  {num}
+                </a>
+              );
+            }
+            return (
+              row.order?.order_number ||
+              row.order?.orderNumber ||
+              '-'
+            );
+          },
         },
         {
           key: 'customer',
@@ -179,6 +194,34 @@ export default function PaymentsRoute() {
           key: 'method',
           label: 'Method',
           render: (row) => row.payment_method || row.method,
+        },
+        {
+          key: 'proof',
+          label: 'Receipt Proof',
+          render: (row) => {
+            const url = row.proof_url || row.proofUrl;
+            if (!url) {
+              return <span className="text-xs text-brand-300">-</span>;
+            }
+            return (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={
+                  'inline-flex items-center gap-1.5 text-xs font-bold ' +
+                  'text-cherry-600 hover:underline'
+                }
+              >
+                <img
+                  src={url}
+                  alt="Receipt"
+                  className="h-6 w-6 rounded object-cover border border-brand-200"
+                />
+                <span>View</span>
+              </a>
+            );
+          },
         },
         {
           key: 'status',

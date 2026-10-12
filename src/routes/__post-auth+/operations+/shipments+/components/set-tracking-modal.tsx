@@ -1,6 +1,6 @@
 import React, { useState, useEffect, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Truck, AlertCircle } from 'lucide-react';
+import { X, Truck, AlertCircle, AlertTriangle } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
 import { isShipmentFullyPaid, type Shipment } from '../types';
 import dayjs from 'dayjs';
@@ -30,7 +30,7 @@ export function SetTrackingModal({
   const [trackingNumber, setTrackingNumber] = useState('');
   const [address, setAddress] = useState('');
   const [weightKg, setWeightKg] = useState<string>('');
-  const [shippingCost, setShippingCost] = useState<string>('');
+  const [actualShippingCost, setActualShippingCost] = useState<string>('');
   const [shippedAt, setShippedAt] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [notes, setNotes] = useState('');
@@ -43,21 +43,14 @@ export function SetTrackingModal({
       setCourier(isKnown ? shipment.courier || 'JNE' : 'Other');
       setCustomCourier(isKnown ? '' : shipment.courier || '');
       const rawWeight = shipment.weight_kg ?? shipment.weightKg;
-      const rawCost = shipment.shipping_cost ?? shipment.shippingCost;
-      const rawCustShipping = shipment.order?.customer_shipping ?? shipment.order?.customerShipping;
+      const rawActual = shipment.actual_shipping_cost ?? shipment.actualShippingCost;
       const rawShippedAt = shipment.shipped_at || shipment.shippedAt;
 
       setServiceType(shipment.service_type || shipment.serviceType || 'Regular (REG)');
       setTrackingNumber(shipment.tracking_number || shipment.trackingNumber || '');
       setAddress(shipment.address || shipment.customer?.address || '');
       setWeightKg(rawWeight !== null && rawWeight !== undefined ? String(rawWeight) : '');
-      setShippingCost(
-        rawCost
-          ? String(rawCost)
-          : rawCustShipping
-          ? String(rawCustShipping)
-          : ''
-      );
+      setActualShippingCost(rawActual !== null && rawActual !== undefined ? String(rawActual) : '');
       setProofUrl(shipment.proof_url || shipment.proofUrl || '');
       setNotes(shipment.notes || '');
 
@@ -75,10 +68,23 @@ export function SetTrackingModal({
   const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
   const items = shipment.order?.items || [];
   const fullyPaid = isShipmentFullyPaid(shipment);
+  const isNotPackedYet = shipment.status === 'WAITING_PACKING';
+  const estimatedCost = Number(
+    shipment.shipping_cost ??
+      shipment.shippingCost ??
+      shipment.order?.customer_shipping ??
+      shipment.order?.customerShipping ??
+      0
+  );
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!shipment) return;
+
+    if (isNotPackedYet) {
+      setError('Pesanan harus dipacking terlebih dahulu sebelum input nomor resi.');
+      return;
+    }
 
     if (!fullyPaid) {
       setError('Penginputan nomor resi tidak dapat dilakukan karena pesanan belum lunas.');
@@ -86,17 +92,17 @@ export function SetTrackingModal({
     }
 
     if (!trackingNumber.trim()) {
-      setError('Nomor Resi (Tracking Number) is required to ship the package.');
+      setError('Nomor Resi (Tracking Number) wajib diisi.');
       return;
     }
 
     if (!effectiveCourier) {
-      setError('Please select or specify a Courier name.');
+      setError('Silakan pilih atau isi nama Kurir.');
       return;
     }
 
-    if (!address.trim() || address.trim() === '-') {
-      setError('Complete destination address is required before shipping.');
+    if (!actualShippingCost || isNaN(Number(actualShippingCost))) {
+      setError('Aktual ongkir wajib diisi angka valid.');
       return;
     }
 
@@ -110,11 +116,10 @@ export function SetTrackingModal({
         serviceType: serviceType.trim() || null,
         address: address.trim(),
         weightKg: weightKg ? Number(weightKg) : null,
-        shippingCost: shippingCost ? Number(shippingCost) : 0,
+        actualShippingCost: Number(actualShippingCost),
         shippedAt: shippedAt ? new Date(shippedAt).toISOString() : new Date().toISOString(),
         proofUrl: proofUrl.trim() || null,
         notes: notes.trim() || null,
-        status: 'IN_TRANSIT',
       });
       onSaved();
       onClose();
@@ -157,18 +162,18 @@ export function SetTrackingModal({
             </div>
             <div>
               <h2 className="font-black text-brand-900 text-lg tracking-tight">
-                {shipment.trackingNumber
-                  ? 'Update Tracking Number (Resi)'
-                  : 'Set Tracking Number & Ship'}
+                {shipment.trackingNumber || shipment.tracking_number
+                  ? 'Update Resi & Aktual Ongkir'
+                  : 'Input Resi & Aktual Ongkir'}
               </h2>
               <p className="text-xs text-brand-500 font-medium">
                 Order{' '}
                 <strong className="font-bold text-brand-800">
-                  {shipment.order?.orderNumber || '-'}
+                  {shipment.order?.orderNumber || shipment.order?.order_number || '-'}
                 </strong>{' '}
                 • Customer{' '}
                 <strong className="font-bold text-brand-800">
-                  {shipment.customer?.fullName || '-'}
+                  {shipment.customer?.fullName || shipment.customer?.full_name || '-'}
                 </strong>
               </p>
             </div>
@@ -199,6 +204,27 @@ export function SetTrackingModal({
             </div>
           )}
 
+          {isNotPackedYet && (
+            <div
+              className={
+                'rounded-2xl border border-amber-300 bg-amber-50/90 p-4 ' +
+                'text-xs text-amber-900 flex items-start gap-3 shadow-xs'
+              }
+            >
+              <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <strong className="font-bold text-amber-950 text-sm block">
+                  Pesanan Belum Dipacking (Status: Waiting Packing)
+                </strong>
+                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                  Nomor resi dan aktual ongkir tidak dapat diinput sebelum barang selesai
+                  dipacking dan label dibuat. Mohon klik tombol <strong>Pack</strong> terlebih
+                  dahulu.
+                </p>
+              </div>
+            </div>
+          )}
+
           {!fullyPaid && (
             <div
               className={
@@ -212,13 +238,8 @@ export function SetTrackingModal({
                   Status Pembayaran: Belum Lunas (Full Payment Required)
                 </strong>
                 <p className="text-xs text-rose-700 mt-1 leading-relaxed">
-                  Penginputan nomor resi tidak dapat diproses karena pembayaran pesanan ini
-                  belum lunas.
-                  {shipment.order?.outstandingAmount
-                    ? ` Sisa tagihan: Rp${Number(
-                        shipment.order.outstandingAmount
-                      ).toLocaleString('id-ID')}`
-                    : ''}
+                  Penginputan nomor resi tidak dapat diproses karena pembayaran pesanan ini belum
+                  lunas.
                 </p>
               </div>
             </div>
@@ -242,17 +263,18 @@ export function SetTrackingModal({
           <SetTrackingAdditionalFields
             weightKg={weightKg}
             setWeightKg={setWeightKg}
-            shippingCost={shippingCost}
-            setShippingCost={setShippingCost}
+            estimatedCost={estimatedCost}
+            actualShippingCost={actualShippingCost}
+            setActualShippingCost={setActualShippingCost}
             shippedAt={shippedAt}
             setShippedAt={setShippedAt}
             proofUrl={proofUrl}
             setProofUrl={setProofUrl}
             notes={notes}
             setNotes={setNotes}
-            orderNumber={shipment.order?.orderNumber}
+            orderNumber={shipment.order?.orderNumber || shipment.order?.order_number}
             saving={saving}
-            fullyPaid={fullyPaid}
+            fullyPaid={fullyPaid && !isNotPackedYet}
             trackingNumber={trackingNumber}
             onClose={onClose}
           />

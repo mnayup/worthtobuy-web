@@ -14,6 +14,7 @@ interface ShipmentDetailModalProps {
   shipment: Shipment | null;
   onClose: () => void;
   onSaved: () => void;
+  onOpenPack?: (shipment: Shipment) => void;
   onOpenSetTracking?: (shipment: Shipment) => void;
   onOpenConfirmDelivered?: (shipment: Shipment) => void;
 }
@@ -23,6 +24,7 @@ export function ShipmentDetailModal({
   shipment,
   onClose,
   onSaved,
+  onOpenPack,
   onOpenSetTracking,
   onOpenConfirmDelivered,
 }: ShipmentDetailModalProps) {
@@ -215,7 +217,7 @@ export function ShipmentDetailModal({
           fullyPaid={fullyPaid}
           shipment={shipment}
           onClose={onClose}
-          onMarkAsPacked={handleMarkAsPacked}
+          onOpenPack={onOpenPack}
           onOpenSetTracking={onOpenSetTracking}
           onOpenConfirmDelivered={onOpenConfirmDelivered}
         />

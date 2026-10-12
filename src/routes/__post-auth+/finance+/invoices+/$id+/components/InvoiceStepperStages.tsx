@@ -10,6 +10,7 @@ interface InvoiceStepperStagesProps {
   previewStage: PreviewStage;
   activeDisplayMode: StageMode;
   totalBill: number;
+  paidAmount: number;
   outstandingAmount: number;
   dpAmount: number;
   setPreviewStage: (stage: PreviewStage) => void;
@@ -22,6 +23,7 @@ export function InvoiceStepperStages({
   previewStage,
   activeDisplayMode,
   totalBill,
+  paidAmount,
   outstandingAmount,
   dpAmount,
   setPreviewStage,
@@ -153,25 +155,60 @@ export function InvoiceStepperStages({
               statusLabel={
                 currentStage === 'PAID'
                   ? '✓ Paid in Full (Lunas)'
-                  : '● Awaiting Payment'
+                  : paidAmount > 0
+                    ? `✓ Paid: ${money(paidAmount)} (Remaining: ${money(outstandingAmount)})`
+                    : '● Awaiting Payment'
               }
-              statusType={currentStage === 'PAID' ? 'success' : 'warning'}
+              statusType={
+                currentStage === 'PAID' || paidAmount > 0 ? 'success' : 'warning'
+              }
               isActive={activeDisplayMode === 'FULL'}
-              isCompleted={currentStage === 'PAID'}
-              isCurrent={currentStage !== 'PAID'}
+              isCompleted={currentStage === 'PAID' || paidAmount > 0}
+              isCurrent={currentStage !== 'PAID' && paidAmount === 0}
               onClick={() => setPreviewStage('FULL')}
             />
 
             <StageCard
               step={2}
-              title="Stage 2: Official Receipt (Kuitansi Lunas)"
-              subtitle="Official Payment Proof"
-              statusLabel={currentStage === 'PAID' ? '✓ Paid in Full' : 'Pending (Belum Selesai)'}
-              statusType={currentStage === 'PAID' ? 'success' : 'muted'}
-              isActive={activeDisplayMode === 'PAID'}
+              title={
+                currentStage === 'PAID'
+                  ? 'Stage 2: Official Receipt (Kuitansi Lunas)'
+                  : paidAmount > 0
+                    ? 'Stage 2: Balance Settlement'
+                    : 'Stage 2: Official Receipt (Kuitansi Lunas)'
+              }
+              subtitle={
+                currentStage === 'PAID'
+                  ? 'Official Payment Proof'
+                  : paidAmount > 0
+                    ? `Remaining: ${money(outstandingAmount)}`
+                    : 'Official Payment Proof'
+              }
+              statusLabel={
+                currentStage === 'PAID'
+                  ? '✓ Paid in Full'
+                  : paidAmount > 0
+                    ? `● Awaiting Settlement (${money(outstandingAmount)})`
+                    : 'Pending (Belum Selesai)'
+              }
+              statusType={
+                currentStage === 'PAID'
+                  ? 'success'
+                  : paidAmount > 0
+                    ? 'danger'
+                    : 'muted'
+              }
+              isActive={
+                activeDisplayMode === 'PAID' ||
+                (activeDisplayMode === 'SETTLEMENT' && !isDpScheme)
+              }
               isCompleted={currentStage === 'PAID'}
-              isCurrent={false}
-              onClick={() => setPreviewStage('PAID')}
+              isCurrent={currentStage === 'SETTLEMENT'}
+              onClick={() =>
+                setPreviewStage(
+                  paidAmount > 0 && currentStage !== 'PAID' ? 'SETTLEMENT' : 'PAID'
+                )
+              }
             />
           </div>
         )}

@@ -6,6 +6,7 @@ import {
   Truck,
   CheckCircle2,
   XCircle,
+  Clock,
 } from 'lucide-react';
 
 export const STATUS_CARDS = [
@@ -40,6 +41,17 @@ export const STATUS_CARDS = [
       hover: 'hover:border-blue-300 hover:bg-blue-50',
       iconDefault: 'bg-slate-50 text-slate-400',
       iconHover: 'group-hover:bg-blue-100 group-hover:text-blue-600',
+    },
+  },
+  {
+    key: 'WAITING_SETTLEMENT',
+    label: 'Waiting Settlement',
+    icon: Clock,
+    theme: {
+      active: 'bg-orange-500 border-transparent shadow-orange-500/30',
+      hover: 'hover:border-orange-300 hover:bg-orange-50',
+      iconDefault: 'bg-slate-50 text-slate-400',
+      iconHover: 'group-hover:bg-orange-100 group-hover:text-orange-600',
     },
   },
   {

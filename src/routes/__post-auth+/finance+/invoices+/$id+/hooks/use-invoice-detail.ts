@@ -36,11 +36,23 @@ export function useInvoiceDetail(id?: string) {
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteSaving, setDeleteSaving] = useState(false);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState<any | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     type?: 'success' | 'error' | 'warning' | 'info';
     title?: string;
   } | null>(null);
+
+  function openVerifyModal(payment: any) {
+    setVerifyingPayment(payment);
+    setVerifyModalOpen(true);
+  }
+
+  function closeVerifyModal() {
+    setVerifyingPayment(null);
+    setVerifyModalOpen(false);
+  }
 
   // Sorting
   const [paymentSortCol, setPaymentSortCol] = useState<PaymentSortCol>(null);
@@ -71,7 +83,9 @@ export function useInvoiceDetail(id?: string) {
         payload.dpPercent = pct;
         payload.dpAmount = Math.round((currentTotal * pct) / 100);
         payload.dpSettlementNote =
-          invoice.dp_settlement_note || invoice.dpSettlementNote || 'when products are ready to ship';
+          invoice.dp_settlement_note ||
+          invoice.dpSettlementNote ||
+          'when products are ready to ship';
       } else {
         payload.dpPercent = null;
         payload.dpAmount = null;
@@ -140,10 +154,14 @@ export function useInvoiceDetail(id?: string) {
     const factor = paymentSortDir === 'asc' ? 1 : -1;
     return list.sort((a, b) => {
       if (paymentSortCol === 'date') {
-        return (new Date(a.payment_date || a.paymentDate).getTime() - new Date(b.payment_date || b.paymentDate).getTime()) * factor;
+        const timeA = new Date(a.payment_date || a.paymentDate).getTime();
+        const timeB = new Date(b.payment_date || b.paymentDate).getTime();
+        return (timeA - timeB) * factor;
       }
       if (paymentSortCol === 'method') {
-        return String(a.payment_method || a.method || '').localeCompare(String(b.payment_method || b.method || '')) * factor;
+        const metA = String(a.payment_method || a.method || '');
+        const metB = String(b.payment_method || b.method || '');
+        return metA.localeCompare(metB) * factor;
       }
       if (paymentSortCol === 'amount') {
         return (Number(a.amount || 0) - Number(b.amount || 0)) * factor;
@@ -162,7 +180,9 @@ export function useInvoiceDetail(id?: string) {
     const factor = refundSortDir === 'asc' ? 1 : -1;
     return list.sort((a, b) => {
       if (refundSortCol === 'number') {
-        return String(a.refund_number || a.refundNumber || '').localeCompare(String(b.refund_number || b.refundNumber || '')) * factor;
+        const numA = String(a.refund_number || a.refundNumber || '');
+        const numB = String(b.refund_number || b.refundNumber || '');
+        return numA.localeCompare(numB) * factor;
       }
       if (refundSortCol === 'reason') {
         return String(a.reason || '').localeCompare(String(b.reason || '')) * factor;
@@ -193,11 +213,9 @@ export function useInvoiceDetail(id?: string) {
 
   const currentStage: 'DP' | 'SETTLEMENT' | 'PAID' | 'FULL_UNPAID' = useMemo(() => {
     if (!invoice) return 'FULL_UNPAID';
-    if (outstandingAmount <= 0 && paidAmount > 0) return 'PAID';
-    if (isDpScheme) {
-      if (paidAmount > 0) return 'SETTLEMENT';
-      return 'DP';
-    }
+    if ((outstandingAmount <= 0 && paidAmount > 0) || invoice?.status === 'PAID') return 'PAID';
+    if (isDpScheme) return paidAmount > 0 ? 'SETTLEMENT' : 'DP';
+    if (paidAmount > 0) return 'SETTLEMENT';
     return 'FULL_UNPAID';
   }, [invoice, isDpScheme, outstandingAmount, paidAmount]);
 
@@ -248,6 +266,10 @@ export function useInvoiceDetail(id?: string) {
     }
   }
 
+  const pendingPayments = useMemo(() => {
+    return (invoice?.payments || []).filter((p: any) => p.status === 'PENDING');
+  }, [invoice?.payments]);
+
   return {
     invoice, settings, loading, error, updatingScheme,
     paymentOpen, setPaymentOpen, whatsappOpen, setWhatsappOpen,
@@ -260,6 +282,8 @@ export function useInvoiceDetail(id?: string) {
     updateShippingCost, load, sortedPayments, sortedRefunds,
     isDpScheme, totalBill, paidAmount, outstandingAmount,
     dpAmount, currentStage, activeDisplayMode, paymentsChronological,
-    removeInvoice,
+    removeInvoice, verifyModalOpen, setVerifyModalOpen,
+    verifyingPayment, openVerifyModal, closeVerifyModal,
+    pendingPayments,
   };
 }

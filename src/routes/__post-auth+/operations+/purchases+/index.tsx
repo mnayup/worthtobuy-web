@@ -9,46 +9,13 @@ import { purchaseStatusOptions, type Purchase } from './types';
 import { PurchaseDetailModal } from './components/purchase-detail-modal';
 import { PurchaseStatusCards } from './components/purchase-status-cards';
 
-const responseRows = (response: any): any[] => {
-  if (Array.isArray(response?.data?.data)) return response.data.data;
-  if (Array.isArray(response?.data)) return response.data;
-  return [];
-};
-
-const loadPaginatedOptions =
-  (endpoint: string, mapper: (row: any) => Option) =>
-  async (search: string): Promise<Option[]> => {
-    const [path, queryString] = endpoint.split('?');
-    const query = new URLSearchParams(queryString || '');
-    query.set('limit', '25');
-    if (search) query.set('search', search);
-    const response = await api.get(`${path}?${query}`);
-    return responseRows(response).map(mapper);
-  };
-
-const loadPeriods = loadPaginatedOptions('/periods?status=OPEN', (row) => ({
-  value: row.id,
-  label: `${row.code} • ${row.name}`,
-}));
-const loadProducts = loadPaginatedOptions('/products?activePeriod=true', (row) => ({
-  value: row.id,
-  label: `${row.sku} • ${row.name}`,
-}));
-const loadUsers = loadPaginatedOptions('/users', (row) => ({
-  value: row.id,
-  label: `${row.name} • ${row.role?.name || ''}`,
-}));
-const loadOrderItems = loadPaginatedOptions('/order-items', (row) => {
-  const oNum = row.order?.order_number || row.order?.orderNumber || '-';
-  const pName =
-    row.product?.name ||
-    row.manual_product_name ||
-    row.manualProductName ||
-    'Custom item';
-  const cName =
-    row.order?.customer?.full_name || row.order?.customer?.fullName || '-';
-  return { value: row.id, label: `${oNum} • ${pName} • ${cName}` };
-});
+import {
+  responseRows,
+  loadPeriods,
+  loadProducts,
+  loadUsers,
+  loadOrderItems,
+} from './helpers/purchase-options.helper';
 
 export async function loader() {
   const [periodsRes, itemsRes] = await Promise.allSettled([
@@ -179,17 +146,51 @@ export default function PurchasesRoute() {
           {
             key: 'purchaseNumber',
             label: 'Purchase #',
-            render: (row) => row.purchase_number || row.purchaseNumber,
+            render: (row) => (
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono font-bold text-brand-900 text-xs">
+                  {row.purchase_number || row.purchaseNumber}
+                </span>
+                {(row.batch_number || row.batchNumber) && (
+                  <span
+                    className={
+                      'rounded bg-indigo-50 px-1.5 py-0.5 ' +
+                      'text-[10px] font-bold text-indigo-700'
+                    }
+                  >
+                    B{row.batch_number || row.batchNumber}
+                  </span>
+                )}
+              </div>
+            ),
           },
           { key: 'period', label: 'Event', render: (row) => row.period?.name || '-' },
           {
             key: 'product',
-            label: 'Product',
+            label: 'Product / Items',
             render: (row) =>
+              row.product_summary ||
               row.product?.name ||
               row.orderItem?.manualProductName ||
               row.order_item?.manual_product_name ||
               '-',
+          },
+          {
+            key: 'quantity',
+            label: 'Target Qty',
+            render: (row) => {
+              const eligible = row.eligibleQuantity;
+              const total = row.totalQuantity ?? row.quantity ?? 1;
+              if (eligible !== undefined && eligible !== total) {
+                return (
+                  <span title="Eligible (DP / VIP) / Total">
+                    <strong className="text-brand-900 font-bold">{eligible}</strong>
+                    <span className="text-brand-400 text-xs font-medium"> / {total} pcs</span>
+                  </span>
+                );
+              }
+              return `${total} pcs`;
+            },
           },
           { key: 'shopper', label: 'Shopper', render: (row) => row.shopper?.name || '-' },
           {

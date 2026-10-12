@@ -1,5 +1,5 @@
 import React from 'react';
-import { PackageCheck, Truck, CheckCircle2 } from 'lucide-react';
+import { PackageCheck, Truck, CheckCircle2, Clock } from 'lucide-react';
 import type { Shipment } from '../types';
 
 interface ShipmentDetailFooterProps {
@@ -8,7 +8,7 @@ interface ShipmentDetailFooterProps {
   fullyPaid: boolean;
   shipment: Shipment;
   onClose: () => void;
-  onMarkAsPacked: () => void;
+  onOpenPack?: (shipment: Shipment) => void;
   onOpenSetTracking?: (shipment: Shipment) => void;
   onOpenConfirmDelivered?: (shipment: Shipment) => void;
 }
@@ -19,7 +19,7 @@ export function ShipmentDetailFooter({
   fullyPaid,
   shipment,
   onClose,
-  onMarkAsPacked,
+  onOpenPack,
   onOpenSetTracking,
   onOpenConfirmDelivered,
 }: ShipmentDetailFooterProps) {
@@ -39,57 +39,30 @@ export function ShipmentDetailFooter({
       </button>
 
       <div className="flex items-center gap-2">
-        {/* If WAITING_PACKING */}
+        {/* If WAITING_PACKING: Cannot set resi before pack! Only show Pack */}
         {currentStatus === 'WAITING_PACKING' && (
-          <>
-            <button
-              type="button"
-              onClick={onMarkAsPacked}
-              disabled={packingLoading || !fullyPaid}
-              className={
-                'btn-secondary !py-2.5 !px-4 text-xs font-bold flex items-center ' +
-                'gap-1.5 shadow-xs cursor-pointer ' +
-                (!fullyPaid
-                  ? '!bg-slate-100 !border-slate-200 !text-slate-400 opacity-60 cursor-not-allowed'
-                  : '!bg-amber-50 !border-amber-300 !text-amber-800 hover:!bg-amber-100')
-              }
-              title={
-                !fullyPaid
-                  ? 'Cannot pack: Order must be Full Payment first'
-                  : 'Mark as Packed'
-              }
-            >
-              <PackageCheck
-                size={16}
-                className={!fullyPaid ? 'text-slate-400' : 'text-amber-600'}
-              />
-              {packingLoading ? 'Marking Packed...' : 'Mark as Packed'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!fullyPaid) return;
-                onClose();
-                onOpenSetTracking?.(shipment);
-              }}
-              disabled={!fullyPaid}
-              className={
-                'btn-primary !py-2.5 !px-5 text-xs font-bold flex items-center ' +
-                'gap-1.5 cursor-pointer ' +
-                (!fullyPaid
-                  ? '!bg-slate-200 !text-slate-400 !border-transparent opacity-60 cursor-not-allowed'
-                  : '!bg-indigo-600 hover:!bg-indigo-700 shadow-md shadow-indigo-600/30')
-              }
-              title={
-                !fullyPaid
-                  ? 'Cannot set resi: Order must be Full Payment first'
-                  : 'Input Resi & Ship'
-              }
-            >
-              <Truck size={16} />
-              Input Resi & Ship
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => {
+              if (!fullyPaid) return;
+              onClose();
+              onOpenPack?.(shipment);
+            }}
+            disabled={packingLoading || !fullyPaid}
+            className={
+              'btn-primary !bg-amber-600 hover:!bg-amber-700 !py-2.5 !px-5 ' +
+              'text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-600/25 ' +
+              (!fullyPaid ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer')
+            }
+            title={
+              !fullyPaid
+                ? 'Cannot pack: Order must be Full Payment first'
+                : 'Mulai proses packing & cetak label'
+            }
+          >
+            <PackageCheck size={16} />
+            <span>Pack & Cetak Label</span>
+          </button>
         )}
 
         {/* If PACKED or READY */}
@@ -112,11 +85,30 @@ export function ShipmentDetailFooter({
             title={
               !fullyPaid
                 ? 'Cannot set resi: Order must be Full Payment first'
-                : 'Set Tracking Number (Resi)'
+                : 'Set Tracking Number & Actual Ongkir'
             }
           >
             <Truck size={16} />
-            Set Tracking Number (Resi)
+            Input Resi & Ongkir
+          </button>
+        )}
+
+        {/* If WAITING_SETTLEMENT */}
+        {currentStatus === 'WAITING_SETTLEMENT' && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenSetTracking?.(shipment);
+            }}
+            className={
+              'btn-secondary !bg-orange-50 !border-orange-300 !text-orange-800 ' +
+              'hover:!bg-orange-100 !py-2.5 !px-4 text-xs font-bold flex items-center ' +
+              'gap-1.5 cursor-pointer'
+            }
+          >
+            <Clock size={16} className="text-orange-600" />
+            <span>Update Resi / Ongkir</span>
           </button>
         )}
 
@@ -142,26 +134,14 @@ export function ShipmentDetailFooter({
               }}
               className={
                 'btn-primary !bg-emerald-600 hover:!bg-emerald-700 !py-2.5 !px-5 ' +
-                'text-xs font-bold shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer'
+                'text-xs font-bold flex items-center gap-1.5 cursor-pointer ' +
+                'shadow-md shadow-emerald-600/30'
               }
             >
               <CheckCircle2 size={16} />
-              Confirm Delivered & Complete
+              Konfirmasi Sampai (Delivered)
             </button>
           </>
-        )}
-
-        {/* If DELIVERED */}
-        {currentStatus === 'DELIVERED' && (
-          <div
-            className={
-              'flex items-center gap-2 rounded-xl bg-emerald-50 border ' +
-              'border-emerald-200 px-3.5 py-2 text-xs font-bold text-emerald-800'
-            }
-          >
-            <CheckCircle2 size={16} className="text-emerald-600" />
-            Shipment & Order Completed
-          </div>
         )}
       </div>
     </div>

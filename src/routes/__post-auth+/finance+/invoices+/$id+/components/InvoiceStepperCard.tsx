@@ -52,6 +52,7 @@ export function InvoiceStepperCard({
         previewStage={previewStage}
         activeDisplayMode={activeDisplayMode}
         totalBill={totalBill}
+        paidAmount={paidAmount}
         outstandingAmount={outstandingAmount}
         dpAmount={dpAmount}
         setPreviewStage={setPreviewStage}

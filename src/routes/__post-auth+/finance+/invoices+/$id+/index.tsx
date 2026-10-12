@@ -7,15 +7,18 @@ import { useAuth } from '~/context/AuthContext';
 import { PaymentModal } from '~/routes/__post-auth+/finance+/invoices+/components/payment-modal';
 import { DepositModal } from '~/routes/__post-auth+/finance+/invoices+/components/deposit-modal';
 import {
-  WhatsappMessageModal
+  WhatsappMessageModal,
 } from '~/routes/__post-auth+/finance+/invoices+/components/whatsapp-message-modal';
 import {
-  MobileInvoicePaper
+  MobileInvoicePaper,
 } from '~/routes/__post-auth+/finance+/invoices+/components/mobile-invoice-paper';
 import { InvoiceDetailActions } from './components/InvoiceDetailActions';
 import { InvoiceStepperCard } from './components/InvoiceStepperCard';
 import { InvoiceA4Paper } from './components/InvoiceA4Paper';
 import { InvoiceHistoryTables } from './components/InvoiceHistoryTables';
+import {
+  InvoicePaymentVerificationModal,
+} from './components/InvoicePaymentVerificationModal';
 import { useInvoiceDetail, loader } from './hooks/use-invoice-detail';
 
 export { loader };
@@ -82,6 +85,41 @@ export default function InvoiceDetailRoute() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {d.pendingPayments && d.pendingPayments.length > 0 && (
+        <div
+          className={
+            'no-print mx-auto mb-4 max-w-[980px] flex items-center justify-between ' +
+            'rounded-2xl bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-950 ' +
+            'border border-amber-300'
+          }
+        >
+          <div className="flex items-center gap-2.5">
+            <span
+              className={
+                'grid h-6 w-6 place-items-center rounded-lg bg-amber-500 ' +
+                'text-white font-black text-xs shrink-0'
+              }
+            >
+              !
+            </span>
+            <span>
+              <strong>{d.pendingPayments.length} Customer Payment Proof(s) Uploaded</strong>
+              {' '}awaiting your review & verification.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => d.openVerifyModal(d.pendingPayments[0])}
+            className={
+              'rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-black text-white ' +
+              'hover:bg-amber-600 transition shadow-xs shrink-0'
+            }
+          >
+            Check & Verify
+          </button>
         </div>
       )}
 
@@ -166,6 +204,26 @@ export default function InvoiceDetailRoute() {
         refundSortCol={d.refundSortCol}
         refundSortDir={d.refundSortDir}
         onSortRefund={d.handleSortRefund}
+        onVerifyPayment={d.openVerifyModal}
+      />
+
+      <InvoicePaymentVerificationModal
+        open={d.verifyModalOpen}
+        payment={d.verifyingPayment}
+        invoice={d.invoice}
+        onClose={d.closeVerifyModal}
+        onSuccess={() => {
+          d.closeVerifyModal();
+          d.setToast({
+            message: 'Payment verified and invoice status updated.',
+            type: 'success',
+          });
+          d.load();
+        }}
+        onRecordNewPayment={() => {
+          d.closeVerifyModal();
+          d.setPaymentOpen(true);
+        }}
       />
 
       <PaymentModal

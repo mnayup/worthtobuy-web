@@ -121,10 +121,18 @@ export function getOrderFields(user: any): FieldConfig[] {
       dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
     },
     {
-      name: 'unitPriceForeign',
-      label: 'Base Item Price (IDR)',
+      name: 'newProductBuyPrice',
+      label: 'Store Buy Price / Modal (IDR)',
       type: 'currency',
-      placeholder: 'Default price across variants',
+      placeholder: 'Store cost to purchase item',
+      defaultValue: 0,
+      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
+    },
+    {
+      name: 'unitPriceForeign',
+      label: 'Customer Selling Price (IDR)',
+      type: 'currency',
+      placeholder: 'Price billed to customer (for invoice)',
     },
     {
       name: 'variantItems',

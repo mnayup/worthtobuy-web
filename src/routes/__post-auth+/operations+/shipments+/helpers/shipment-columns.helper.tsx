@@ -165,12 +165,43 @@ export function getShipmentColumns({
     },
     {
       key: 'shippingCost',
-      label: 'Shipping Fee',
-      render: (row: Shipment) => (
-        <span className="text-xs text-brand-900 font-semibold">
-          {money(row.shipping_cost ?? row.shippingCost ?? 0)}
-        </span>
-      ),
+      label: 'Shipping Fee (Est / Act)',
+      render: (row: Shipment) => {
+        const est = Number(row.shipping_cost ?? row.shippingCost ?? 0);
+        const act = row.actual_shipping_cost ?? row.actualShippingCost;
+        const diff = row.shipping_cost_difference ?? row.shippingCostDifference;
+
+        return (
+          <div className="flex flex-col text-xs space-y-0.5">
+            <span className="font-bold text-brand-900">
+              {act !== null && act !== undefined ? money(Number(act)) : money(est)}
+            </span>
+            {act !== null && act !== undefined && (
+              <span className="text-[10px] text-brand-500">Est: {money(est)}</span>
+            )}
+            {diff !== null && diff !== undefined && Number(diff) > 0 && (
+              <span
+                className={
+                  'text-[10px] font-bold text-amber-800 bg-amber-100/70 ' +
+                  'px-1 rounded w-fit'
+                }
+              >
+                +Rp{Number(diff).toLocaleString('id-ID')} (Kurang)
+              </span>
+            )}
+            {diff !== null && diff !== undefined && Number(diff) < 0 && (
+              <span
+                className={
+                  'text-[10px] font-bold text-emerald-800 bg-emerald-100/70 ' +
+                  'px-1 rounded w-fit'
+                }
+              >
+                -Rp{Math.abs(Number(diff)).toLocaleString('id-ID')} (Refund)
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'paymentStatus',

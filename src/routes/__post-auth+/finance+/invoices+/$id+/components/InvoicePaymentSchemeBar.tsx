@@ -40,6 +40,7 @@ export function InvoicePaymentSchemeBar({
         <div className="rounded-2xl border border-brand-200/90 bg-brand-50/60 p-4 sm:p-5 space-y-4">
           {/* Step 1: Estimated Shipping Cost (ongkir input BEFORE selecting scheme) */}
           <InvoiceShippingCostSection
+            invoice={invoice}
             orders={invoice.orders || []}
             updatingScheme={updatingScheme}
             updateShippingCost={updateShippingCost}
@@ -138,7 +139,7 @@ export function InvoicePaymentSchemeBar({
                     Stage 1: Down Payment Bill (Tagihan DP) — {money(dpAmount)} ({currentPct}%)
                   </p>
                   <p className="text-[11px] text-amber-800 font-medium mt-0.5">
-                    Send DP bill via WhatsApp, then record payment once received.
+                    Send DP bill via WhatsApp. Customer can view invoice and upload proof.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">
@@ -148,13 +149,6 @@ export function InvoicePaymentSchemeBar({
                     className="btn-secondary !py-2 !px-3 text-xs font-bold text-emerald-700"
                   >
                     <MessageCircle size={14} /> Send DP Bill via WA
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openPaymentWith(dpAmount, 'Pembayaran DP (Down Payment)')}
-                    className="btn-primary !py-2 !px-3.5 text-xs font-black shadow-sm"
-                  >
-                    <CreditCard size={14} /> Record DP Payment {money(dpAmount)}
                   </button>
                 </div>
               </div>
@@ -243,7 +237,7 @@ export function InvoicePaymentSchemeBar({
               Stage 3 Completed: All Orders Paid in Full (Lunas)
             </p>
             <p className="mt-0.5 text-xs text-emerald-800 font-medium">
-              Total verified: <strong>{money(paidAmount)}</strong>. Valid as an Official Payment Receipt.
+              Total verified: <strong>{money(paidAmount)}</strong>. Official Payment Receipt.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">

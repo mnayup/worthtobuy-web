@@ -12,7 +12,7 @@ import { TopShoppersCard } from './components/top-shoppers-card';
 import { useDashboard } from './hooks/use-dashboard';
 
 export default function DashboardRoute() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const {
     data,
     periods,
@@ -34,11 +34,16 @@ export default function DashboardRoute() {
     return <DashboardLoading />;
   }
 
+  const canViewDashboard =
+    user?.role === 'OWNER' ||
+    user?.role === 'ADMIN' ||
+    hasPermission('dashboard', 'view');
+
   return (
     <div className="animate-rise space-y-6">
       <DashboardHero />
 
-      {user?.role === 'OWNER' && (
+      {canViewDashboard && (
         <>
           <DashboardFilters
             start={start}
@@ -52,7 +57,12 @@ export default function DashboardRoute() {
           />
 
           {error && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-sm font-bold text-rose-700 shadow-sm">
+            <div
+              className={
+                'rounded-2xl border border-rose-200 bg-rose-50/90 ' +
+                'p-4 text-sm font-bold text-rose-700 shadow-sm'
+              }
+            >
               {error}
             </div>
           )}

@@ -48,9 +48,17 @@ export interface Shipment {
   weight_kg?: number | null;
   shippingCost?: number;
   shipping_cost?: number;
+  actualShippingCost?: number | null;
+  actual_shipping_cost?: number | null;
+  shippingCostDifference?: number | null;
+  shipping_cost_difference?: number | null;
   shippedAt?: string | null;
   shipped_at?: string | null;
+  packedAt?: string | null;
+  packed_at?: string | null;
   status: string;
+  proofBeforeUrl?: string | null;
+  proof_before_url?: string | null;
   proofUrl?: string | null;
   proof_url?: string | null;
   notes?: string | null;
@@ -152,6 +160,7 @@ export const shipmentStatuses = [
   'READY',
   'HANDED_TO_COURIER',
   'IN_TRANSIT',
+  'WAITING_SETTLEMENT',
   'DELIVERED',
   'FAILED',
   'RETURNED',

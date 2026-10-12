@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -8,6 +8,8 @@ import {
   Smartphone,
   Trash2,
   Wallet,
+  Link2,
+  Check,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { money } from '~/lib/format';
@@ -35,6 +37,23 @@ export function InvoiceDetailActions({
   onOpenDelete,
 }: InvoiceDetailActionsProps) {
   const navigate = useNavigate();
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const invoiceNum =
+    invoice?.invoice_number ||
+    invoice?.invoiceNumber ||
+    invoice?.id;
+  const publicUrl =
+    typeof window !== 'undefined' && invoiceNum
+      ? `${window.location.origin}/invoice/${invoiceNum}`
+      : '';
+
+  const copyInvoiceLink = () => {
+    if (!publicUrl) return;
+    navigator.clipboard.writeText(publicUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
   const btnFormatCls =
     'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition';
@@ -101,6 +120,30 @@ export function InvoiceDetailActions({
               : 'Use Deposit (Gunakan Deposit)'}
           </span>
         </button>
+
+        {publicUrl && (
+          <button
+            type="button"
+            onClick={copyInvoiceLink}
+            className={clsx(
+              'btn transition',
+              copiedLink
+                ? 'bg-emerald-600 text-white font-extrabold'
+                : 'btn-secondary text-brand-800'
+            )}
+            title="Copy public link for customer to view invoice and upload proof"
+          >
+            {copiedLink ? (
+              <>
+                <Check size={16} /> Link Copied!
+              </>
+            ) : (
+              <>
+                <Link2 size={16} className="text-brand-600" /> Copy Invoice Link
+              </>
+            )}
+          </button>
+        )}
 
         <button onClick={onOpenWhatsapp} className="btn-secondary">
           <MessageCircle size={16} className="text-emerald-600" /> WhatsApp Template

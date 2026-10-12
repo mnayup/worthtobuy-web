@@ -24,6 +24,7 @@ api.interceptors.response.use(
         path.startsWith('/events') ||
         path.startsWith('/ready-stock') ||
         path.startsWith('/track') ||
+        path.startsWith('/invoice') ||
         path === '/login';
       if (!isPublic) {
         window.location.href = '/login';

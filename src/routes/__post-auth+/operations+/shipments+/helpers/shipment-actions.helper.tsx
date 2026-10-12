@@ -1,11 +1,11 @@
 import React from 'react';
-import { PackageCheck, Truck, CheckCircle2, Eye } from 'lucide-react';
+import { PackageCheck, Truck, CheckCircle2, Eye, Clock } from 'lucide-react';
 import { isShipmentFullyPaid, type Shipment } from '../types';
 
 interface RenderShipmentRowActionsProps {
   row: Shipment;
   rowActionLoadingId: number | null;
-  onQuickPack: (row: Shipment) => void;
+  onOpenPack: (row: Shipment) => void;
   onOpenSetTracking: (row: Shipment) => void;
   onOpenConfirmDelivered: (row: Shipment) => void;
   onOpenDetail: (row: Shipment) => void;
@@ -14,7 +14,7 @@ interface RenderShipmentRowActionsProps {
 export function renderShipmentRowActions({
   row,
   rowActionLoadingId,
-  onQuickPack,
+  onOpenPack,
   onOpenSetTracking,
   onOpenConfirmDelivered,
   onOpenDetail,
@@ -25,62 +25,34 @@ export function renderShipmentRowActions({
 
   return (
     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-      {/* If WAITING_PACKING */}
+      {/* 1. WAITING_PACKING: Cannot set resi before pack! Only show Pack button */}
       {status === 'WAITING_PACKING' && (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              if (!fullyPaid) return;
-              onQuickPack(row);
-            }}
-            disabled={isPackingLoading || !fullyPaid}
-            className={
-              'inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs ' +
-              'font-bold transition shadow-2xs ' +
-              (!fullyPaid
-                ? 'opacity-40 bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
-                : 'bg-amber-50 border border-amber-200/90 text-amber-800 hover:bg-amber-100 cursor-pointer')
-            }
-            title={
-              !fullyPaid
-                ? 'Cannot pack: Order must be Full Payment first'
-                : 'Mark items as Packed'
-            }
-          >
-            <PackageCheck
-              size={14}
-              className={!fullyPaid ? 'text-slate-400' : 'text-amber-600'}
-            />
-            <span>{isPackingLoading ? 'Packing...' : 'Pack'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!fullyPaid) return;
-              onOpenSetTracking(row);
-            }}
-            disabled={!fullyPaid}
-            className={
-              'inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs ' +
-              'font-bold transition shadow-2xs ' +
-              (!fullyPaid
-                ? 'opacity-40 bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
-                : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 cursor-pointer')
-            }
-            title={
-              !fullyPaid
-                ? 'Cannot set resi: Order must be Full Payment first'
-                : 'Set Tracking Number & Ship'
-            }
-          >
-            <Truck size={14} className={!fullyPaid ? 'text-slate-400' : 'text-indigo-600'} />
-            <span>Set Resi</span>
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={() => {
+            if (!fullyPaid) return;
+            onOpenPack(row);
+          }}
+          disabled={isPackingLoading || !fullyPaid}
+          className={
+            'inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs ' +
+            'font-bold transition shadow-2xs ' +
+            (!fullyPaid
+              ? 'opacity-40 bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
+              : 'bg-amber-500 text-white hover:bg-amber-600 cursor-pointer shadow-amber-500/20')
+          }
+          title={
+            !fullyPaid
+              ? 'Cannot pack: Order must be Full Payment first'
+              : 'Open Packing, Label Generation & Evidence Upload'
+          }
+        >
+          <PackageCheck size={14} />
+          <span>{isPackingLoading ? 'Loading...' : 'Pack & Cetak Label'}</span>
+        </button>
       )}
 
-      {/* If PACKED or READY */}
+      {/* 2. PACKED or READY: Staff can now input Resi, Actual Ongkir & Evidence After Packing */}
       {(status === 'PACKED' || status === 'READY') && (
         <button
           type="button"
@@ -90,7 +62,7 @@ export function renderShipmentRowActions({
           }}
           disabled={!fullyPaid}
           className={
-            'inline-flex items-center gap-1 rounded-xl px-3 py-1 text-xs ' +
+            'inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs ' +
             'font-bold transition shadow-xs ' +
             (!fullyPaid
               ? 'opacity-40 bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -99,15 +71,32 @@ export function renderShipmentRowActions({
           title={
             !fullyPaid
               ? 'Cannot set resi: Order must be Full Payment first'
-              : 'Input Tracking Number (Resi)'
+              : 'Input Tracking Number (Resi) & Actual Ongkir'
           }
         >
           <Truck size={14} />
-          <span>Input Resi</span>
+          <span>Input Resi & Ongkir</span>
         </button>
       )}
 
-      {/* If IN_TRANSIT or HANDED_TO_COURIER */}
+      {/* 3. WAITING_SETTLEMENT: Shortage of shipping cost, customer needs to pay */}
+      {status === 'WAITING_SETTLEMENT' && (
+        <button
+          type="button"
+          onClick={() => onOpenSetTracking(row)}
+          className={
+            'inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs ' +
+            'font-bold transition shadow-2xs bg-orange-50 border border-orange-200 ' +
+            'text-orange-700 hover:bg-orange-100 cursor-pointer'
+          }
+          title="Menunggu Pelunasan Kurang Ongkir dari Customer. Klik untuk edit resi/ongkir."
+        >
+          <Clock size={14} className="text-orange-600" />
+          <span>Kurang Ongkir</span>
+        </button>
+      )}
+
+      {/* 4. IN_TRANSIT or HANDED_TO_COURIER: Package is on the way */}
       {(status === 'IN_TRANSIT' || status === 'HANDED_TO_COURIER') && (
         <>
           <button

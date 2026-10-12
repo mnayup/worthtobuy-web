@@ -2,8 +2,9 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { CrudPage } from '~/components/CrudPage';
 import { api } from '~/lib/api';
 import type { FieldConfig } from '~/types';
-import { isShipmentFullyPaid, type Shipment } from './types';
+import type { Shipment } from './types';
 import { ShipmentDetailModal } from './components/shipment-detail-modal';
+import { PackingModal } from './components/packing-modal';
 import { SetTrackingModal } from './components/set-tracking-modal';
 import { ConfirmDeliveredModal } from './components/confirm-delivered-modal';
 import { ShipmentStatusCards } from './components/shipment-status-cards';
@@ -16,10 +17,10 @@ export default function ShipmentsRoute() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [detailShipment, setDetailShipment] = useState<Shipment | null>(null);
+  const [packingShipment, setPackingShipment] = useState<Shipment | null>(null);
   const [trackingShipment, setTrackingShipment] = useState<Shipment | null>(null);
   const [deliveringShipment, setDeliveringShipment] = useState<Shipment | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
-  const [rowActionLoadingId, setRowActionLoadingId] = useState<number | null>(null);
 
   const fetchSummary = async () => {
     try {
@@ -38,23 +39,6 @@ export default function ShipmentsRoute() {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleQuickPack = async (shipment: Shipment) => {
-    if (!isShipmentFullyPaid(shipment)) {
-      alert('Proses packing tidak dapat dilakukan karena pesanan belum lunas.');
-      return;
-    }
-    setRowActionLoadingId(shipment.id);
-    try {
-      await api.put(`/shipments/${shipment.id}`, { status: 'PACKED' });
-      setRefreshKey((k) => k + 1);
-    } catch (err: any) {
-      console.error('Failed to pack shipment:', err);
-      alert(err.response?.data?.message || 'Failed to pack shipment');
-    } finally {
-      setRowActionLoadingId(null);
-    }
   };
 
   const fields = useMemo<FieldConfig[]>(
@@ -101,6 +85,7 @@ export default function ShipmentsRoute() {
             options: [
               { label: 'Awaiting Packing', value: 'WAITING_PACKING' },
               { label: 'Packed', value: 'PACKED' },
+              { label: 'Waiting Settlement', value: 'WAITING_SETTLEMENT' },
               { label: 'In Transit', value: 'IN_TRANSIT' },
               { label: 'Delivered', value: 'DELIVERED' },
               { label: 'Failed', value: 'FAILED' },
@@ -134,8 +119,8 @@ export default function ShipmentsRoute() {
         renderActions={(row: Shipment) =>
           renderShipmentRowActions({
             row,
-            rowActionLoadingId,
-            onQuickPack: handleQuickPack,
+            rowActionLoadingId: null,
+            onOpenPack: (s) => setPackingShipment(s),
             onOpenSetTracking: (s) => setTrackingShipment(s),
             onOpenConfirmDelivered: (s) => setDeliveringShipment(s),
             onOpenDetail: (s) => setDetailShipment(s),
@@ -151,8 +136,19 @@ export default function ShipmentsRoute() {
           setRefreshKey((k) => k + 1);
           fetchSummary();
         }}
+        onOpenPack={(shipment) => setPackingShipment(shipment)}
         onOpenSetTracking={(shipment) => setTrackingShipment(shipment)}
         onOpenConfirmDelivered={(shipment) => setDeliveringShipment(shipment)}
+      />
+
+      <PackingModal
+        open={Boolean(packingShipment)}
+        shipment={packingShipment}
+        onClose={() => setPackingShipment(null)}
+        onSaved={() => {
+          setRefreshKey((k) => k + 1);
+          fetchSummary();
+        }}
       />
 
       <SetTrackingModal

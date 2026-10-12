@@ -11,6 +11,7 @@ import CustomerHomeRoute from '~/routes/__public+/index';
 import PublicEventsRoute from '~/routes/__public+/events+';
 import PublicReadyStockRoute from '~/routes/__public+/ready-stock+';
 import PublicTrackingRoute from '~/routes/__public+/track+';
+import PublicInvoiceViewRoute from '~/routes/__public+/invoice+';
 
 // Route modules
 import LoginRoute from '~/routes/__pre-auth+/login+';
@@ -65,6 +66,14 @@ export const router = createBrowserRouter([
       {
         path: '/track/:trackingId',
         element: <PublicTrackingRoute />,
+      },
+      {
+        path: '/invoice/:invoiceNumber',
+        element: <PublicInvoiceViewRoute />,
+      },
+      {
+        path: '/invoices/view/:invoiceNumber',
+        element: <PublicInvoiceViewRoute />,
       },
     ],
   },

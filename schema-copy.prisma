@@ -67,6 +67,7 @@ enum ShipmentStatus {
   READY
   HANDED_TO_COURIER
   IN_TRANSIT
+  WAITING_SETTLEMENT
   DELIVERED
   FAILED
   RETURNED
@@ -123,6 +124,7 @@ enum InvoiceStatus {
 enum RefundSource {
   MANUAL
   OVERPAYMENT
+  SHIPPING_OVERPAYMENT
   UNAVAILABLE_ITEM
 }
 
@@ -357,7 +359,8 @@ model ItemStatusHistory {
 
 model Purchase {
   id                  Int            @id @default(autoincrement())
-  purchaseNumber      String         @unique @map("purchase_number")
+  purchaseNumber      String         @map("purchase_number")
+  batchNumber         Int            @default(1) @map("batch_number")
   purchaseDate        DateTime       @default(now()) @map("purchase_date")
   shopperId           Int?           @map("shopper_id")
   shopper             User?          @relation(fields: [shopperId], references: [id])
@@ -381,6 +384,7 @@ model Purchase {
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
 
+  @@index([purchaseNumber])
   @@index([periodId])
   @@index([orderItemId])
   @@index([shopperId])
@@ -452,11 +456,15 @@ model Shipment {
   courier         String
   serviceType     String?        @map("service_type")
   weightKg        Decimal?       @db.Decimal(10, 2) @map("weight_kg")
-  shippingCost    Decimal        @default(0) @db.Decimal(18, 2) @map("shipping_cost")
-  shippedAt       DateTime?      @map("shipped_at")
-  status          ShipmentStatus @default(WAITING_PACKING)
-  proofUrl        String?        @map("proof_url")
-  notes           String?
+  shippingCost           Decimal        @default(0) @db.Decimal(18, 2) @map("shipping_cost")
+  actualShippingCost     Decimal?       @db.Decimal(18, 2) @map("actual_shipping_cost")
+  shippingCostDifference Decimal?       @db.Decimal(18, 2) @map("shipping_cost_difference")
+  shippedAt              DateTime?      @map("shipped_at")
+  packedAt               DateTime?      @map("packed_at")
+  status                 ShipmentStatus @default(WAITING_PACKING)
+  proofBeforeUrl         String?        @map("proof_before_url")
+  proofUrl               String?        @map("proof_url")
+  notes                  String?
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpDown, History, WalletCards } from 'lucide-react';
+import { ArrowUpDown, History, WalletCards, ExternalLink, CheckCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { dateTime, money, titleCase } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
@@ -14,6 +14,7 @@ interface InvoiceHistoryTablesProps {
   refundSortCol: RefundSortCol;
   refundSortDir: SortDir;
   onSortRefund: (col: NonNullable<RefundSortCol>) => void;
+  onVerifyPayment?: (payment: any) => void;
 }
 
 export function InvoiceHistoryTables({
@@ -25,6 +26,7 @@ export function InvoiceHistoryTables({
   refundSortCol,
   refundSortDir,
   onSortRefund,
+  onVerifyPayment,
 }: InvoiceHistoryTablesProps) {
   return (
     <div className="no-print mx-auto mt-6 grid max-w-[980px] gap-5 lg:grid-cols-2">
@@ -72,26 +74,74 @@ export function InvoiceHistoryTables({
                   dir={paymentSortDir}
                   onSort={onSortPayment}
                 />
+                <th
+                  className={
+                    'px-3 py-2 text-right text-[10px] font-extrabold uppercase ' +
+                    'text-brand-700'
+                  }
+                >
+                  Proof / Action
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-100 bg-white">
               {sortedPayments.length ? (
-                sortedPayments.map((payment: any) => (
-                  <tr key={payment.id} className="hover:bg-brand-50/50">
-                    <td className="table-cell">{dateTime(payment.paymentDate)}</td>
-                    <td className="table-cell">
-                      <p className="font-bold text-brand-800">{payment.method}</p>
-                      <p className="text-[11px] text-brand-400">{payment.paymentNumber}</p>
-                    </td>
-                    <td className="table-cell font-black">{money(payment.amount)}</td>
-                    <td className="table-cell">
-                      <StatusBadge value={payment.status} />
-                    </td>
-                  </tr>
-                ))
+                sortedPayments.map((payment: any) => {
+                  const proof = payment.proof_url || payment.proofUrl;
+                  const isPending = payment.status === 'PENDING';
+                  const rawDate = payment.paymentDate || payment.payment_date;
+
+                  return (
+                    <tr key={payment.id} className="hover:bg-brand-50/50">
+                      <td className="table-cell">{dateTime(rawDate)}</td>
+                      <td className="table-cell">
+                        <p className="font-bold text-brand-800">{payment.method}</p>
+                        <p className="text-[11px] text-brand-400">
+                          {payment.paymentNumber || payment.payment_number}
+                        </p>
+                      </td>
+                      <td className="table-cell font-black">{money(payment.amount)}</td>
+                      <td className="table-cell">
+                        <StatusBadge value={payment.status} />
+                      </td>
+                      <td className="table-cell text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {proof && (
+                            <a
+                              href={proof}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={
+                                'rounded-lg border border-brand-200 p-1 hover:bg-brand-100 ' +
+                                'text-brand-600 transition'
+                              }
+                              title="View receipt"
+                            >
+                              <ExternalLink size={13} />
+                            </a>
+                          )}
+                          {onVerifyPayment && (
+                            <button
+                              type="button"
+                              onClick={() => onVerifyPayment(payment)}
+                              className={
+                                'rounded-lg px-2.5 py-1 text-[11px] font-black transition ' +
+                                (isPending
+                                  ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-2xs'
+                                  : 'bg-brand-100 text-brand-800 hover:bg-brand-200')
+                              }
+                            >
+                              {isPending ? 'Check & Verify' : 'View'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-sm text-brand-400">
+                  <td colSpan={5} className="p-8 text-center text-sm text-brand-400">
                     No payments recorded yet.
                   </td>
                 </tr>
