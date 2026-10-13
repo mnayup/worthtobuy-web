@@ -90,16 +90,6 @@ export function LoginForm({
           {loading ? 'Signing in...' : 'Sign in to WORTHTOBUY'}
         </button>
       </div>
-
-      <div className="mt-7 rounded-2xl border border-brand-200/70 bg-brand-50/70 p-4 text-xs leading-relaxed text-brand-600 shadow-xs">
-        <p className="font-extrabold text-brand-900">Default Credentials</p>
-        <p className="mt-1">
-          Username: <strong className="text-brand-900">owner</strong> (atau email <strong>owner@worthtobuy.local</strong>)
-        </p>
-        <p className="mt-0.5">
-          Password: <strong>GantiPassword123!</strong>
-        </p>
-      </div>
     </form>
   );
 }
