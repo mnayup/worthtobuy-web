@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { MessageCircle, Truck } from 'lucide-react';
 
+import { WA_GROUP_URL } from '~/lib/whatsapp';
+
 export function HomeCtaSection() {
-  const waUrl =
-    'https://wa.me/6281234567890?text=' +
-    encodeURIComponent('Halo Admin Worthtobuy! Saya punya wishlist barang yang mau dititip.');
+  const waUrl = WA_GROUP_URL;
 
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

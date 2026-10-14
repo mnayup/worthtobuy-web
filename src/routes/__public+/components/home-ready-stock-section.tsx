@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Boxes, ChevronRight, MessageCircle } from 'lucide-react';
 import { money } from '~/lib/format';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 interface HomeReadyStockSectionProps {
   products: any[];
@@ -51,12 +52,10 @@ export function HomeReadyStockSection({ products }: HomeReadyStockSectionProps) 
 
       <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {products.map((prod) => {
-          const waProductUrl =
-            'https://wa.me/6281234567890?text=' +
-            encodeURIComponent(
-              `Halo Admin Worthtobuy, saya mau beli Ready Stock *${prod.name}* ` +
-                `(SKU: ${prod.sku}) seharga ${money(prod.sellingPrice)}.`
-            );
+          const waProductUrl = buildWhatsAppUrl(
+            `Halo Admin Worthtobuy, saya mau beli Ready Stock *${prod.name}* ` +
+              `(SKU: ${prod.sku}) seharga ${money(prod.sellingPrice)}.`
+          );
 
           return (
             <div

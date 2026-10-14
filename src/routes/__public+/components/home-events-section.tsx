@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, MessageCircle, Sparkles } from 'lucide-react';
 import { date } from '~/lib/format';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 interface HomeEventsSectionProps {
   events: any[];
@@ -48,12 +49,10 @@ export function HomeEventsSection({ events }: HomeEventsSectionProps) {
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {events.map((evt) => {
           const isOverseas = evt.type === 'OVERSEAS';
-          const waEventUrl =
-            'https://wa.me/6281234567890?text=' +
-            encodeURIComponent(
-              `Halo Admin Worthtobuy, saya mau titip belanja untuk event ` +
-                `*${evt.name}* (${evt.city})!`
-            );
+          const waEventUrl = buildWhatsAppUrl(
+            `Halo Admin Worthtobuy, saya mau titip belanja untuk event ` +
+              `*${evt.name}* (${evt.city})!`
+          );
 
           const badgeClass = isOverseas
             ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'

@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 
+import { ADMIN_WA_NUMBER, buildWhatsAppUrl } from '~/lib/whatsapp';
+
 export function FloatingWhatsApp() {
   const [openTooltip, setOpenTooltip] = useState(true);
 
-  const waNumber = '6281234567890';
-  const defaultMessage = encodeURIComponent(
-    'Halo Admin Worthtobuy! Saya ingin bertanya mengenai jasa titip pameran / order ready stock.'
+  const waUrl = buildWhatsAppUrl(
+    'Halo Admin Worthtobuy! Saya ingin bertanya mengenai jasa titip pameran / order ready stock.',
+    ADMIN_WA_NUMBER
   );
-  const waUrl = `https://wa.me/${waNumber}?text=${defaultMessage}`;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 group">

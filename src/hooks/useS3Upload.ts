@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import imageCompression from 'browser-image-compression';
+import { api } from '~/lib/api';
 
 export type AllowedFileType = 'image' | 'document' | 'all';
 export type EntityType = 
@@ -100,33 +101,14 @@ export function useS3Upload() {
         }
       }
 
-      // 3. Resolve API URL cleanly (handles cases where VITE_API_URL includes or omits /api)
-      const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:3100/api';
-      const uploadApiEndpoint = rawBase.endsWith('/api')
-        ? `${rawBase}/uploads/presigned-url`
-        : `${rawBase}/api/uploads/presigned-url`;
-
-      const token = localStorage.getItem('jastipflow_token'); 
-      
-      const presignedRes = await fetch(uploadApiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          filename: finalFile.name,
-          contentType: finalFile.type || 'application/octet-stream',
-          entityType,
-        })
+      // 3. Request presigned URL from backend
+      const presignedRes = await api.post('/uploads/presigned-url', {
+        filename: finalFile.name,
+        contentType: finalFile.type || 'application/octet-stream',
+        entityType,
       });
 
-      if (!presignedRes.ok) {
-        const errData = await presignedRes.json().catch(() => ({}));
-        throw new Error(errData.message || `Failed to generate upload URL (${presignedRes.status})`);
-      }
-
-      const { presignedUrl, publicUrl } = await presignedRes.json();
+      const { presignedUrl, publicUrl } = presignedRes.data;
 
       // 4. Upload directly to MinIO using presigned URL
       const uploadRes = await fetch(presignedUrl, {
@@ -144,7 +126,7 @@ export function useS3Upload() {
       setProgress(100);
       return publicUrl;
     } catch (err: any) {
-      const msg = err.message || 'An error occurred during upload';
+      const msg = err.response?.data?.message || err.message || 'An error occurred during upload';
       setError(msg);
       return null;
     } finally {

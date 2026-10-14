@@ -1,4 +1,5 @@
 import { Instagram } from 'lucide-react';
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '~/lib/brand';
 
 const SHOWCASE_CARDS = [
   {
@@ -44,7 +45,7 @@ export function HomeInstagramSection() {
           <div>
             <div className="flex items-center gap-2 text-pink-600 font-extrabold text-xs">
               <Instagram size={18} />
-              <span>Follow Instagram @worthtobuy_sub</span>
+              <span>Follow Instagram {INSTAGRAM_HANDLE}</span>
             </div>
             <h2 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900">
               Update Live Shopping & Testimoni
@@ -56,7 +57,7 @@ export function HomeInstagramSection() {
           </div>
 
           <a
-            href="https://www.instagram.com/worthtobuy_sub"
+            href={INSTAGRAM_URL}
             target="_blank"
             rel="noopener noreferrer"
             className={
@@ -67,7 +68,7 @@ export function HomeInstagramSection() {
             }
           >
             <Instagram size={18} />
-            <span>Buka Instagram @worthtobuy_sub</span>
+            <span>Buka Instagram {INSTAGRAM_HANDLE}</span>
           </a>
         </div>
 

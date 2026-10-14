@@ -11,10 +11,11 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
+import { BRAND_NAME, INSTAGRAM_HANDLE, INSTAGRAM_URL } from '~/lib/brand';
+
 export function PublicFooter() {
-  const waUrl =
-    'https://wa.me/6281234567890?text=' +
-    encodeURIComponent('Halo Admin Worthtobuy! Saya mau konsultasi seputar titip belanja.');
+  const waUrl = buildWhatsAppUrl('Halo Admin Worthtobuy! Saya mau konsultasi seputar titip belanja.');
 
   return (
     <footer className="border-t border-slate-200/80 bg-slate-900 text-slate-300">
@@ -98,13 +99,13 @@ export function PublicFooter() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <a
-                href="https://www.instagram.com/worthtobuy_sub"
+                href={INSTAGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-white transition hover:border-pink-500 hover:text-pink-300"
               >
                 <Instagram size={15} className="text-pink-400" />
-                <span>@worthtobuy_sub</span>
+                <span>{INSTAGRAM_HANDLE}</span>
               </a>
 
               <a
@@ -235,7 +236,7 @@ export function PublicFooter() {
 
       {/* Bottom Copyright */}
       <div className="border-t border-slate-800/80 bg-slate-950 px-4 py-4 text-center text-xs text-slate-500">
-        <p>© 2019 – {new Date().getFullYear()} WORTHTOBUY (@worthtobuy_sub). Hak Cipta Dilindungi.</p>
+        <p>© 2019 – {new Date().getFullYear()} {BRAND_NAME} ({INSTAGRAM_HANDLE}). Hak Cipta Dilindungi.</p>
       </div>
     </footer>
   );

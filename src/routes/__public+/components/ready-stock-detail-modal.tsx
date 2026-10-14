@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { money } from '~/lib/format';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 interface ReadyStockDetailModalProps {
   product: any;
@@ -33,13 +34,11 @@ export function ReadyStockDetailModal({ product, onClose }: ReadyStockDetailModa
     .filter(Boolean)
     .join(', ');
 
-  const waUrl =
-    'https://wa.me/6281234567890?text=' +
-    encodeURIComponent(
-      `Halo Admin Worthtobuy, saya mau beli Ready Stock: *${product.name}* ` +
-        (varText ? `(${varText}) ` : '') +
-        `(SKU: ${product.sku}) seharga ${money(sellingPrice)}.`
-    );
+  const waUrl = buildWhatsAppUrl(
+    `Halo Admin Worthtobuy, saya mau beli Ready Stock: *${product.name}* ` +
+      (varText ? `(${varText}) ` : '') +
+      `(SKU: ${product.sku}) seharga ${money(sellingPrice)}.`
+  );
 
   return (
     <div

@@ -1,9 +1,8 @@
 import { MessageCircle, Sparkles } from 'lucide-react';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 export function EventsCustomRequest() {
-  const waCustomUrl =
-    'https://wa.me/6281234567890?text=' +
-    encodeURIComponent('Halo Admin Worthtobuy! Saya mau request titipan di event khusus.');
+  const waCustomUrl = buildWhatsAppUrl('Halo Admin Worthtobuy! Saya mau request titipan di event khusus.');
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

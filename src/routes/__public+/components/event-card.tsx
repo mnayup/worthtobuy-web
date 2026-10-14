@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Calendar, Clock, Globe2, MapPin, MessageCircle, Truck } from 'lucide-react';
 import { date } from '~/lib/format';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 interface EventCardProps {
   evt: any;
@@ -16,10 +17,10 @@ export function EventCard({ evt }: EventCardProps) {
   const estimatedShippingAt =
     evt.estimated_shipping_at ?? evt.estimatedShippingAt ?? returnAt;
 
-  const waUrl = `https://wa.me/6281234567890?text=${encodeURIComponent(
+  const waUrl = buildWhatsAppUrl(
     `Halo Admin Worthtobuy, saya mau titip belanja untuk event *${evt.name}* ` +
       `(Kode: ${evt.code}). Mohon info alur titipannya ya kak!`
-  )}`;
+  );
 
   const badgeClass = isShopping
     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'

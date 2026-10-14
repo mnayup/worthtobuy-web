@@ -1,5 +1,6 @@
 import { Boxes, MessageCircle, ReceiptText } from 'lucide-react';
 import { money } from '~/lib/format';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 interface TrackingOrderDetailsProps {
   data: any;
@@ -13,13 +14,11 @@ export function TrackingOrderDetails({ data }: TrackingOrderDetailsProps) {
   const outstandingAmount =
     data.invoice?.outstanding_amount ?? data.invoice?.outstandingAmount;
 
-  const waUrl =
-    'https://wa.me/6281234567890?text=' +
-    encodeURIComponent(
-      `Halo Admin Worthtobuy, saya mau menanyakan progress pesanan nomor *${orderNumber}* (${
-        invoiceNumber || ''
-      }).`
-    );
+  const waUrl = buildWhatsAppUrl(
+    `Halo Admin Worthtobuy, saya mau menanyakan progress pesanan nomor *${orderNumber}* (${
+      invoiceNumber || ''
+    }).`
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

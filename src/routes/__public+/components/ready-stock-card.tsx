@@ -1,5 +1,6 @@
 import { MessageCircle } from 'lucide-react';
 import { money } from '~/lib/format';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 interface ReadyStockCardProps {
   prod: any;
@@ -23,14 +24,12 @@ export function ReadyStockCard({ prod, onSelectProduct }: ReadyStockCardProps) {
   const variant = prod.variant ?? prod.variation;
   const size = prod.size;
 
-  const waUrl =
-    'https://wa.me/6281234567890?text=' +
-    encodeURIComponent(
-      `Halo Admin Worthtobuy, saya mau pesan Ready Stock: *${prod.name}* ` +
-        (variant ? `(Variant: ${variant}) ` : '') +
-        (size ? `(Size: ${size}) ` : '') +
-        `(SKU: ${prod.sku}) seharga ${money(sellingPrice)}. Apakah masih tersedia?`
-    );
+  const waUrl = buildWhatsAppUrl(
+    `Halo Admin Worthtobuy, saya mau pesan Ready Stock: *${prod.name}* ` +
+      (variant ? `(Variant: ${variant}) ` : '') +
+      (size ? `(Size: ${size}) ` : '') +
+      `(SKU: ${prod.sku}) seharga ${money(sellingPrice)}. Apakah masih tersedia?`
+  );
 
   return (
     <div

@@ -16,6 +16,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '~/context/AuthContext';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '~/lib/brand';
 
 export function PublicNavbar() {
   const { user } = useAuth();
@@ -41,9 +43,9 @@ export function PublicNavbar() {
     { to: '/track', label: 'Lacak Pesanan', icon: Truck },
   ];
 
-  const waUrl =
-    'https://wa.me/6281234567890?text=' +
-    encodeURIComponent('Halo Admin Worthtobuy! Saya mau tanya seputar titip belanja event & ready stock.');
+  const waUrl = buildWhatsAppUrl(
+    'Halo Admin Worthtobuy! Saya mau tanya seputar titip belanja event & ready stock.'
+  );
 
   return (
     <>
@@ -72,13 +74,13 @@ export function PublicNavbar() {
 
           <div className="hidden md:flex items-center gap-3 text-xs">
             <a
-              href="https://www.instagram.com/worthtobuy_sub"
+              href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-rose-200 hover:text-white transition"
             >
               <Instagram size={13} />
-              <span>@worthtobuy_sub</span>
+              <span>{INSTAGRAM_HANDLE}</span>
             </a>
           </div>
         </div>
@@ -148,11 +150,11 @@ export function PublicNavbar() {
           {/* Right Action Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <a
-              href="https://www.instagram.com/worthtobuy_sub"
+              href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-pink-300 hover:text-pink-600"
-              title="Follow Instagram @worthtobuy_sub"
+              title={`Follow Instagram ${INSTAGRAM_HANDLE}`}
             >
               <Instagram size={15} className="text-pink-500" />
               <span>Instagram</span>
@@ -247,13 +249,13 @@ export function PublicNavbar() {
               </a>
 
               <a
-                href="https://www.instagram.com/worthtobuy_sub"
+                href={INSTAGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-pink-200 bg-pink-50/50 py-2.5 text-xs font-bold text-pink-700"
               >
                 <Instagram size={16} />
-                <span>Follow Instagram @worthtobuy_sub</span>
+                <span>Follow Instagram {INSTAGRAM_HANDLE}</span>
               </a>
 
               {user ? (
