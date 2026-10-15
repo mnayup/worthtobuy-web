@@ -91,7 +91,7 @@ export function useS3Upload() {
       if (file.type.startsWith('image/') && !file.type.includes('svg')) {
         try {
           const options = {
-            maxSizeMB: 1,
+            maxSizeMB: 0.8,
             maxWidthOrHeight: 1920,
             useWebWorker: true,
           };
@@ -101,32 +101,57 @@ export function useS3Upload() {
         }
       }
 
-      // 3. Request presigned URL from backend
-      const presignedRes = await api.post('/uploads/presigned-url', {
-        filename: finalFile.name,
-        contentType: finalFile.type || 'application/octet-stream',
-        entityType,
-      });
+      // 3. Primary: Request presigned URL and upload directly to MinIO/S3 domain
+      try {
+        const presignedRes = await api.post('/uploads/presigned-url', {
+          filename: finalFile.name,
+          contentType: finalFile.type || 'application/octet-stream',
+          entityType,
+        });
 
-      const { presignedUrl, publicUrl } = presignedRes.data;
+        const { presignedUrl, publicUrl } = presignedRes.data || {};
 
-      // 4. Upload directly to MinIO using presigned URL
-      const uploadRes = await fetch(presignedUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': finalFile.type || 'application/octet-stream',
-        },
-        body: finalFile
-      });
+        if (presignedUrl) {
+          const uploadRes = await fetch(presignedUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': finalFile.type || 'application/octet-stream',
+            },
+            body: finalFile,
+          });
 
-      if (!uploadRes.ok) {
-        throw new Error(`Failed to upload to MinIO (${uploadRes.status})`);
+          if (uploadRes.ok) {
+            setProgress(100);
+            return publicUrl;
+          }
+          console.warn('Presigned PUT upload failed with status:', uploadRes.status, 'Falling back to backend API upload...');
+        }
+      } catch (presignedErr) {
+        console.warn('Presigned URL flow failed, falling back to backend API upload:', presignedErr);
       }
 
+      // 4. Fallback: Upload directly to backend API (/uploads)
+      const formData = new FormData();
+      formData.append('file', finalFile);
+      formData.append('entityType', entityType);
+
+      const res = await api.post('/uploads', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent: any) => {
+          if (progressEvent?.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(percent);
+          }
+        },
+      });
+
       setProgress(100);
-      return publicUrl;
+      return res.data?.publicUrl || res.data?.url || null;
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'An error occurred during upload';
+      const rawMsg = err.response?.data?.message || err.message || 'An error occurred during upload';
+      const msg = Array.isArray(rawMsg) ? rawMsg.join(', ') : rawMsg;
       setError(msg);
       return null;
     } finally {

@@ -98,15 +98,18 @@ export default function ProductsRoute() {
             const variant = row.variant || row.variation;
             const size = row.size;
             return (
-              <div className="flex flex-col max-w-[220px]">
-                <span className="font-semibold text-brand-900 truncate">{row.name}</span>
+              <div className="flex flex-col max-w-[240px] min-w-0">
+                <span className="font-semibold text-brand-900 truncate block" title={row.name}>
+                  {row.name}
+                </span>
                 {(variant || size) && (
-                  <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                  <div className="flex flex-wrap items-center gap-1 mt-1 max-w-full">
                     {variant && (
                       <span
+                        title={variant}
                         className={
-                          'rounded-md bg-brand-50 border border-brand-200 ' +
-                          'px-1.5 py-0.2 text-[10px] font-semibold text-brand-700'
+                          'max-w-[220px] truncate rounded-md bg-brand-50 border border-brand-200 ' +
+                          'px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 block'
                         }
                       >
                         {variant}
@@ -115,8 +118,8 @@ export default function ProductsRoute() {
                     {size && (
                       <span
                         className={
-                          'rounded-md bg-amber-50 border border-amber-200 ' +
-                          'px-1.5 py-0.2 text-[10px] font-semibold text-amber-700'
+                          'shrink-0 rounded-md bg-amber-50 border border-amber-200 ' +
+                          'px-1.5 py-0.5 text-[10px] font-semibold text-amber-700'
                         }
                       >
                         Size: {size}
@@ -131,7 +134,16 @@ export default function ProductsRoute() {
         {
           key: 'brandName',
           label: 'Brand',
-          render: (row) => row.brand_name || row.brandName || '-',
+          render: (row) => {
+            const brand = row.brand_name || row.brandName;
+            return brand ? (
+              <span className="font-medium text-brand-700 truncate max-w-[150px] block" title={brand}>
+                {brand}
+              </span>
+            ) : (
+              '-'
+            );
+          },
         },
         {
           key: 'stockMode',
