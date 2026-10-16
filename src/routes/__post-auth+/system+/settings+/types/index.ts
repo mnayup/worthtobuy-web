@@ -30,9 +30,23 @@ export interface InvoiceSettings {
   footer: string;
 }
 
+export interface DatabaseBackupLog {
+  id: number;
+  operation_type: 'BACKUP' | 'RESTORE';
+  filename: string;
+  file_size_bytes: number;
+  status: 'SUCCESS' | 'FAILED';
+  triggered_by?: string;
+  notes?: string;
+  error_message?: string;
+  created_at: string;
+}
+
 export interface SettingsData {
   brand: BrandSettings;
   invoice: InvoiceSettings;
   feeRules: FeeRule[];
   feeRulesReseller?: FeeRule[];
 }
+
+

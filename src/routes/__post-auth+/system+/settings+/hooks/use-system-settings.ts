@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api, errorMessage } from '~/lib/api';
 import { number } from '~/lib/format';
-import type { BrandSettings, FeeRule, InvoiceSettings, SettingsData } from '../types';
+import type { BrandSettings, FeeRule, InvoiceSettings, SettingsData, DatabaseBackupLog } from '../types';
 
 export const defaultCustomerRules: FeeRule[] = [
   { id: 'fee-01', label: '≤ Rp10.000', min: 0, max: 10000, type: 'FIXED', value: 3000, active: true },
@@ -213,6 +213,88 @@ export function useSystemSettings() {
     setCurrentRules((current) => current.filter((rule) => rule.id !== id));
   };
 
+  const [backupLogs, setBackupLogs] = useState<DatabaseBackupLog[]>([]);
+  const [backupLogsTotal, setBackupLogsTotal] = useState(0);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
+  const [restoringBackup, setRestoringBackup] = useState(false);
+
+  const fetchBackupLogs = () => {
+    setLoadingLogs(true);
+    api
+      .get('/settings/backup/logs', { params: { limit: 15 } })
+      .then((res) => {
+        setBackupLogs(res.data?.logs || []);
+        setBackupLogsTotal(res.data?.total || 0);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingLogs(false));
+  };
+
+  useEffect(() => {
+    fetchBackupLogs();
+  }, []);
+
+  const downloadDatabaseBackup = async () => {
+    setDownloadingBackup(true);
+    try {
+      const response = await api.get('/settings/backup/download', {
+        responseType: 'blob',
+      });
+
+      // Extract filename from Content-Disposition header if available
+      const disposition = response.headers['content-disposition'];
+      let filename = `worthtobuy_backup_${new Date().toISOString().slice(0, 10)}.sql.gz`;
+      if (disposition && disposition.includes('filename=')) {
+        const matches = disposition.match(/filename="?([^"]+)"?/);
+        if (matches?.[1]) filename = matches[1];
+      }
+
+      // Trigger browser download
+      const blob = new Blob([response.data], { type: 'application/gzip' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setToast({ message: `Database backup downloaded successfully: ${filename}`, type: 'success' });
+      fetchBackupLogs();
+    } catch (caught) {
+      setToast({ message: errorMessage(caught) || 'Failed to download backup.', type: 'error' });
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
+
+  const restoreDatabaseBackup = async (file: File) => {
+    if (!file) return;
+    setRestoringBackup(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await api.post('/settings/backup/restore', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setToast({ message: res.data?.message || 'Database restored successfully!', type: 'success' });
+      fetchBackupLogs();
+      return res.data;
+    } catch (caught) {
+      setToast({ message: errorMessage(caught) || 'Failed to restore database.', type: 'error' });
+      fetchBackupLogs();
+      throw caught;
+    } finally {
+      setRestoringBackup(false);
+    }
+  };
+
   const saveAll = async () => {
     setSaving(true);
     try {
@@ -224,7 +306,7 @@ export function useSystemSettings() {
       });
       setFeeRulesCustomer(result.feeRulesCustomer);
       setFeeRulesReseller(result.feeRulesReseller);
-      setToast({ message: 'WORTHTOBUY settings saved successfully.', type: 'success' });
+      setToast({ message: 'All WORTHTOBUY settings saved successfully.', type: 'success' });
     } catch (caught) {
       setToast({ message: errorMessage(caught), type: 'error' });
     } finally {
@@ -237,6 +319,14 @@ export function useSystemSettings() {
     setBrand,
     invoice,
     setInvoice,
+    backupLogs,
+    backupLogsTotal,
+    loadingLogs,
+    downloadingBackup,
+    restoringBackup,
+    downloadDatabaseBackup,
+    restoreDatabaseBackup,
+    fetchBackupLogs,
     feeTab,
     setFeeTab,
     feeRulesCustomer,
