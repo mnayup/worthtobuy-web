@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 
-import { ADMIN_WA_NUMBER, buildWhatsAppUrl } from '~/lib/whatsapp';
+import { buildWhatsAppUrl } from '~/lib/whatsapp';
+import { useBrand } from '~/context/BrandContext';
 
 export function FloatingWhatsApp() {
+  const { whatsapp } = useBrand();
   const [openTooltip, setOpenTooltip] = useState(true);
 
   const waUrl = buildWhatsAppUrl(
     'Halo Admin Worthtobuy! Saya ingin bertanya mengenai jasa titip pameran / order ready stock.',
-    ADMIN_WA_NUMBER
+    whatsapp
   );
 
   return (

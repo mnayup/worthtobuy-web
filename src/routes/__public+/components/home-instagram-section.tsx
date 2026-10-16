@@ -32,7 +32,17 @@ const SHOWCASE_CARDS = [
   },
 ];
 
-export function HomeInstagramSection() {
+interface HomeInstagramSectionProps {
+  brand?: {
+    instagram?: string;
+    instagramUrl?: string;
+  };
+}
+
+export function HomeInstagramSection({ brand }: HomeInstagramSectionProps = {}) {
+  const instagramHandle = brand?.instagram || INSTAGRAM_HANDLE;
+  const instagramUrl = brand?.instagramUrl || INSTAGRAM_URL;
+
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div
@@ -45,7 +55,7 @@ export function HomeInstagramSection() {
           <div>
             <div className="flex items-center gap-2 text-pink-600 font-extrabold text-xs">
               <Instagram size={18} />
-              <span>Follow Instagram {INSTAGRAM_HANDLE}</span>
+              <span>Follow Instagram {instagramHandle}</span>
             </div>
             <h2 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900">
               Update Live Shopping & Testimoni
@@ -57,7 +67,7 @@ export function HomeInstagramSection() {
           </div>
 
           <a
-            href={INSTAGRAM_URL}
+            href={instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={
@@ -68,7 +78,7 @@ export function HomeInstagramSection() {
             }
           >
             <Instagram size={18} />
-            <span>Buka Instagram {INSTAGRAM_HANDLE}</span>
+            <span>Buka Instagram {instagramHandle}</span>
           </a>
         </div>
 

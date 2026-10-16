@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { PublicNavbar } from '~/components/public/PublicNavbar';
 import { PublicFooter } from '~/components/public/PublicFooter';
 import { FloatingWhatsApp } from '~/components/public/FloatingWhatsApp';
+import { BrandProvider } from '~/context/BrandContext';
 import { useEffect } from 'react';
 
 export default function PublicLayout() {
@@ -12,13 +13,15 @@ export default function PublicLayout() {
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50/60 text-slate-900 selection:bg-rose-200 selection:text-rose-900 font-sans">
-      <PublicNavbar />
-      <main className="flex-1">
-        <Outlet />
-      </main>
-      <FloatingWhatsApp />
-      <PublicFooter />
-    </div>
+    <BrandProvider>
+      <div className="flex min-h-screen flex-col bg-slate-50/60 text-slate-900 selection:bg-rose-200 selection:text-rose-900 font-sans">
+        <PublicNavbar />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <FloatingWhatsApp />
+        <PublicFooter />
+      </div>
+    </BrandProvider>
   );
 }

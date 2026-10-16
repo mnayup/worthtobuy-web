@@ -28,7 +28,7 @@ export function MultiImageUploadInput({
   disabled = false,
   maxFiles = 10,
 }: MultiImageUploadInputProps) {
-  const { uploadFile, error, clearError } = useS3Upload();
+  const { uploadFile, deleteFile, error, clearError } = useS3Upload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<{
     uploading: boolean;
@@ -89,7 +89,11 @@ export function MultiImageUploadInput({
     }
   };
 
-  const handleRemove = (indexToRemove: number) => {
+  const handleRemove = async (indexToRemove: number) => {
+    const targetUrl = urls[indexToRemove];
+    if (targetUrl) {
+      await deleteFile(targetUrl);
+    }
     const updated = urls.filter((_, idx) => idx !== indexToRemove);
     onChange(updated);
   };
@@ -98,9 +102,12 @@ export function MultiImageUploadInput({
     <div className={`space-y-3 ${className}`}>
       {/* Upload button / Trigger area */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-brand-600">
-          Product & Variant Gallery ({urls.length}/{maxFiles})
-        </span>
+        <div>
+          <span className="text-xs font-semibold text-brand-600">
+            Product & Variant Gallery ({urls.length}/{maxFiles})
+          </span>
+          <p className="text-[10px] text-brand-400">Max 1 MB per image (PNG, JPG, WEBP)</p>
+        </div>
         {urls.length < maxFiles && (
           <button
             type="button"

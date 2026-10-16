@@ -29,7 +29,7 @@ export function FileUploadInput({
   className = '',
   disabled = false,
 }: FileUploadInputProps) {
-  const { uploadFile, isUploading, progress, error, clearError } = useS3Upload();
+  const { uploadFile, deleteFile, isUploading, progress, error, clearError } = useS3Upload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Derive accept attribute based on strict allowed type
@@ -39,8 +39,6 @@ export function FileUploadInput({
       : allowedType === 'document'
       ? '.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain'
       : 'image/png,image/jpeg,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,6 +53,13 @@ export function FileUploadInput({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleRemove = async () => {
+    if (value) {
+      await deleteFile(value);
+    }
+    onChange('');
   };
 
   const isImageFile = 
@@ -80,9 +85,9 @@ export function FileUploadInput({
             Click to upload {allowedType === 'image' ? 'image' : allowedType === 'document' ? 'document' : 'file'}
           </span>
           <span className="text-[10px] text-brand-500 font-medium px-4">
-            {allowedType === 'image' && 'PNG, JPG, WEBP, GIF, SVG'}
-            {allowedType === 'document' && 'PDF, Word (DOC/DOCX), Excel, CSV'}
-            {allowedType === 'all' && 'Images or Documents up to 15MB'}
+            {allowedType === 'image' && 'PNG, JPG, WEBP, GIF, SVG (Max 1 MB)'}
+            {allowedType === 'document' && 'PDF, Word (DOC/DOCX), Excel, CSV (Max 15 MB)'}
+            {allowedType === 'all' && 'Images (Max 1 MB) or Documents (Max 15 MB)'}
           </span>
         </button>
       )}
@@ -106,7 +111,7 @@ export function FileUploadInput({
               style={{ width: `${Math.max(progress, 15)}%` }}
             />
           </div>
-          <p className="text-[10px] text-brand-500 font-medium">Uploading to MinIO folder: <span className="font-semibold text-brand-700">{entityType}/</span></p>
+          <p className="text-[10px] text-brand-500 font-medium">Uploading file... <span className="font-semibold text-brand-700">{progress}%</span></p>
         </div>
       )}
 
@@ -161,7 +166,7 @@ export function FileUploadInput({
 
           <button 
             type="button" 
-            onClick={() => onChange('')}
+            onClick={handleRemove}
             className="p-1 rounded hover:bg-cherry-100 text-cherry-600 hover:text-cherry-800 transition shrink-0"
             title="Remove file"
           >

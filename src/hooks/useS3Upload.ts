@@ -52,12 +52,16 @@ export function validateFileType(file: File, allowedType: AllowedFileType = 'all
     }
   }
 
-  // 15MB file size limit
-  const maxBytes = 15 * 1024 * 1024;
+  // File size validation: 1MB limit for image uploads, 15MB for documents
+  const maxBytes = allowedType === 'image' || isImage 
+    ? 1 * 1024 * 1024  // 1 MB limit for images
+    : 15 * 1024 * 1024; // 15 MB limit for documents
+    
   if (file.size > maxBytes) {
+    const limitLabel = allowedType === 'image' || isImage ? '1 MB' : '15 MB';
     return {
       valid: false,
-      error: 'File size exceeds 15MB limit. Please upload a smaller file.',
+      error: `File size exceeds ${limitLabel} limit. Please choose a smaller image (maximum 1 MB).`,
     };
   }
 
@@ -69,6 +73,17 @@ export function useS3Upload() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  const deleteFile = async (fileUrl: string): Promise<boolean> => {
+    if (!fileUrl) return false;
+    try {
+      await api.delete('/uploads/file', { data: { url: fileUrl } });
+      return true;
+    } catch (err) {
+      console.warn('Failed to delete file from storage:', err);
+      return false;
+    }
+  };
+
   const uploadFile = async (
     file: File, 
     entityType: EntityType = 'misc', 
@@ -79,7 +94,7 @@ export function useS3Upload() {
     setError(null);
 
     try {
-      // 1. Strict File Type Validation
+      // 1. Strict File Type & 1MB Image Size Validation
       const validation = validateFileType(file, allowedType);
       if (!validation.valid) {
         throw new Error(validation.error);
@@ -91,7 +106,7 @@ export function useS3Upload() {
       if (file.type.startsWith('image/') && !file.type.includes('svg')) {
         try {
           const options = {
-            maxSizeMB: 0.8,
+            maxSizeMB: 0.8, // Always optimize within 800KB
             maxWidthOrHeight: 1920,
             useWebWorker: true,
           };
@@ -101,7 +116,7 @@ export function useS3Upload() {
         }
       }
 
-      // 3. Primary: Request presigned URL and upload directly to MinIO/S3 domain
+      // 3. Primary: Request presigned URL and upload directly to storage
       try {
         const presignedRes = await api.post('/uploads/presigned-url', {
           filename: finalFile.name,
@@ -159,5 +174,5 @@ export function useS3Upload() {
     }
   };
 
-  return { uploadFile, isUploading, progress, error, clearError: () => setError(null) };
+  return { uploadFile, deleteFile, isUploading, progress, error, clearError: () => setError(null) };
 }

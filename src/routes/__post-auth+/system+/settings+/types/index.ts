@@ -11,6 +11,9 @@ export interface FeeRule {
 export interface BrandSettings {
   name: string;
   tagline: string;
+  whatsapp: string;
+  instagram: string;
+  instagramUrl: string;
   primaryColor: string;
   logoUrl: string;
 }

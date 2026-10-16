@@ -12,10 +12,14 @@ import {
 } from 'lucide-react';
 
 import { buildWhatsAppUrl } from '~/lib/whatsapp';
-import { BRAND_NAME, INSTAGRAM_HANDLE, INSTAGRAM_URL } from '~/lib/brand';
+import { useBrand } from '~/context/BrandContext';
 
 export function PublicFooter() {
-  const waUrl = buildWhatsAppUrl('Halo Admin Worthtobuy! Saya mau konsultasi seputar titip belanja.');
+  const { brandName, tagline, whatsapp, instagram, instagramUrl } = useBrand();
+  const waUrl = buildWhatsAppUrl(
+    `Halo Admin ${brandName}! Saya mau konsultasi seputar titip belanja.`,
+    whatsapp
+  );
 
   return (
     <footer className="border-t border-slate-200/80 bg-slate-900 text-slate-300">
@@ -78,14 +82,14 @@ export function PublicFooter() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl font-black tracking-tight text-white">
-                    WORTHTOBUY
+                    {brandName}
                   </span>
                   <span className="rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-black text-rose-300 border border-rose-500/30">
                     HQ
                   </span>
                 </div>
                 <p className="text-xs font-semibold text-slate-400">
-                  Your Trusted Jastip Bestie
+                  {tagline}
                 </p>
               </div>
             </Link>
@@ -99,13 +103,13 @@ export function PublicFooter() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <a
-                href={INSTAGRAM_URL}
+                href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-white transition hover:border-pink-500 hover:text-pink-300"
               >
                 <Instagram size={15} className="text-pink-400" />
-                <span>{INSTAGRAM_HANDLE}</span>
+                <span>{instagram}</span>
               </a>
 
               <a
@@ -236,7 +240,7 @@ export function PublicFooter() {
 
       {/* Bottom Copyright */}
       <div className="border-t border-slate-800/80 bg-slate-950 px-4 py-4 text-center text-xs text-slate-500">
-        <p>© 2019 – {new Date().getFullYear()} {BRAND_NAME} ({INSTAGRAM_HANDLE}). Hak Cipta Dilindungi.</p>
+        <p>© 2019 – {new Date().getFullYear()} {brandName} ({instagram}). Hak Cipta Dilindungi.</p>
       </div>
     </footer>
   );

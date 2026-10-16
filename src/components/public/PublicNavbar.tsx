@@ -16,11 +16,12 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '~/context/AuthContext';
+import { useBrand } from '~/context/BrandContext';
 import { buildWhatsAppUrl } from '~/lib/whatsapp';
-import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '~/lib/brand';
 
 export function PublicNavbar() {
   const { user } = useAuth();
+  const { brandName, tagline, whatsapp, instagram, instagramUrl } = useBrand();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -44,7 +45,8 @@ export function PublicNavbar() {
   ];
 
   const waUrl = buildWhatsAppUrl(
-    'Halo Admin Worthtobuy! Saya mau tanya seputar titip belanja event & ready stock.'
+    `Halo Admin ${brandName}! Saya mau tanya seputar titip belanja event & ready stock.`,
+    whatsapp
   );
 
   return (
@@ -74,13 +76,13 @@ export function PublicNavbar() {
 
           <div className="hidden md:flex items-center gap-3 text-xs">
             <a
-              href={INSTAGRAM_URL}
+              href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-rose-200 hover:text-white transition"
             >
               <Instagram size={13} />
-              <span>{INSTAGRAM_HANDLE}</span>
+              <span>{instagram}</span>
             </a>
           </div>
         </div>
@@ -97,14 +99,14 @@ export function PublicNavbar() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black tracking-tight text-slate-900 group-hover:text-rose-600 transition">
-                  WORTHTOBUY
+                  {brandName}
                 </span>
                 <span className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-600 border border-rose-200/60">
                   HQ
                 </span>
               </div>
               <p className="text-[11px] font-bold text-slate-400">
-                Personal Shopper & Jastip Nasional
+                {tagline}
               </p>
             </div>
           </Link>
@@ -150,11 +152,11 @@ export function PublicNavbar() {
           {/* Right Action Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <a
-              href={INSTAGRAM_URL}
+              href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-pink-300 hover:text-pink-600"
-              title={`Follow Instagram ${INSTAGRAM_HANDLE}`}
+              title={`Follow Instagram ${instagram}`}
             >
               <Instagram size={15} className="text-pink-500" />
               <span>Instagram</span>
@@ -249,13 +251,13 @@ export function PublicNavbar() {
               </a>
 
               <a
-                href={INSTAGRAM_URL}
+                href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-pink-200 bg-pink-50/50 py-2.5 text-xs font-bold text-pink-700"
               >
                 <Instagram size={16} />
-                <span>Follow Instagram {INSTAGRAM_HANDLE}</span>
+                <span>Follow Instagram {instagram}</span>
               </a>
 
               {user ? (

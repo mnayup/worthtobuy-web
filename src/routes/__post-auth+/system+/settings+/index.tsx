@@ -5,6 +5,7 @@ import { PageHeader } from '~/components/PageHeader';
 import { Toast } from '~/components/Toast';
 import type { SettingsData, BrandSettings, InvoiceSettings, FeeRule } from './types';
 import { useSystemSettings, saveSettingsAction } from './hooks/use-system-settings';
+import { SettingsBrandSection } from './components/settings-brand-section';
 import { SettingsInvoiceSection } from './components/settings-invoice-section';
 import { SettingsFeeScheduleSection } from './components/settings-fee-schedule-section';
 
@@ -24,6 +25,8 @@ export async function action(data: {
 
 export default function SettingsRoute() {
   const {
+    brand,
+    setBrand,
     invoice,
     setInvoice,
     feeTab,
@@ -76,6 +79,8 @@ export default function SettingsRoute() {
         </div>
       ) : (
         <>
+          <SettingsBrandSection brand={brand} setBrand={setBrand} />
+
           <SettingsInvoiceSection invoice={invoice} setInvoice={setInvoice} />
 
           <SettingsFeeScheduleSection

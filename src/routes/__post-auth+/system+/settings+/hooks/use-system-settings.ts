@@ -31,7 +31,10 @@ export const defaultResellerRules: FeeRule[] = [
 
 export const brandDefaults: BrandSettings = {
   name: 'WORTHTOBUY',
-  tagline: 'Your trusted personal shopper & concierge',
+  tagline: 'Your Trusted Jastip Bestie & Personal Shopper Nasional',
+  whatsapp: '6285186852535',
+  instagram: '@worthtobuy_sub',
+  instagramUrl: 'https://www.instagram.com/worthtobuy_sub',
   primaryColor: '#b7332b',
   logoUrl: '/worthtobuy-logo.png',
 };
@@ -39,10 +42,10 @@ export const brandDefaults: BrandSettings = {
 export const invoiceDefaults: InvoiceSettings = {
   businessName: 'WORTHTOBUY',
   prefix: 'WTB-INV',
-  bankName: '',
-  accountNumber: '',
-  accountHolder: '',
-  whatsapp: '',
+  bankName: 'BCA (Bank Central Asia)',
+  accountNumber: '1234567890',
+  accountHolder: 'WORTHTOBUY',
+  whatsapp: '6285186852535',
   email: '',
   address: '',
   footer: 'Thank you for shopping with WORTHTOBUY. Your items are handled with utmost care.',

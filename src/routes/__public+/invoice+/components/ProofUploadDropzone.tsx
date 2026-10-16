@@ -67,7 +67,7 @@ export function ProofUploadDropzone({
         Click or drag & drop to upload transfer receipt
       </p>
       <p className="text-[10px] text-brand-400 mt-0.5">
-        PNG, JPG, JPEG, WEBP up to 15MB
+        PNG, JPG, JPEG, WEBP up to 1 MB
       </p>
       <input
         type="file"

@@ -5,12 +5,18 @@ import { buildWhatsAppUrl } from '~/lib/whatsapp';
 
 interface HomeReadyStockSectionProps {
   products: any[];
+  onSelectProduct?: (prod: any) => void;
+  brandWhatsApp?: string;
 }
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80';
 
-export function HomeReadyStockSection({ products }: HomeReadyStockSectionProps) {
+export function HomeReadyStockSection({
+  products,
+  onSelectProduct,
+  brandWhatsApp,
+}: HomeReadyStockSectionProps) {
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div
@@ -52,9 +58,26 @@ export function HomeReadyStockSection({ products }: HomeReadyStockSectionProps) 
 
       <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {products.map((prod) => {
+          const sellingPrice = prod.selling_price ?? prod.sellingPrice ?? 0;
+          const rawImgs = prod.image_urls || prod.imageUrls;
+          const images =
+            Array.isArray(rawImgs) && rawImgs.length > 0
+              ? rawImgs
+              : prod.image_url || prod.imageUrl
+              ? [prod.image_url || prod.imageUrl]
+              : [];
+          const imageUrl = images[0] || prod.image_url || prod.imageUrl || FALLBACK_IMAGE;
+          const brandName = prod.brand_name ?? prod.brandName;
+          const stockQuantity = prod.stock_quantity ?? prod.stockQuantity ?? 0;
+          const variant = prod.variant ?? prod.variation;
+          const size = prod.size;
+
           const waProductUrl = buildWhatsAppUrl(
             `Halo Admin Worthtobuy, saya mau beli Ready Stock *${prod.name}* ` +
-              `(SKU: ${prod.sku}) seharga ${money(prod.sellingPrice)}.`
+              (variant ? `(Variant: ${variant}) ` : '') +
+              (size ? `(Size: ${size}) ` : '') +
+              `(SKU: ${prod.sku}) seharga ${money(sellingPrice)}. Apakah masih tersedia?`,
+            brandWhatsApp
           );
 
           return (
@@ -68,25 +91,38 @@ export function HomeReadyStockSection({ products }: HomeReadyStockSectionProps) 
               }
             >
               <div>
-                <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+                <div
+                  onClick={() => onSelectProduct?.(prod)}
+                  className={`relative aspect-square w-full overflow-hidden bg-slate-100 ${
+                    onSelectProduct ? 'cursor-pointer' : ''
+                  }`}
+                >
                   <img
-                    src={prod.imageUrl || FALLBACK_IMAGE}
+                    src={imageUrl}
                     alt={prod.name}
                     className={
                       'h-full w-full object-cover transition-transform ' +
                       'duration-300 group-hover:scale-105'
                     }
                     loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+                    }}
                   />
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
                     <span
                       className={
                         'rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] ' +
                         'font-black uppercase text-white backdrop-blur-md'
                       }
                     >
-                      {prod.brandName || 'Brand'}
+                      {brandName || 'Brand'}
                     </span>
+                    {variant && (
+                      <span className="rounded-full bg-brand-900/75 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-xs">
+                        {variant}
+                      </span>
+                    )}
                   </div>
 
                   <div className="absolute top-3 right-3">
@@ -96,9 +132,17 @@ export function HomeReadyStockSection({ products }: HomeReadyStockSectionProps) 
                         'font-black uppercase text-white shadow-sm'
                       }
                     >
-                      Ready {prod.stockQuantity} pcs
+                      Ready {stockQuantity} pcs
                     </span>
                   </div>
+
+                  {images.length > 1 && (
+                    <div className="absolute bottom-2.5 right-2.5">
+                      <span className="rounded-full bg-slate-900/70 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-xs">
+                        +{images.length - 1} photos
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-5">
@@ -106,15 +150,15 @@ export function HomeReadyStockSection({ products }: HomeReadyStockSectionProps) 
                     {prod.category || 'General'}
                   </p>
                   <h3
-                    className={
-                      'mt-1 font-extrabold text-slate-900 line-clamp-2 text-sm ' +
-                      'leading-snug group-hover:text-amber-600 transition'
-                    }
+                    onClick={() => onSelectProduct?.(prod)}
+                    className={`mt-1 font-extrabold text-slate-900 line-clamp-2 text-sm leading-snug group-hover:text-amber-600 transition ${
+                      onSelectProduct ? 'cursor-pointer' : ''
+                    }`}
                   >
                     {prod.name}
                   </h3>
                   <p className="mt-3 text-lg font-black text-rose-600">
-                    {money(prod.sellingPrice)}
+                    {money(sellingPrice)}
                   </p>
                 </div>
               </div>
