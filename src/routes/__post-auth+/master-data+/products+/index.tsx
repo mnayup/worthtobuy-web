@@ -15,7 +15,7 @@ export async function loader() {
 }
 
 export default function ProductsRoute() {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const fields = getProductFields();
 
   return (
@@ -28,6 +28,9 @@ export default function ProductsRoute() {
       }
       endpoint="/products"
       fields={fields}
+      canCreate={hasPermission('products', 'create')}
+      canEdit={hasPermission('products', 'edit')}
+      canDelete={hasPermission('products', 'delete')}
       searchPlaceholder="Search product name, SKU, brand, variant, size, tenant location..."
       filters={[
         {
@@ -190,7 +193,6 @@ export default function ProductsRoute() {
           render: (row) => money(row.selling_price ?? row.sellingPrice ?? 0),
         },
       ]}
-      canDelete={user?.role === 'OWNER' || user?.role === 'ADMIN'}
       importConfig={{
         entityType: 'products',
         sampleFileName: 'products-template.xlsx',

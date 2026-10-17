@@ -13,7 +13,7 @@ export async function loader() {
 }
 
 export default function PeriodsRoute() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const fields: FieldConfig[] = [
     { 
       name: 'code', 
@@ -195,9 +195,9 @@ export default function PeriodsRoute() {
           },
         },
       ]}
-      canCreate={user?.role !== 'SHOPPER' && user?.role !== 'FINANCE'}
-      canEdit={user?.role === 'OWNER' || user?.role === 'ADMIN'}
-      canDelete={user?.role === 'OWNER'}
+      canCreate={hasPermission('periods', 'create')}
+      canEdit={hasPermission('periods', 'edit')}
+      canDelete={hasPermission('periods', 'delete')}
       canDeleteRow={(row) => row.code !== 'READY-STOCK'}
       prepareSubmit={(form) => {
         if (form.code === 'READY-STOCK') {

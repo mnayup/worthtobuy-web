@@ -16,7 +16,7 @@ export async function loader() {
 }
 
 export default function CustomersRoute() {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const navigate = useNavigate();
 
   const fields: FieldConfig[] = [
@@ -109,7 +109,9 @@ export default function CustomersRoute() {
           render: (row) => <StatusBadge value={row.status || 'inactive'} />,
         },
       ]}
-      canDelete={user?.role === 'OWNER'}
+      canCreate={hasPermission('customers', 'create')}
+      canEdit={hasPermission('customers', 'edit')}
+      canDelete={hasPermission('customers', 'delete')}
       prepareSubmit={(form) => {
         let wa = form.whatsapp || '';
         wa = wa.replace(/[^\d+]/g, '');
