@@ -39,16 +39,39 @@ export function InvoiceA4FinancialBox({
       ),
     0
   );
+  // Aggregate all additional fees across orders
+  const allAdditionalFees: Array<{ name: string; amount: number }> = [];
+  (invoice.orders || []).forEach((link: any) => {
+    const raw = link.order?.additional_fees ?? link.order?.additionalFees;
+    if (Array.isArray(raw)) {
+      raw.forEach((f: any) => {
+        const name = f.type === 'Other' ? (f.customName || 'Other Fee') : f.type;
+        const amount = Number(f.amount || 0);
+        if (amount > 0) {
+          const existing = allAdditionalFees.find((item) => item.name === name);
+          if (existing) existing.amount += amount;
+          else allAdditionalFees.push({ name, amount });
+        }
+      });
+    } else if (Number(link.order?.additional_fee ?? link.order?.additionalFee ?? 0) > 0) {
+      const amount = Number(link.order?.additional_fee ?? link.order?.additionalFee);
+      const existing = allAdditionalFees.find((item) => item.name === 'Additional Surcharge');
+      if (existing) existing.amount += amount;
+      else allAdditionalFees.push({ name: 'Additional Surcharge', amount });
+    }
+  });
+
+  const totalAdditionalFee = allAdditionalFees.reduce((sum, f) => sum + f.amount, 0);
   const totalProductSubtotal = Math.max(
     0,
-    totalBill - totalServiceFee - totalShipping
+    totalBill - totalServiceFee - totalShipping - totalAdditionalFee
   );
 
   const depositUsed = Number(invoice.depositAmount || invoice.deposit_amount || 0);
 
   const renderBreakdown = () => (
     <>
-      {totalServiceFee > 0 || totalShipping > 0 ? (
+      {totalServiceFee > 0 || totalShipping > 0 || allAdditionalFees.length > 0 ? (
         <>
           <SummaryLine label="Product Subtotal" value={money(totalProductSubtotal)} />
           {totalServiceFee > 0 && (
@@ -63,6 +86,13 @@ export function InvoiceA4FinancialBox({
               value={money(totalShipping)}
             />
           )}
+          {allAdditionalFees.map((af, idx) => (
+            <SummaryLine
+              key={`af-${idx}`}
+              label={af.name}
+              value={money(af.amount)}
+            />
+          ))}
           <SummaryLine label="Total Order Value" value={money(totalBill)} strong />
         </>
       ) : (

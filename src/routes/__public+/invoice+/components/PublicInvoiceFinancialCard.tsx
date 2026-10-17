@@ -45,7 +45,33 @@ export function PublicInvoiceFinancialCard({
     0
   );
 
-  const productSubtotal = Math.max(0, totalBill - totalServiceFee - totalShipping);
+  // Aggregate all additional fees across orders
+  const allAdditionalFees: Array<{ name: string; amount: number }> = [];
+  (invoice?.orders || []).forEach((link: any) => {
+    const raw = link.order?.additional_fees ?? link.order?.additionalFees;
+    if (Array.isArray(raw)) {
+      raw.forEach((f: any) => {
+        const name = f.type === 'Other' ? (f.customName || 'Other Fee') : f.type;
+        const amount = Number(f.amount || 0);
+        if (amount > 0) {
+          const existing = allAdditionalFees.find((item) => item.name === name);
+          if (existing) existing.amount += amount;
+          else allAdditionalFees.push({ name, amount });
+        }
+      });
+    } else if (Number(link.order?.additional_fee ?? link.order?.additionalFee ?? 0) > 0) {
+      const amount = Number(link.order?.additional_fee ?? link.order?.additionalFee);
+      const existing = allAdditionalFees.find((item) => item.name === 'Additional Surcharge');
+      if (existing) existing.amount += amount;
+      else allAdditionalFees.push({ name: 'Additional Surcharge', amount });
+    }
+  });
+
+  const totalAdditionalFee = allAdditionalFees.reduce((sum, f) => sum + f.amount, 0);
+  const productSubtotal = Math.max(
+    0,
+    totalBill - totalServiceFee - totalShipping - totalAdditionalFee
+  );
 
   return (
     <div className="rounded-3xl border border-brand-200/90 bg-white p-5 sm:p-6 shadow-sm space-y-4">
@@ -75,6 +101,12 @@ export function PublicInvoiceFinancialCard({
             <span className="font-bold">{money(totalShipping)}</span>
           </div>
         )}
+        {allAdditionalFees.map((af, idx) => (
+          <div key={`af-${idx}`} className="flex items-center justify-between text-amber-800">
+            <span>{af.name}:</span>
+            <span className="font-bold">{money(af.amount)}</span>
+          </div>
+        ))}
         <div
           className={
             'flex items-center justify-between border-t border-brand-100 ' +

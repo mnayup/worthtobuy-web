@@ -142,6 +142,23 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                   <span className="font-semibold">{money(shippingCost)}</span>
                 </div>
               )}
+              {(() => {
+                const raw = order.additional_fees ?? order.additionalFees;
+                const fees: any[] = Array.isArray(raw)
+                  ? raw
+                  : Number(order.additional_fee ?? order.additionalFee ?? 0) > 0
+                  ? [{ type: 'Additional Surcharge', amount: Number(order.additional_fee ?? order.additionalFee) }]
+                  : [];
+                return fees.map((af, idx) => {
+                  const feeName = af.type === 'Other' ? (af.customName || 'Other Additional Fee') : af.type;
+                  return (
+                    <div key={`af-${idx}`} className="flex items-center justify-between text-amber-800 text-[11px]">
+                      <span>{feeName}:</span>
+                      <span className="font-semibold">{money(Number(af.amount || 0))}</span>
+                    </div>
+                  );
+                });
+              })()}
               <div
                 className={
                   'flex items-center justify-between pt-1 border-t ' +

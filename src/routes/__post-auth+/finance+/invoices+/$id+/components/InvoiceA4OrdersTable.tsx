@@ -32,10 +32,18 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
             order.localShipping ??
             0
         );
+        const rawAdditionalFees = order.additional_fees ?? order.additionalFees;
+        const additionalFeesList: any[] = Array.isArray(rawAdditionalFees)
+          ? rawAdditionalFees
+          : Number(order.additional_fee ?? order.additionalFee ?? 0) > 0
+          ? [{ type: 'Additional Surcharge', amount: Number(order.additional_fee ?? order.additionalFee) }]
+          : [];
+        const totalAdditionalFee = additionalFeesList.reduce((sum, f) => sum + Number(f.amount || 0), 0);
+
         const productSubtotal = Number(
           order.product_subtotal_idr ??
             order.productSubtotalIdr ??
-            Math.max(0, totalAmount - serviceFee - shippingCost)
+            Math.max(0, totalAmount - serviceFee - shippingCost - totalAdditionalFee)
         );
 
         return (
@@ -169,7 +177,6 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
                           className="px-3 py-1.5 text-right font-semibold text-cherry-700"
                         >
                           Service Fee (Jastip Fee)
-                          {order.service_fee_note ? ` (${order.service_fee_note})` : ''}
                         </td>
                         <td className="px-3 py-1.5 text-right font-black text-cherry-800">
                           {money(serviceFee)}
@@ -190,6 +197,22 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
                       </td>
                     </tr>
                   )}
+                  {additionalFeesList.map((af: any, idx: number) => {
+                    const feeName = af.type === 'Other' ? (af.customName || 'Other Additional Fee') : af.type;
+                    return (
+                      <tr key={`af-${idx}`}>
+                        <td
+                          colSpan={5}
+                          className="px-3 py-1.5 text-right font-semibold text-amber-800"
+                        >
+                          {feeName}
+                        </td>
+                        <td className="px-3 py-1.5 text-right font-black text-amber-900">
+                          {money(Number(af.amount || 0))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   <tr className="border-t border-brand-200/80 bg-brand-100/50">
                     <td
                       colSpan={5}

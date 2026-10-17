@@ -36,7 +36,8 @@ export type FieldConfig={
     | 'toggle'
     | 'tel'
     | 'tags'
-    | 'variant-quantities';
+    | 'variant-quantities'
+    | 'additional-fees';
   fileType?:'image'|'document'|'all';
   entityType?:string;
   accept?:string;

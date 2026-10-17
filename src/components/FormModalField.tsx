@@ -4,6 +4,7 @@ import { SearchableSelect } from './SearchableSelect';
 import { FileUploadInput } from './FileUploadInput';
 import { MultiImageUploadInput } from './MultiImageUploadInput';
 import { OrderVariantQuantitySelector } from './OrderVariantQuantitySelector';
+import { AdditionalFeesSelector } from './AdditionalFeesSelector';
 import { TagInput } from './TagInput';
 
 interface FormModalFieldProps {
@@ -198,6 +199,21 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
           }
         }}
         form={form}
+        disabled={disabled}
+      />
+    );
+  }
+
+  if (field.type === 'additional-fees') {
+    return (
+      <AdditionalFeesSelector
+        value={form[field.name]}
+        onChange={(items) => {
+          set(field.name, items);
+          if (field.onChange) {
+            field.onChange(items, undefined, set, form);
+          }
+        }}
         disabled={disabled}
       />
     );

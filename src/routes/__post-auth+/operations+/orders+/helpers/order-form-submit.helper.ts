@@ -32,7 +32,11 @@ export function prepareInitialOrder(row: any) {
     unitPriceForeign: first?.unit_price_foreign ?? first?.unitPriceForeign ?? 0,
     serviceFeeMode: mode === 'AUTO' ? 'AUTO_CUSTOMER' : mode || 'AUTO_CUSTOMER',
     serviceFee: row.service_fee ?? row.serviceFee ?? 0,
-    serviceFeeNote: row.service_fee_note ?? row.serviceFeeNote ?? '',
+    additionalFees: Array.isArray(row.additional_fees ?? row.additionalFees)
+      ? row.additional_fees ?? row.additionalFees
+      : Number(row.additional_fee ?? row.additionalFee ?? 0) > 0
+      ? [{ type: 'Other', customName: 'Additional Fee', amount: Number(row.additional_fee ?? row.additionalFee) }]
+      : [],
     customerNotes: row.customer_notes ?? row.customerNotes ?? '',
     internalNotes: row.internal_notes ?? row.internalNotes ?? '',
   };
@@ -85,7 +89,6 @@ export function prepareSubmitOrder(form: any) {
       serviceFee: 0,
       localShipping: 0,
       customerShipping: 0,
-      additionalFee: 0,
       discount: 0,
       serviceFeeNote: '',
     });
@@ -148,19 +151,35 @@ export function prepareSubmitOrder(form: any) {
     };
   });
 
-  return {
-    ...order,
-    orderDate: order.orderDate
-      ? new Date(order.orderDate).toISOString()
-      : new Date().toISOString(),
-    status: defaultInitialStatus,
-    adminId: order.adminId ? Number(order.adminId) : undefined,
-    serviceFeeMode: order.serviceFeeMode || 'AUTO_CUSTOMER',
-    serviceFee: Number(order.serviceFee || 0),
-    localShipping: Number(order.localShipping || 0),
-    customerShipping: Number(order.customerShipping || 0),
-    additionalFee: Number(order.additionalFee || 0),
-    discount: Number(order.discount || 0),
-    items,
-  };
-}
+    const validAdditionalFees = Array.isArray(order.additionalFees)
+      ? order.additionalFees
+          .filter((f: any) => f && (f.amount > 0 || f.type))
+          .map((f: any) => ({
+            type: f.type || 'Other',
+            customName: f.type === 'Other' ? (f.customName || 'Other Fee') : '',
+            amount: Number(f.amount || 0),
+          }))
+      : [];
+
+    const totalAdditionalFee = validAdditionalFees.reduce(
+      (sum: number, f: any) => sum + Number(f.amount || 0),
+      0
+    );
+
+    return {
+      ...order,
+      orderDate: order.orderDate
+        ? new Date(order.orderDate).toISOString()
+        : new Date().toISOString(),
+      status: defaultInitialStatus,
+      adminId: order.adminId ? Number(order.adminId) : undefined,
+      serviceFeeMode: order.serviceFeeMode || 'AUTO_CUSTOMER',
+      serviceFee: Number(order.serviceFee || 0),
+      localShipping: Number(order.localShipping || 0),
+      customerShipping: Number(order.customerShipping || 0),
+      additionalFee: totalAdditionalFee,
+      additionalFees: validAdditionalFees,
+      discount: Number(order.discount || 0),
+      items,
+    };
+  }
