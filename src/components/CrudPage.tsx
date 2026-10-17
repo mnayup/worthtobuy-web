@@ -40,6 +40,7 @@ export function CrudPage({
   extraQuery,
   filters,
   searchPlaceholder,
+  selectable,
 }: CrudPageProps) {
   const {
     data,
@@ -229,7 +230,11 @@ export function CrudPage({
           setPage(1);
         }}
         selectedRowIds={selectedIds}
-        onSelectedRowIdsChange={setSelectedIds}
+        onSelectedRowIdsChange={
+          selectable === false || (!bulkStatus && !canDelete && selectable !== true)
+            ? undefined
+            : setSelectedIds
+        }
         onEdit={
           canEdit
             ? (row) => {

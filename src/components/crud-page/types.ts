@@ -28,4 +28,5 @@ export type CrudPageProps = {
   extraQuery?: Record<string, string | number | undefined>;
   filters?: TableFilterConfig[];
   searchPlaceholder?: string;
+  selectable?: boolean;
 };

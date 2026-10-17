@@ -72,11 +72,10 @@ export function PurchaseDetailModal({
     data.totalQuantity ??
     items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const { actualBought, rejectedCount, computedActualPrice } =
+  const { actualBought, rejectedCount, computedActualPrice, computedEstimatedPrice } =
     computePurchaseMetrics(items, itemsState);
 
-  const estPrice = Number(data.estimatedPrice ?? data.estimated_price ?? 0);
-  const priceDiff = computedActualPrice - estPrice;
+  const priceDiff = computedActualPrice - computedEstimatedPrice;
   const order = data.orderItem?.order || data.order_item?.order;
   const isPartial =
     Number(order?.outstandingAmount ?? order?.outstanding_amount ?? 0) > 0;
@@ -199,7 +198,7 @@ export function PurchaseDetailModal({
             purchase={data}
             order={order}
             isPartial={isPartial}
-            estPrice={estPrice}
+            estPrice={computedEstimatedPrice}
             actualPrice={computedActualPrice}
             priceDiff={priceDiff}
           />

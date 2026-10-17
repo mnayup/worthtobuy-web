@@ -29,13 +29,17 @@ export function computePurchaseMetrics(
   let actualBought = 0;
   let rejectedCount = 0;
   let computedActualPrice = 0;
+  let computedEstimatedPrice = 0;
 
   items.forEach((it) => {
     const st = itemsState[it.id];
+    const unitEst = Number(it.estimated_price || 0) / (it.quantity || 1);
+
     if (st) {
       if (st.status === 'PURCHASED') {
         actualBought += st.allocated_qty;
         computedActualPrice += st.actual_unit_price * st.allocated_qty;
+        computedEstimatedPrice += unitEst * st.allocated_qty;
         if (st.allocated_qty < it.quantity) {
           rejectedCount += it.quantity - st.allocated_qty;
         }
@@ -46,11 +50,12 @@ export function computePurchaseMetrics(
       if (it.status === 'PURCHASED') {
         actualBought += it.quantity;
         computedActualPrice += Number(it.actual_price || 0);
+        computedEstimatedPrice += Number(it.estimated_price || 0);
       } else if (it.status === 'UNAVAILABLE') {
         rejectedCount += it.quantity;
       }
     }
   });
 
-  return { actualBought, rejectedCount, computedActualPrice };
+  return { actualBought, rejectedCount, computedActualPrice, computedEstimatedPrice };
 }

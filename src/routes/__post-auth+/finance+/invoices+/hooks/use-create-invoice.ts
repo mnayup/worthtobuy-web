@@ -19,7 +19,8 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
   const [orderShippingMap, setOrderShippingMap] = useState<Record<number, number>>({});
   const [orderSearch, setOrderSearch] = useState('');
   const debouncedOrderSearch = useDebouncedValue(orderSearch.trim(), 300);
-  const [dueDate, setDueDate] = useState('');
+  const getTodayDateString = () => new Date().toISOString().slice(0, 10);
+  const [dueDate, setDueDate] = useState<string>(getTodayDateString);
   const [notes, setNotes] = useState('');
   const [billingModel, setBillingModel] = useState<'DP' | 'FULL_PAYMENT'>('DP');
   const [dpPercent, setDpPercent] = useState<number>(50);
@@ -111,7 +112,12 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
     }));
   }
 
-  useEffect(() => { if (open) loadBase(); }, [open]);
+  useEffect(() => {
+    if (open) {
+      setDueDate(getTodayDateString());
+      loadBase();
+    }
+  }, [open]);
   useEffect(() => { if (open) loadAvailableOrders(); }, [open, customerId, debouncedOrderSearch]);
 
   const selectedRows = selected

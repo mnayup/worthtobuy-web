@@ -224,6 +224,10 @@ export function PurchaseItemChecklistRow({
                   state.allocated_qty > 0
                     ? state.allocated_qty
                     : item.quantity,
+                actual_unit_price:
+                  state.actual_unit_price > 0
+                    ? state.actual_unit_price
+                    : state.estimated_unit_price,
               })
             }
             className={

@@ -33,6 +33,8 @@ export default function PurchasesRoute() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [periodOptions, setPeriodOptions] = useState<Option[]>([]);
+  const [brandOptions, setBrandOptions] = useState<Option[]>([]);
 
   const fetchSummary = async () => {
     try {
@@ -43,8 +45,53 @@ export default function PurchasesRoute() {
     }
   };
 
+  const fetchFilterOptions = async () => {
+    try {
+      const [periodsRes, activeProductsRes, allProductsRes] = await Promise.allSettled([
+        api.get('/periods?status=OPEN&limit=100'),
+        api.get('/products?activePeriod=true&limit=250'),
+        api.get('/products?limit=250'),
+      ]);
+
+      if (periodsRes.status === 'fulfilled') {
+        const rows = responseRows(periodsRes.value);
+        setPeriodOptions(
+          rows.map((p: any) => ({
+            value: String(p.id),
+            label: `${p.code} • ${p.name}`,
+          }))
+        );
+      }
+
+      const activeProductRows =
+        activeProductsRes.status === 'fulfilled' ? responseRows(activeProductsRes.value) : [];
+      const allProductRows =
+        allProductsRes.status === 'fulfilled' ? responseRows(allProductsRes.value) : [];
+
+      // Combine brands from active events products and catalog products
+      const combined = [...activeProductRows, ...allProductRows];
+      const distinctBrands = Array.from(
+        new Set(
+          combined
+            .map((p: any) => (p.brand_name || p.brandName || '').trim())
+            .filter(Boolean)
+        )
+      ).sort();
+
+      setBrandOptions(
+        distinctBrands.map((b) => ({
+          value: b,
+          label: b,
+        }))
+      );
+    } catch (err) {
+      console.error('Failed to load purchase filter options:', err);
+    }
+  };
+
   useEffect(() => {
     fetchSummary();
+    fetchFilterOptions();
   }, []);
 
   const fields = useMemo<FieldConfig[]>(
@@ -124,6 +171,18 @@ export default function PurchasesRoute() {
         extraQuery={selectedStatus ? { status: selectedStatus } : undefined}
         searchPlaceholder="Search purchase number, item name, brand, shopper..."
         filters={[
+          {
+            key: 'periodId',
+            label: 'Event',
+            placeholder: 'All Events',
+            options: periodOptions,
+          },
+          {
+            key: 'brand',
+            label: 'Brand',
+            placeholder: 'All Brands',
+            options: brandOptions,
+          },
           {
             key: 'status',
             label: 'Purchase Status',
@@ -223,15 +282,7 @@ export default function PurchasesRoute() {
             render: (row) => <StatusBadge value={row.status || 'WAITING_PURCHASE'} />,
           },
         ]}
-        bulkStatus={{
-          label: 'Purchase Status',
-          options: purchaseStatusOptions,
-          apply: async (id, value) => {
-            const res = await api.put(`/purchases/${id}`, { status: value });
-            fetchSummary();
-            return res;
-          },
-        }}
+        selectable={false}
         renderActions={(row) => (
           <button
             type="button"
