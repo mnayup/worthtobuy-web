@@ -7,8 +7,6 @@ export function prepareInitialOrder(row: any) {
   const mode = row.service_fee_mode || row.serviceFeeMode;
   const items = row.items || [];
   const first = items[0];
-  const kUntil = first?.kept_until || first?.keptUntil;
-
   const variantItems =
     items.length > 0
       ? items.map((it: any) => ({
@@ -27,7 +25,6 @@ export function prepareInitialOrder(row: any) {
     periodId: row.period_id ?? row.periodId,
     productId: first?.product_id || first?.productId || '',
     fulfillmentStatus: first?.fulfillment_status || first?.fulfillmentStatus || 'PENDING',
-    keptUntil: kUntil ? String(kUntil).slice(0, 10) : '',
     variantItems,
     unitPriceForeign: first?.unit_price_foreign ?? first?.unitPriceForeign ?? 0,
     serviceFeeMode: mode === 'AUTO' ? 'AUTO_CUSTOMER' : mode || 'AUTO_CUSTOMER',
@@ -75,7 +72,6 @@ export function prepareSubmitOrder(form: any) {
     newProductSize,
     newProductImageUrls,
     newProductNotes,
-    keptUntil,
     variantItems,
     unitPriceForeign,
     ...order
@@ -144,7 +140,6 @@ export function prepareSubmitOrder(form: any) {
       size: vi.size?.trim() || undefined,
       sourceType: isReadyStock ? 'READY_STOCK' : 'CATALOG',
       fulfillmentStatus: isReadyStock ? 'AVAILABLE' : 'PENDING',
-      keptUntil: keptUntil ? new Date(keptUntil).toISOString() : undefined,
       quantity: Number(vi.quantity || 1),
       unitPriceForeign: itemPrice,
       targetPriceIdr: itemPrice,

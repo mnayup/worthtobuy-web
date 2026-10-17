@@ -1,5 +1,6 @@
 import React from 'react';
 import { UploadCloud, X } from 'lucide-react';
+import { SafeProofImage } from '~/components/SafeProofImage';
 
 interface Props {
   localPreview: string | null;
@@ -25,7 +26,7 @@ export function ProofUploadDropzone({
         }
       >
         <div className="flex items-center gap-3 min-w-0">
-          <img
+          <SafeProofImage
             src={localPreview || uploadedUrl}
             alt="Proof preview"
             className="h-16 w-16 rounded-xl object-cover ring-1 ring-brand-200 shrink-0"

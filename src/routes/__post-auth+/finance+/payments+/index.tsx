@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { CrudPage } from '~/components/CrudPage';
 import { StatusBadge } from '~/components/StatusBadge';
+import { SafeProofImage } from '~/components/SafeProofImage';
 import { api } from '~/lib/api';
 import { date, money } from '~/lib/format';
 import { useAuth } from '~/context/AuthContext';
@@ -213,7 +214,7 @@ export default function PaymentsRoute() {
                   'text-cherry-600 hover:underline'
                 }
               >
-                <img
+                <SafeProofImage
                   src={url}
                   alt="Receipt"
                   className="h-6 w-6 rounded object-cover border border-brand-200"

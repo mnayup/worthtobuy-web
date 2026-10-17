@@ -16,7 +16,7 @@ export type EntityType =
   | string;
 
 export function validateFileType(file: File, allowedType: AllowedFileType = 'all'): { valid: boolean; error?: string } {
-  const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|svg|bmp)$/i.test(file.name);
+  const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|svg|bmp|heic|heif)$/i.test(file.name);
   
   const docMimeTypes = [
     'application/pdf',
@@ -102,15 +102,36 @@ export function useS3Upload() {
 
       let finalFile = file;
 
+      // 1.5 Convert Apple HEIC/HEIF images to JPEG for universal browser compatibility
+      if (
+        /\.hei[cf]$/i.test(finalFile.name) ||
+        finalFile.type.toLowerCase().includes('heic') ||
+        finalFile.type.toLowerCase().includes('heif')
+      ) {
+        try {
+          const heic2any = (await import('heic2any')).default;
+          const convertedBlob = await heic2any({
+            blob: finalFile,
+            toType: 'image/jpeg',
+            quality: 0.85,
+          });
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          const newName = finalFile.name.replace(/\.hei[cf]$/i, '.jpg');
+          finalFile = new File([blob], newName, { type: 'image/jpeg' });
+        } catch (heicErr) {
+          console.warn('HEIC auto-conversion failed, proceeding with original file:', heicErr);
+        }
+      }
+
       // 2. Compress image if applicable (skip SVG and documents)
-      if (file.type.startsWith('image/') && !file.type.includes('svg')) {
+      if (finalFile.type.startsWith('image/') && !finalFile.type.includes('svg')) {
         try {
           const options = {
             maxSizeMB: 0.8, // Always optimize within 800KB
             maxWidthOrHeight: 1920,
             useWebWorker: true,
           };
-          finalFile = await imageCompression(file, options);
+          finalFile = await imageCompression(finalFile, options);
         } catch (compressionErr) {
           console.warn('Image compression skipped, using original file:', compressionErr);
         }

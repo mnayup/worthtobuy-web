@@ -18,6 +18,7 @@ export type CrudPageProps = {
   canDelete?: boolean;
   canEditRow?: (row: any) => boolean;
   canDeleteRow?: (row: any) => boolean;
+  canSelectRow?: (row: any) => boolean;
   prepareInitial?: (row: any) => Record<string, any>;
   prepareSubmit?: (form: Record<string, any>) => Record<string, any>;
   renderActions?: (row: any) => ReactNode;
@@ -29,4 +30,11 @@ export type CrudPageProps = {
   filters?: TableFilterConfig[];
   searchPlaceholder?: string;
   selectable?: boolean;
+  canBulkDelete?: boolean;
+  renderBulkActions?: (params: {
+    selectedIds: string[];
+    selectedRows: any[];
+    clearSelection: () => void;
+    reload: () => void;
+  }) => ReactNode;
 };

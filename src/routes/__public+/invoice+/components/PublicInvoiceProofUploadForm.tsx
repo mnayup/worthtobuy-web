@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Archive, Package, Lock } from 'lucide-react';
 import { useS3Upload } from '~/hooks/useS3Upload';
 import { money } from '~/lib/format';
 import { ProofUploadDropzone } from './ProofUploadDropzone';
@@ -11,6 +11,8 @@ import {
 } from './PublicInvoiceProofStatusBanners';
 
 interface Props {
+  invoice?: any;
+  payments?: any[];
   currentStage: 'DP' | 'SETTLEMENT' | 'PAID' | 'FULL_UNPAID';
   dpAmount: number;
   totalBill: number;
@@ -23,6 +25,7 @@ interface Props {
     destinationAccount?: string;
     proofUrl: string;
     notes?: string;
+    keepItem?: boolean;
   }) => Promise<boolean>;
   bankSettings: any;
   pendingPayments: any[];
@@ -31,6 +34,8 @@ interface Props {
 
 export function PublicInvoiceProofUploadForm(props: Props) {
   const {
+    invoice,
+    payments,
     currentStage,
     dpAmount,
     totalBill,
@@ -42,6 +47,16 @@ export function PublicInvoiceProofUploadForm(props: Props) {
     pendingPayments,
     isOrdersWaitingSettlement,
   } = props;
+
+  const isFirstProof = !payments || payments.length === 0;
+  const existingKeepItem = (invoice?.orders || []).some((link: any) =>
+    (link.order?.items || []).some((it: any) => it.kept_until || it.fulfillment_status === 'KEPT')
+  );
+  const existingKeptUntil = (invoice?.orders || []).flatMap((link: any) =>
+    (link.order?.items || []).map((it: any) => it.kept_until).filter(Boolean)
+  )[0];
+
+  const [keepItem, setKeepItem] = useState(existingKeepItem);
 
   const isSettlement = paidAmount > 0 && isOrdersWaitingSettlement;
   const defaultTarget = isSettlement
@@ -70,8 +85,19 @@ export function PublicInvoiceProofUploadForm(props: Props) {
     if (!file) return;
 
     setFormError('');
-    const previewUrl = URL.createObjectURL(file);
-    setLocalPreview(previewUrl);
+
+    if (/\.hei[cf]$/i.test(file.name) || file.type.includes('heic') || file.type.includes('heif')) {
+      try {
+        const heic2any = (await import('heic2any')).default;
+        const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+        const blob = Array.isArray(converted) ? converted[0] : converted;
+        setLocalPreview(URL.createObjectURL(blob));
+      } catch {
+        setLocalPreview(URL.createObjectURL(file));
+      }
+    } else {
+      setLocalPreview(URL.createObjectURL(file));
+    }
 
     const publicUrl = await uploadFile(file, 'payments', 'image');
     if (publicUrl) {
@@ -108,6 +134,7 @@ export function PublicInvoiceProofUploadForm(props: Props) {
       destinationAccount: dest,
       proofUrl: uploadedUrl,
       notes: notes || undefined,
+      keepItem: isFirstProof ? keepItem : undefined,
     });
 
     if (success) {
@@ -262,6 +289,83 @@ export function PublicInvoiceProofUploadForm(props: Props) {
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
+
+        {/* Pilihan Pengiriman / Titip Simpan (Keep Item Selection) */}
+        {isFirstProof ? (
+          <div className="rounded-2xl border border-brand-200/90 bg-brand-50/50 p-4 space-y-2.5">
+            <div>
+              <label className="block text-xs font-black text-brand-900">
+                Pilihan Pengiriman / Titip Simpan (Delivery or Storage Option) *
+              </label>
+              <p className="text-[11px] text-brand-600 mt-0.5">
+                Pilih apakah barang ingin langsung dikirim ke alamat Anda setelah tiba, atau dititip simpan di warehouse kami terlebih dahulu:
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setKeepItem(false)}
+                className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition ${
+                  !keepItem
+                    ? 'border-brand-900 bg-brand-900 text-white shadow-sm'
+                    : 'border-brand-200 bg-white text-brand-800 hover:bg-brand-50'
+                }`}
+              >
+                <Package size={18} className="shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black">Kirim Langsung (Direct Shipment)</p>
+                  <p className={`text-[10px] mt-0.5 ${!keepItem ? 'text-brand-200' : 'text-brand-500'}`}>
+                    Barang segera dikemas & dikirim ke alamat setelah pembelanjaan tiba.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setKeepItem(true)}
+                className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition ${
+                  keepItem
+                    ? 'border-brand-900 bg-brand-900 text-white shadow-sm'
+                    : 'border-brand-200 bg-white text-brand-800 hover:bg-brand-50'
+                }`}
+              >
+                <Archive size={18} className="shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black">Titip Simpan (Keep 1 Month)</p>
+                  <p className={`text-[10px] mt-0.5 ${keepItem ? 'text-brand-200' : 'text-brand-500'}`}>
+                    Disimpan aman di warehouse kami selama 1 bulan gratis sejak pembayaran pertama.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-brand-200/90 bg-brand-50/50 p-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              {existingKeepItem ? (
+                <Archive size={18} className="text-indigo-600 shrink-0" />
+              ) : (
+                <Package size={18} className="text-brand-600 shrink-0" />
+              )}
+              <div>
+                <p className="text-xs font-bold text-brand-900">
+                  Pilihan Pengiriman:{' '}
+                  <span className="font-black text-indigo-700">
+                    {existingKeepItem ? 'Titip Simpan (Keep Items)' : 'Kirim Langsung (Direct Shipment)'}
+                  </span>
+                </p>
+                <p className="text-[10px] text-brand-500">
+                  {existingKeepItem
+                    ? `Barang dititip simpan s/d ${new Date(existingKeptUntil || Date.now() + 30 * 86400000).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                    : 'Barang akan dikirim langsung setelah pesanan selesai diproses.'}
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] bg-brand-200/80 text-brand-700 font-bold px-2.5 py-1 rounded-lg shrink-0">
+              <Lock size={11} /> Hanya Lihat
+            </span>
+          </div>
+        )}
 
         <button
           type="submit"

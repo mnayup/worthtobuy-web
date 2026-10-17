@@ -20,6 +20,7 @@ import {
   Search,
   CheckSquare,
   Square,
+  Archive,
 } from 'lucide-react';
 import type { ModuleDef } from '../types';
 
@@ -32,6 +33,7 @@ const MODULE_ICONS: Record<string, any> = {
   orders: ReceiptText,
   purchases: ShoppingBag,
   shipments: Truck,
+  'keep-items': Archive,
   'item-tracking': Layers,
   'shopping-list': ShoppingBag,
   invoices: FileText,

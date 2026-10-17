@@ -89,6 +89,7 @@ export function usePublicInvoice() {
     destinationAccount?: string;
     proofUrl: string;
     notes?: string;
+    keepItem?: boolean;
   }) => {
     if (!invoiceNumber) return false;
     setSubmitting(true);
@@ -101,6 +102,7 @@ export function usePublicInvoice() {
         destination_account: formData.destinationAccount || null,
         proof_url: formData.proofUrl,
         notes: formData.notes || null,
+        keep_item: formData.keepItem,
       });
       setSuccessMsg(
         res.data?.message ||

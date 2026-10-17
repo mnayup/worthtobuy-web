@@ -17,6 +17,7 @@ interface InvoiceStepperCardProps {
   setPreviewStage: (stage: PreviewStage) => void;
   updatePaymentScheme: (model: 'DP' | 'FULL_PAYMENT', percent?: number) => Promise<void>;
   updateShippingCost?: (orderId: number, shippingCost: number) => Promise<void>;
+  updateKeepItems?: (keep: boolean, customDate?: string) => Promise<void>;
   onOpenWhatsapp: () => void;
   openPaymentWith: (amount?: number, notes?: string) => void;
 }
@@ -35,6 +36,7 @@ export function InvoiceStepperCard({
   setPreviewStage,
   updatePaymentScheme,
   updateShippingCost,
+  updateKeepItems,
   onOpenWhatsapp,
   openPaymentWith,
 }: InvoiceStepperCardProps) {
@@ -69,6 +71,7 @@ export function InvoiceStepperCard({
         updatingScheme={updatingScheme}
         updatePaymentScheme={updatePaymentScheme}
         updateShippingCost={updateShippingCost}
+        updateKeepItems={updateKeepItems}
         onOpenWhatsapp={onOpenWhatsapp}
         openPaymentWith={openPaymentWith}
       />

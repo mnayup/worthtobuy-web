@@ -1738,6 +1738,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"heic2any@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "heic2any@npm:0.0.4"
+  checksum: 10c0/36a22e1df08de088322ac018d8e5de24911f93d6c2d8b3bd2ea9baeeb8630c031bc1eb9eaa10d4c6c3b4780ed3410e7eb0283ffd3dfb441e370bec8634003c43
+  languageName: node
+  linkType: hard
+
 "https-proxy-agent@npm:^5.0.1":
   version: 5.0.1
   resolution: "https-proxy-agent@npm:5.0.1"
@@ -2811,6 +2818,7 @@ __metadata:
     browser-image-compression: "npm:^2.0.2"
     clsx: "npm:^2.1.1"
     dayjs: "npm:^1.11.13"
+    heic2any: "npm:^0.0.4"
     lucide-react: "npm:^0.525.0"
     postcss: "npm:^8.5.6"
     react: "npm:^19.1.0"

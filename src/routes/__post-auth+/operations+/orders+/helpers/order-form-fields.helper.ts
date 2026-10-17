@@ -151,7 +151,6 @@ export function getOrderFields(user: any): FieldConfig[] {
       disabled: true,
       options: user ? [{ value: user.id, label: user.name }] : [],
     },
-    { name: 'keptUntil', label: 'Keep Until Date', type: 'date' },
     {
       name: 'serviceFeeMode',
       label: 'Concierge Fee Mode',

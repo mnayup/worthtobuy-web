@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FileText } from 'lucide-react';
 import { CrudPage } from '~/components/CrudPage';
 import { api } from '~/lib/api';
 import { useAuth } from '~/context/AuthContext';
@@ -14,6 +15,7 @@ import {
 import { OrderStatusCards } from './components/order-status-cards';
 import { getOrderColumns, renderOrderActions } from './helpers/order-columns.helper';
 import { CreateInvoiceModal } from '../../finance+/invoices+/components/create-invoice-modal';
+import { BulkIssueInvoicesModal } from './components/bulk-issue-invoices-modal';
 
 export async function loader() {
   const [periodsRes, customersRes, productsRes, usersRes] = await Promise.allSettled([
@@ -89,6 +91,17 @@ export default function OrdersRoute() {
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
+  // Dynamic filter options
+  const [periodOptions, setPeriodOptions] = useState<Array<{ label: string; value: string | number }>>([]);
+  const [customerOptions, setCustomerOptions] = useState<Array<{ label: string; value: string | number }>>([]);
+
+  // Bulk Issue Invoices state
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([]);
+  const [bulkSelectedRows, setBulkSelectedRows] = useState<any[]>([]);
+  const [clearSelectionCallback, setClearSelectionCallback] = useState<(() => void) | null>(null);
+  const [reloadCallback, setReloadCallback] = useState<(() => void) | null>(null);
+
   const fetchSummary = async () => {
     try {
       const res = await api.get('/orders/summary');
@@ -100,6 +113,27 @@ export default function OrdersRoute() {
 
   useEffect(() => {
     fetchSummary();
+
+    // Fetch dynamic options for filters
+    api.get('/periods?limit=200').then((res) => {
+      const rows = res.data?.data || res.data || [];
+      setPeriodOptions(
+        rows.map((row: any) => ({
+          label: `${row.code} • ${row.name}`,
+          value: row.id,
+        }))
+      );
+    }).catch(() => {});
+
+    api.get('/customers?limit=300').then((res) => {
+      const rows = res.data?.data || res.data || [];
+      setCustomerOptions(
+        rows.map((row: any) => ({
+          label: `${row.customer_code ? `${row.customer_code} • ` : ''}${row.full_name || row.fullName}`,
+          value: row.id,
+        }))
+      );
+    }).catch(() => {});
   }, []);
 
   const fields = useMemo<FieldConfig[]>(() => getOrderFields(user), [user]);
@@ -118,6 +152,18 @@ export default function OrdersRoute() {
         extraQuery={selectedStatus ? { status: selectedStatus } : undefined}
         searchPlaceholder="Search order number, customer name, product, notes..."
         filters={[
+          {
+            key: 'periodId',
+            label: 'Event',
+            placeholder: 'All Events',
+            options: periodOptions,
+          },
+          {
+            key: 'customerId',
+            label: 'Customer',
+            placeholder: 'All Customers',
+            options: customerOptions,
+          },
           {
             key: 'status',
             label: 'Order Status',
@@ -144,20 +190,37 @@ export default function OrdersRoute() {
         }
         columns={columns}
         canDelete={user?.role === 'OWNER'}
+        canBulkDelete={false}
+        selectable={true}
+        canSelectRow={(row) => row.status === 'NEW'}
         canEditRow={(row) => Number(row.paid_amount ?? row.paidAmount ?? 0) === 0}
         canDeleteRow={(row) => Number(row.paid_amount ?? row.paidAmount ?? 0) === 0}
         renderActions={(row) => renderOrderActions(row, navigate, setInvoiceModal)}
+        renderBulkActions={({ selectedIds, selectedRows, clearSelection, reload }) => (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-honey-200 bg-honey-50/80 p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-honey-700" />
+              <p className="text-sm font-extrabold text-honey-900">
+                {selectedIds.length} order{selectedIds.length > 1 ? 's' : ''} selected.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn bg-honey-500 text-brand-950 font-black hover:bg-honey-400 !py-1.5 text-xs shadow-sm flex items-center gap-1.5"
+              onClick={() => {
+                setBulkSelectedIds(selectedIds);
+                setBulkSelectedRows(selectedRows);
+                setClearSelectionCallback(() => clearSelection);
+                setReloadCallback(() => reload);
+                setBulkModalOpen(true);
+              }}
+            >
+              <FileText size={14} /> Bulk Issue Invoices
+            </button>
+          </div>
+        )}
         prepareInitial={prepareInitialOrder}
         prepareSubmit={prepareSubmitOrder}
-        bulkStatus={{
-          label: 'Order Status',
-          options: orderStatusOptions,
-          apply: async (id, value) => {
-            const res = await api.put(`/orders/${id}`, { status: value });
-            fetchSummary();
-            return res;
-          },
-        }}
       />
       <CreateInvoiceModal
         open={Boolean(invoiceModal)}
@@ -170,6 +233,22 @@ export default function OrdersRoute() {
           setInvoiceModal(null);
           fetchSummary();
           navigate(`/invoices/${id}?from=orders`);
+        }}
+      />
+      <BulkIssueInvoicesModal
+        open={bulkModalOpen}
+        onClose={() => setBulkModalOpen(false)}
+        selectedOrderIds={bulkSelectedIds}
+        selectedOrders={bulkSelectedRows}
+        onSuccess={({ invoiceIds, count }) => {
+          fetchSummary();
+          clearSelectionCallback?.();
+          reloadCallback?.();
+          if (invoiceIds.length === 1) {
+            navigate(`/invoices/${invoiceIds[0]}?from=orders`);
+          } else if (invoiceIds.length > 1) {
+            navigate('/invoices');
+          }
         }}
       />
     </>

@@ -28,6 +28,7 @@ export interface PurchaseItem {
   status?: string;
   fulfillment_status?: string;
   purchase_status?: string;
+  kept_until?: string | null;
 }
 
 export interface Purchase {
@@ -92,4 +93,5 @@ export interface ItemChecklistState {
   max_qty: number;
   actual_unit_price: number;
   estimated_unit_price: number;
+  kept_until?: string | null;
 }

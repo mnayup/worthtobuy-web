@@ -1,4 +1,4 @@
-import { Crown, Check, X, AlertCircle } from 'lucide-react';
+import { Crown, Check, X, AlertCircle, Archive } from 'lucide-react';
 import { money } from '~/lib/format';
 import type { PurchaseItem, ItemChecklistState } from '../types';
 
@@ -19,6 +19,7 @@ export function PurchaseItemChecklistRow({
   const isPurchased = state.status === 'PURCHASED';
   const isUnavailable = state.status === 'UNAVAILABLE';
   const isVip = Boolean(item.is_priority_customer);
+  const isKept = Boolean(state.kept_until);
 
   return (
     <div
@@ -135,6 +136,15 @@ export function PurchaseItemChecklistRow({
                 Color: {item.color}
               </span>
             )}
+            {isKept && (
+              <span className="inline-flex items-center gap-1 rounded bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700 border border-indigo-200">
+                <Archive size={11} /> Titip s/d{' '}
+                {new Date(state.kept_until!).toLocaleDateString('id-ID', {
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </span>
+            )}
           </div>
         </div>
 
@@ -240,6 +250,32 @@ export function PurchaseItemChecklistRow({
           >
             <Check size={14} />
             Bought (Didapat)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (isKept) {
+                onChange({ kept_until: null });
+              } else {
+                const oneMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                onChange({ kept_until: oneMonth });
+              }
+            }}
+            className={
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ' +
+              (isKept
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-white border border-brand-200 text-brand-600 hover:bg-indigo-50')
+            }
+            title={
+              isKept
+                ? `Titip s/d ${new Date(state.kept_until!).toLocaleDateString('id-ID')} (Klik untuk batalkan)`
+                : 'Set status titip simpan di warehouse selama 1 bulan'
+            }
+          >
+            <Archive size={14} />
+            {isKept ? 'Titip (1 Bulan)' : 'Titip Simpan'}
           </button>
 
           <button

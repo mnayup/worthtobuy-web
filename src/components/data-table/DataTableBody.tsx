@@ -14,6 +14,7 @@ interface DataTableBodyProps {
   emptyText: string;
   canEditRow?: (row: any) => boolean;
   canDeleteRow?: (row: any) => boolean;
+  canSelectRow?: (row: any) => boolean;
   renderActions?: (row: any) => ReactNode;
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
@@ -31,6 +32,7 @@ export function DataTableBody({
   emptyText,
   canEditRow,
   canDeleteRow,
+  canSelectRow,
   renderActions,
   onEdit,
   onDelete,
@@ -82,6 +84,7 @@ export function DataTableBody({
       {rows.map((row, index) => {
         const id = String(row.id ?? index);
         const isSelected = selected.has(id);
+        const canSelect = !canSelectRow || canSelectRow(row);
         return (
           <tr
             key={id}
@@ -96,10 +99,15 @@ export function DataTableBody({
               <td className="w-12 px-4 py-3 text-center">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 cursor-pointer rounded border-brand-300 accent-cherry-500 transition focus:ring-2 focus:ring-cherry-400"
+                  disabled={!canSelect}
+                  className={clsx(
+                    'h-4 w-4 rounded border-brand-300 accent-cherry-500 transition focus:ring-2 focus:ring-cherry-400',
+                    canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-25'
+                  )}
+                  title={!canSelect ? 'Only orders with NEW status can be selected' : undefined}
                   aria-label={`Select item ${id}`}
                   checked={isSelected}
-                  onChange={(event) => onToggleRow(id, event.target.checked)}
+                  onChange={(event) => canSelect && onToggleRow(id, event.target.checked)}
                 />
               </td>
             )}

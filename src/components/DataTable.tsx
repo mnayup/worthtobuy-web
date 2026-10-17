@@ -21,6 +21,7 @@ type Props = {
   onDelete?: (row: any) => void;
   canEditRow?: (row: any) => boolean;
   canDeleteRow?: (row: any) => boolean;
+  canSelectRow?: (row: any) => boolean;
   renderActions?: (row: any) => ReactNode;
   emptyText?: string;
   selectedRowIds?: Array<string | number>;
@@ -43,6 +44,7 @@ export function DataTable({
   onDelete,
   canEditRow,
   canDeleteRow,
+  canSelectRow,
   renderActions,
   emptyText = 'No records found.',
   selectedRowIds = [],
@@ -82,15 +84,23 @@ export function DataTable({
   const hasActions = Boolean(onEdit || onDelete || renderActions);
   const selectable = Boolean(onSelectedRowIdsChange);
   const selected = new Set(selectedRowIds.map(String));
-  const visibleIds = sortedRows.map((row, index) => String(row.id ?? index));
+
+  const selectableRows = useMemo(
+    () => (canSelectRow ? sortedRows.filter(canSelectRow) : sortedRows),
+    [sortedRows, canSelectRow]
+  );
+  const selectableIds = useMemo(
+    () => selectableRows.map((row, index) => String(row.id ?? index)),
+    [selectableRows]
+  );
   const allVisibleSelected =
-    visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
-  const someVisibleSelected = visibleIds.some((id) => selected.has(id));
+    selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+  const someVisibleSelected = selectableIds.some((id) => selected.has(id));
 
   function toggleAllVisible(checked: boolean) {
     if (!onSelectedRowIdsChange) return;
     const next = new Set(selected);
-    for (const id of visibleIds) checked ? next.add(id) : next.delete(id);
+    for (const id of selectableIds) checked ? next.add(id) : next.delete(id);
     onSelectedRowIdsChange([...next]);
   }
 
@@ -112,7 +122,7 @@ export function DataTable({
             allVisibleSelected={allVisibleSelected}
             someVisibleSelected={someVisibleSelected}
             loading={loading}
-            rowsCount={sortedRows.length}
+            rowsCount={selectableRows.length}
             activeSortKey={activeSortKey}
             activeSortDir={activeSortDir}
             onToggleAllVisible={toggleAllVisible}
@@ -129,6 +139,7 @@ export function DataTable({
             emptyText={emptyText}
             canEditRow={canEditRow}
             canDeleteRow={canDeleteRow}
+            canSelectRow={canSelectRow}
             renderActions={renderActions}
             onEdit={onEdit}
             onDelete={onDelete}

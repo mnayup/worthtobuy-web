@@ -17,6 +17,7 @@ export function buildInitialItemsState(
       max_qty: item.quantity,
       actual_unit_price: act / qty,
       estimated_unit_price: est / qty,
+      kept_until: item.kept_until || null,
     };
   });
   return initial;

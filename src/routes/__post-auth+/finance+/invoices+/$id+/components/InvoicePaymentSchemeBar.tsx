@@ -2,6 +2,7 @@ import React from 'react';
 import { CreditCard, MessageCircle, Printer } from 'lucide-react';
 import { money } from '~/lib/format';
 import { InvoiceShippingCostSection } from './InvoiceShippingCostSection';
+import { InvoiceKeepItemsSection } from './InvoiceKeepItemsSection';
 
 interface InvoicePaymentSchemeBarProps {
   invoice: any;
@@ -14,6 +15,7 @@ interface InvoicePaymentSchemeBarProps {
   updatingScheme: boolean;
   updatePaymentScheme: (model: 'DP' | 'FULL_PAYMENT', percent?: number) => Promise<void>;
   updateShippingCost?: (orderId: number, shippingCost: number) => Promise<void>;
+  updateKeepItems?: (keep: boolean, customDate?: string) => Promise<void>;
   onOpenWhatsapp: () => void;
   openPaymentWith: (amount?: number, notes?: string) => void;
 }
@@ -29,6 +31,7 @@ export function InvoicePaymentSchemeBar({
   updatingScheme,
   updatePaymentScheme,
   updateShippingCost,
+  updateKeepItems,
   onOpenWhatsapp,
   openPaymentWith,
 }: InvoicePaymentSchemeBarProps) {
@@ -92,6 +95,13 @@ export function InvoicePaymentSchemeBar({
               </button>
             </div>
           </div>
+
+          {/* Step 2b: Keep Items / Titip Simpan Selection */}
+          <InvoiceKeepItemsSection
+            invoice={invoice}
+            updatingScheme={updatingScheme}
+            updateKeepItems={updateKeepItems}
+          />
 
           {/* Step 3: Payment Configuration and Actions */}
           {isDpScheme ? (

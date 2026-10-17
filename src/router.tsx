@@ -30,6 +30,7 @@ import ShoppingListRoute from '~/routes/__post-auth+/operations+/shopping-list+'
 import PurchasesRoute from '~/routes/__post-auth+/operations+/purchases+';
 import PaymentsRoute from '~/routes/__post-auth+/finance+/payments+';
 import ShipmentsRoute from '~/routes/__post-auth+/operations+/shipments+';
+import KeepItemsRoute from '~/routes/__post-auth+/operations+/keep-items+';
 import ExpensesRoute from '~/routes/__post-auth+/finance+/expenses+';
 import RefundsRoute from '~/routes/__post-auth+/finance+/refunds+';
 import FinanceOverviewRoute from '~/routes/__post-auth+/finance+/overview+';
@@ -196,6 +197,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard roles={['OWNER', 'ADMIN']}>
             <ShipmentsRoute />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'keep-items',
+        element: (
+          <RoleGuard roles={['OWNER', 'ADMIN']}>
+            <KeepItemsRoute />
           </RoleGuard>
         ),
       },

@@ -103,6 +103,7 @@ export function PurchaseDetailModal({
         is_rejected: st.status === 'UNAVAILABLE',
         allocated_qty: st.allocated_qty,
         actual_price: st.actual_unit_price,
+        kept_until: st.kept_until,
       }));
 
       await api.put(`/purchases/${data!.id}`, {

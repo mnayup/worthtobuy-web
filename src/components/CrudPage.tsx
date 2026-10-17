@@ -30,6 +30,7 @@ export function CrudPage({
   canDelete = false,
   canEditRow,
   canDeleteRow,
+  canSelectRow,
   prepareInitial,
   prepareSubmit,
   renderActions,
@@ -41,6 +42,8 @@ export function CrudPage({
   filters,
   searchPlaceholder,
   selectable,
+  canBulkDelete,
+  renderBulkActions,
 }: CrudPageProps) {
   const {
     data,
@@ -206,13 +209,24 @@ export function CrudPage({
         total={total}
       />
 
+      {renderBulkActions && selectedIds.length > 0 && (
+        <div>
+          {renderBulkActions({
+            selectedIds,
+            selectedRows: data.filter((row: any) => selectedIds.includes(String(row.id))),
+            clearSelection: () => setSelectedIds([]),
+            reload: load,
+          })}
+        </div>
+      )}
+
       <CrudBulkActionsBar
         bulkStatus={bulkStatus}
         selectedIds={selectedIds}
         bulkValue={bulkValue}
         onBulkValueChange={setBulkValue}
         onApplyBulkStatus={applyBulkStatus}
-        canDelete={canDelete}
+        canDelete={canBulkDelete !== undefined ? canBulkDelete : canDelete}
         onBulkDeleteOpen={() => setBulkDeleteOpen(true)}
         saving={saving}
       />
@@ -231,7 +245,8 @@ export function CrudPage({
         }}
         selectedRowIds={selectedIds}
         onSelectedRowIdsChange={
-          selectable === false || (!bulkStatus && !canDelete && selectable !== true)
+          selectable === false ||
+          (!bulkStatus && !(canBulkDelete !== undefined ? canBulkDelete : canDelete) && !renderBulkActions && selectable !== true)
             ? undefined
             : setSelectedIds
         }
@@ -246,6 +261,7 @@ export function CrudPage({
         onDelete={canDelete ? (row) => setDeleting(row) : undefined}
         canEditRow={canEditRow}
         canDeleteRow={canDeleteRow}
+        canSelectRow={canSelectRow}
         renderActions={renderActions}
       />
 

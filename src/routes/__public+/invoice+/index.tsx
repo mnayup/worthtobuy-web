@@ -111,6 +111,8 @@ export default function PublicInvoiceViewRoute() {
 
       {/* 4. Proof of Transfer Upload Form */}
       <PublicInvoiceProofUploadForm
+        invoice={d.invoice}
+        payments={d.payments}
         currentStage={d.currentStage}
         dpAmount={d.dpAmount}
         totalBill={d.totalBill}

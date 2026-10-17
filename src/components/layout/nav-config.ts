@@ -14,6 +14,7 @@ import {
   Users,
   Trash2,
   ShieldCheck,
+  Archive,
 } from 'lucide-react';
 
 export interface NavSubItem {
@@ -100,6 +101,12 @@ export const navGroups: NavGroupConfig[] = [
         to: '/shipments',
         label: 'Shipments',
         icon: Truck,
+        roles: ['OWNER', 'ADMIN'],
+      },
+      {
+        to: '/keep-items',
+        label: 'Keep Items',
+        icon: Archive,
         roles: ['OWNER', 'ADMIN'],
       },
     ],

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 import { money, dateTime } from '~/lib/format';
+import { SafeProofImage } from '~/components/SafeProofImage';
 
 interface PublicInvoicePaymentsListProps {
   payments: any[];
@@ -47,7 +48,7 @@ export function PublicInvoicePaymentsList({ payments }: PublicInvoicePaymentsLis
                     className="relative group shrink-0"
                     title="View uploaded transfer receipt"
                   >
-                    <img
+                    <SafeProofImage
                       src={p.proof_url}
                       alt="Proof receipt"
                       className={

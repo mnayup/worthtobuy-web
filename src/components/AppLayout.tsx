@@ -5,7 +5,7 @@ import {
   Bell, Boxes, Calculator, ChevronRight, CircleDollarSign, ClipboardList, FileBarChart2,
   FileText, Landmark, LayoutDashboard, LogOut, Menu, PackageCheck, PanelLeftClose,
   ReceiptText, RotateCcw, Search, Settings, ShoppingBag, Sparkles, Truck, UserCog, PackageSearch,
-  Users, WalletCards, X, Trash2, ScrollText,
+  Users, WalletCards, X, Trash2, ScrollText, Archive,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '~/context/AuthContext';
@@ -25,6 +25,7 @@ const nav = [
   { to: '/purchases', label: 'Purchases', icon: PackageCheck, roles: ['OWNER','ADMIN','SHOPPER'] },
   { to: '/payments', label: 'Payments', icon: WalletCards, roles: ['OWNER','ADMIN','FINANCE'] },
   { to: '/shipments', label: 'Shipments', icon: Truck, roles: ['OWNER','ADMIN'] },
+  { to: '/keep-items', label: 'Keep Items', icon: Archive, roles: ['OWNER','ADMIN'] },
   { to: '/expenses', label: 'Expenses', icon: CircleDollarSign, roles: ['OWNER','FINANCE'] },
   { to: '/refunds', label: 'Refunds', icon: RotateCcw, roles: ['OWNER','FINANCE'] },
   { to: '/finance', label: 'Financial Overview', icon: Landmark, roles: ['OWNER','FINANCE'] },

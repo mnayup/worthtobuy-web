@@ -127,6 +127,31 @@ export function useInvoiceDetail(id?: string) {
     }
   }
 
+  async function updateKeepItems(keep: boolean, customDate?: string) {
+    if (!invoice) return;
+    setUpdatingScheme(true);
+    try {
+      const payload: any = {
+        keepItems: keep,
+        keptUntil: keep
+          ? (customDate ? new Date(customDate).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
+          : null,
+      };
+      await api.put(`/invoices/${invoice.id}`, payload);
+      setToast({
+        message: keep
+          ? 'Status pesanan berhasil diset ke Titip Simpan (1 bulan).'
+          : 'Status pesanan berhasil diubah ke Kirim Langsung.',
+        type: 'success',
+      });
+      await load();
+    } catch (caught) {
+      setToast({ message: errorMessage(caught), type: 'error' });
+    } finally {
+      setUpdatingScheme(false);
+    }
+  }
+
   async function load() {
     if (!id) return;
     setLoading(true);
@@ -279,7 +304,7 @@ export function useInvoiceDetail(id?: string) {
     previewStage, setPreviewStage, printFormat, setPrintFormat,
     paymentInitialAmount, setPaymentInitialAmount, paymentInitialNotes,
     setPaymentInitialNotes, openPaymentWith, updatePaymentScheme,
-    updateShippingCost, load, sortedPayments, sortedRefunds,
+    updateShippingCost, updateKeepItems, load, sortedPayments, sortedRefunds,
     isDpScheme, totalBill, paidAmount, outstandingAmount,
     dpAmount, currentStage, activeDisplayMode, paymentsChronological,
     removeInvoice, verifyModalOpen, setVerifyModalOpen,
