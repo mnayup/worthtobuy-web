@@ -48,6 +48,7 @@ export interface SettingsData {
   invoice: InvoiceSettings;
   feeRules: FeeRule[];
   feeRulesReseller?: FeeRule[];
+  whatsapp_templates?: Record<string, string>;
 }
 
 

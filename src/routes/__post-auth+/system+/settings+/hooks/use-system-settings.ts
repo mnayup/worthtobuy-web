@@ -52,11 +52,14 @@ export const invoiceDefaults: InvoiceSettings = {
   qrisImageUrl: '',
 };
 
+import { DEFAULT_WHATSAPP_TEMPLATES } from '~/routes/__post-auth+/finance+/invoices+/helpers/invoice-helpers';
+
 export async function saveSettingsAction(data: {
   brand: BrandSettings;
   invoice: InvoiceSettings;
   feeRulesCustomer: FeeRule[];
   feeRulesReseller: FeeRule[];
+  whatsappTemplates?: Record<string, string>;
 }) {
   const normalize = (rules: FeeRule[]) =>
     rules
@@ -74,12 +77,18 @@ export async function saveSettingsAction(data: {
   const normalizedCustomer = normalize(data.feeRulesCustomer);
   const normalizedReseller = normalize(data.feeRulesReseller);
 
-  await Promise.all([
+  const promises: Promise<any>[] = [
     api.put('/settings/brand', { value: data.brand }),
     api.put('/settings/invoice', { value: data.invoice }),
     api.put('/settings/feeRules', { value: normalizedCustomer }),
     api.put('/settings/feeRulesReseller', { value: normalizedReseller }),
-  ]);
+  ];
+
+  if (data.whatsappTemplates) {
+    promises.push(api.put('/settings/whatsapp_templates', { value: data.whatsappTemplates }));
+  }
+
+  await Promise.all(promises);
   return {
     success: true,
     feeRulesCustomer: normalizedCustomer,
@@ -90,6 +99,7 @@ export async function saveSettingsAction(data: {
 export function useSystemSettings() {
   const [brand, setBrand] = useState(brandDefaults);
   const [invoice, setInvoice] = useState(invoiceDefaults);
+  const [whatsappTemplates, setWhatsappTemplates] = useState<Record<string, string>>(DEFAULT_WHATSAPP_TEMPLATES);
   const [feeTab, setFeeTab] = useState<'customer' | 'reseller'>('customer');
   const [feeRulesCustomer, setFeeRulesCustomer] = useState<FeeRule[]>(defaultCustomerRules);
   const [feeRulesReseller, setFeeRulesReseller] = useState<FeeRule[]>(defaultResellerRules);
@@ -123,6 +133,12 @@ export function useSystemSettings() {
         const data: SettingsData = res.data;
         setBrand({ ...brandDefaults, ...(data.brand || {}) });
         setInvoice({ ...invoiceDefaults, ...(data.invoice || {}) });
+        if (data.whatsapp_templates && typeof data.whatsapp_templates === 'object') {
+          setWhatsappTemplates((prev) => ({
+            ...prev,
+            ...data.whatsapp_templates,
+          }));
+        }
         if (Array.isArray(data.feeRules) && data.feeRules.length) {
           setFeeRulesCustomer(
             data.feeRules.map((rule: any, index: number) => ({
@@ -304,6 +320,7 @@ export function useSystemSettings() {
         invoice,
         feeRulesCustomer,
         feeRulesReseller,
+        whatsappTemplates,
       });
       setFeeRulesCustomer(result.feeRulesCustomer);
       setFeeRulesReseller(result.feeRulesReseller);
@@ -320,6 +337,8 @@ export function useSystemSettings() {
     setBrand,
     invoice,
     setInvoice,
+    whatsappTemplates,
+    setWhatsappTemplates,
     backupLogs,
     backupLogsTotal,
     loadingLogs,

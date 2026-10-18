@@ -78,7 +78,7 @@ export function ShipmentDetailModal({
   const custName = shipment.customer?.full_name || shipment.customer?.fullName || '';
   const orderNum = shipment.order?.order_number || shipment.order?.orderNumber || '';
   const waLink = cleanWaNumber
-    ? `https://wa.me/${waPrefix}?text=Halo%20kak%20${encodeURIComponent(
+    ? `https://api.whatsapp.com/send/?phone=${waPrefix}&text=Halo%20kak%20${encodeURIComponent(
         custName
       )}%2C%20update%20pengiriman%20pesanan%20${orderNum}`
     : null;

@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Copy, RefreshCw, Send, X } from 'lucide-react';
+import { Copy, ExternalLink, RefreshCw, Send, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { api, errorMessage } from '~/lib/api';
-import { createInvoiceWhatsappTemplate } from '../helpers/invoice-helpers';
+import {
+  DEFAULT_WHATSAPP_TEMPLATES,
+  renderInvoiceWhatsappTemplate,
+} from '../helpers/invoice-helpers';
 import { WhatsappInvoiceLinkCard } from './WhatsappInvoiceLinkCard';
 
 interface Props {
@@ -20,9 +24,11 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
         .filter(Boolean)
     ),
   ];
+
   const [templateType, setTemplateType] = useState('BILLING');
   const [billingModel, setBillingModel] = useState('FLEXIBLE');
   const [selectedEvent, setSelectedEvent] = useState('ALL');
+  const [templatesMap, setTemplatesMap] = useState<Record<string, string>>(DEFAULT_WHATSAPP_TEMPLATES);
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -37,8 +43,36 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
       : 'https://worthtobuy.id';
   const publicInvoiceUrl = invoiceNum ? `${origin}/invoice/${invoiceNum}` : '';
 
+  // 1. Fetch DB saved templates on open
   useEffect(() => {
     if (!open) return;
+    let active = true;
+
+    const loadTemplates = async () => {
+      try {
+        const res = await api.get('/settings');
+        const dbTemplates = res.data?.whatsapp_templates;
+        if (active && dbTemplates && typeof dbTemplates === 'object') {
+          setTemplatesMap((prev) => ({
+            ...prev,
+            ...dbTemplates,
+          }));
+        }
+      } catch {
+        // Fallback to default templates
+      }
+    };
+
+    loadTemplates();
+    return () => {
+      active = false;
+    };
+  }, [open]);
+
+  // 2. Select initial template type and populate rendered message
+  useEffect(() => {
+    if (!open) return;
+
     const model = invoice?.billingModel || invoice?.billing_model || 'FLEXIBLE';
     let defaultType = 'BILLING';
     const paid = Number(invoice?.paidAmount ?? invoice?.paid_amount ?? 0);
@@ -55,8 +89,15 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
     setTemplateType(defaultType);
     setBillingModel(model);
     setSelectedEvent('ALL');
+
+    const rawTemplate =
+      templatesMap[defaultType] ||
+      DEFAULT_WHATSAPP_TEMPLATES[defaultType] ||
+      DEFAULT_WHATSAPP_TEMPLATES.BILLING;
+
     setMessage(
-      createInvoiceWhatsappTemplate({
+      renderInvoiceWhatsappTemplate({
+        template: rawTemplate,
         invoice,
         templateType: defaultType,
         billingModel: model,
@@ -64,28 +105,52 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
       })
     );
     setError('');
-  }, [open, invoice]);
+  }, [open, invoice, templatesMap]);
+
+  // Helper to re-generate message from template
+  const generateMessage = (type: string, model: string, evt: string) => {
+    const rawTemplate =
+      templatesMap[type] ||
+      DEFAULT_WHATSAPP_TEMPLATES[type] ||
+      DEFAULT_WHATSAPP_TEMPLATES.BILLING;
+
+    return renderInvoiceWhatsappTemplate({
+      template: rawTemplate,
+      invoice,
+      templateType: type,
+      billingModel: model,
+      eventValue: evt,
+    });
+  };
 
   if (!open) return null;
 
   async function save(openWhatsapp: boolean) {
     if (!message.trim()) {
-      setError('WhatsApp message cannot be empty.');
+      setError('Pesan WhatsApp tidak boleh kosong.');
       return;
     }
     setSaving(true);
+    setError('');
     try {
       await api.put(`/invoices/${invoice.id}`, {
         billingModel,
         whatsappMessage: message.trim(),
       });
       await navigator.clipboard.writeText(message.trim());
+
       if (openWhatsapp) {
         let phone = String(invoice.customer?.whatsapp || '').replace(/\D/g, '');
         if (phone.startsWith('0')) phone = `62${phone.slice(1)}`;
         else if (phone.startsWith('8')) phone = `62${phone}`;
+
         const encoded = encodeURIComponent(message.trim());
-        window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank', 'noopener,noreferrer');
+        // Using api.whatsapp.com directly prevents wa.me redirects from stripping 4-byte UTF-8 emojis
+        window.open(
+          `https://api.whatsapp.com/send/?phone=${phone}&text=${encoded}`,
+          '_blank',
+          'noopener,noreferrer'
+        );
       }
       onSaved(openWhatsapp);
     } catch (caught) {
@@ -108,6 +173,7 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
           'shadow-2xl sm:rounded-3xl border border-brand-100 flex flex-col'
         }
       >
+        {/* Header */}
         <div
           className={
             'flex items-center justify-between border-b border-brand-100 ' +
@@ -116,10 +182,10 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
         >
           <div>
             <h2 className="font-black text-brand-900 text-lg">
-              WhatsApp Notification Template
+              Kirim Notifikasi WhatsApp
             </h2>
             <p className="text-xs text-brand-500">
-              Includes embedded public invoice & proof upload portal link for customer.
+              Pilih jenis pesan di bawah. Pesan otomatis disesuaikan dengan data tagihan & link portal customer.
             </p>
           </div>
           <button
@@ -133,6 +199,7 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
           </button>
         </div>
 
+        {/* Body */}
         <div className="scrollbar-thin overflow-y-auto p-6 space-y-4">
           {error && (
             <div
@@ -148,23 +215,17 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
           {/* Customer Public Invoice Portal Link Card */}
           <WhatsappInvoiceLinkCard publicInvoiceUrl={publicInvoiceUrl} />
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Selectors */}
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="label">Message Type</label>
+              <label className="label text-xs">Jenis Pesan (Template)</label>
               <select
-                className="input"
+                className="input text-xs"
                 value={templateType}
                 onChange={(e) => {
                   const val = e.target.value;
                   setTemplateType(val);
-                  setMessage(
-                    createInvoiceWhatsappTemplate({
-                      invoice,
-                      templateType: val,
-                      billingModel,
-                      eventValue: selectedEvent,
-                    })
-                  );
+                  setMessage(generateMessage(val, billingModel, selectedEvent));
                 }}
               >
                 <option value="DP">Down Payment Bill (Tagihan DP)</option>
@@ -178,25 +239,19 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
                 <option value="TRACKING">Shipping & Tracking Info (Resi Pengiriman)</option>
               </select>
             </div>
+
             <div>
-              <label className="label">Event</label>
+              <label className="label text-xs">Event / Batch</label>
               <select
-                className="input"
+                className="input text-xs"
                 value={selectedEvent}
                 onChange={(e) => {
                   const val = e.target.value;
                   setSelectedEvent(val);
-                  setMessage(
-                    createInvoiceWhatsappTemplate({
-                      invoice,
-                      templateType,
-                      billingModel,
-                      eventValue: val,
-                    })
-                  );
+                  setMessage(generateMessage(templateType, billingModel, val));
                 }}
               >
-                <option value="ALL">All events on this invoice</option>
+                <option value="ALL">Semua event pada invoice ini</option>
                 {eventCodes.map((code) => (
                   <option key={code} value={code}>
                     {code}
@@ -204,23 +259,17 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
                 ))}
               </select>
             </div>
+
             {templateType === 'BILLING' && (
               <div className="sm:col-span-2">
-                <label className="label">Billing Scheme</label>
+                <label className="label text-xs">Skema Billing</label>
                 <select
-                  className="input"
+                  className="input text-xs"
                   value={billingModel}
                   onChange={(e) => {
                     const val = e.target.value;
                     setBillingModel(val);
-                    setMessage(
-                      createInvoiceWhatsappTemplate({
-                        invoice,
-                        templateType,
-                        billingModel: val,
-                        eventValue: selectedEvent,
-                      })
-                    );
+                    setMessage(generateMessage(templateType, val, selectedEvent));
                   }}
                 >
                   <option value="FLEXIBLE">Flexible / Custom</option>
@@ -233,62 +282,66 @@ export function WhatsappMessageModal({ open, invoice, onClose, onSaved }: Props)
             )}
           </div>
 
-          <div className="flex justify-end">
+          {/* Quick Regenerate & Settings Link */}
+          <div className="flex items-center justify-between pt-1">
+            <Link
+              to="/system/settings"
+              target="_blank"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-500 hover:text-brand-800 transition"
+              title="Buka pengaturan untuk mengedit susunan format kata template master"
+            >
+              <ExternalLink size={12} /> Kelola format template di Pengaturan
+            </Link>
+
             <button
               type="button"
-              className="btn-secondary text-xs"
-              onClick={() =>
-                setMessage(
-                  createInvoiceWhatsappTemplate({
-                    invoice,
-                    templateType,
-                    billingModel,
-                    eventValue: selectedEvent,
-                  })
-                )
-              }
+              className="btn-secondary text-xs py-1 px-2.5"
+              onClick={() => setMessage(generateMessage(templateType, billingModel, selectedEvent))}
+              title="Muat ulang teks sesuai template master"
             >
-              <RefreshCw size={14} className="text-brand-500" /> Regenerate Template
+              <RefreshCw size={13} className="text-brand-500" /> Reset ke Template
             </button>
           </div>
 
+          {/* Message Content Textarea */}
           <div>
-            <label className="label">Message Content</label>
+            <label className="label text-xs">Isi Pesan WhatsApp</label>
             <textarea
-              className="input min-h-64 whitespace-pre-wrap leading-relaxed font-mono text-xs"
+              className="input min-h-64 whitespace-pre-wrap leading-relaxed font-mono text-xs w-full focus:ring-2 focus:ring-brand-500/20"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Write WhatsApp message..."
+              placeholder="Tuliskan pesan WhatsApp..."
             />
-            <p className="mt-1.5 text-xs font-medium text-brand-400">
-              The public invoice & proof upload link is embedded above.
+            <p className="mt-1 text-[11px] text-brand-400">
+              Pesan ini otomatis memuat data invoice, tautan portal bukti transfer, dan icon emoji secara lengkap. Anda dapat menambahkan catatan khusus sebelum mengirim.
             </p>
           </div>
 
+          {/* Footer Actions */}
           <div
             className={
               'flex flex-col-reverse gap-2 border-t border-brand-100 pt-4 ' +
               'sm:flex-row sm:justify-end'
             }
           >
-            <button type="button" onClick={onClose} className="btn-secondary">
-              Cancel
+            <button type="button" onClick={onClose} className="btn-secondary text-xs">
+              Batal
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={() => save(false)}
-              className="btn-secondary"
+              className="btn-secondary text-xs"
             >
-              <Copy size={15} /> {saving ? 'Saving...' : 'Save & Copy Text'}
+              <Copy size={14} /> {saving ? 'Menyimpan...' : 'Simpan & Salin Teks'}
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={() => save(true)}
-              className="btn-primary"
+              className="btn-primary text-xs"
             >
-              <Send size={15} /> {saving ? 'Opening...' : 'Save & Open WhatsApp'}
+              <Send size={14} /> {saving ? 'Membuka WhatsApp...' : 'Simpan & Buka WhatsApp'}
             </button>
           </div>
         </div>

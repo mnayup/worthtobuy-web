@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Building2, ReceiptText, Database, Calculator } from 'lucide-react';
+import { Save, Building2, ReceiptText, Database, Calculator, MessageSquare } from 'lucide-react';
 import { api } from '~/lib/api';
 import { PageHeader } from '~/components/PageHeader';
 import { Toast } from '~/components/Toast';
@@ -9,6 +9,7 @@ import { SettingsBrandSection } from './components/settings-brand-section';
 import { SettingsInvoiceSection } from './components/settings-invoice-section';
 import { SettingsFeeScheduleSection } from './components/settings-fee-schedule-section';
 import { SettingsBackupSection } from './components/settings-backup-section';
+import { SettingsWhatsappSection } from './components/settings-whatsapp-section';
 
 export async function loader(): Promise<SettingsData> {
   const response = await api.get('/settings');
@@ -20,15 +21,17 @@ export async function action(data: {
   invoice: InvoiceSettings;
   feeRulesCustomer: FeeRule[];
   feeRulesReseller: FeeRule[];
+  whatsappTemplates?: Record<string, string>;
 }) {
   return saveSettingsAction(data);
 }
 
-type SettingsTab = 'brand' | 'invoice' | 'backup' | 'fees';
+type SettingsTab = 'brand' | 'invoice' | 'backup' | 'fees' | 'whatsapp';
 
 const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
   { id: 'brand', label: 'Brand & Public Identity', icon: Building2 },
   { id: 'invoice', label: 'Invoice Settings', icon: ReceiptText },
+  { id: 'whatsapp', label: 'WhatsApp Templates', icon: MessageSquare },
   { id: 'backup', label: 'Database Backup & Restore', icon: Database },
   { id: 'fees', label: 'Concierge Fee Schedule', icon: Calculator },
 ];
@@ -41,6 +44,8 @@ export default function SettingsRoute() {
     setBrand,
     invoice,
     setInvoice,
+    whatsappTemplates,
+    setWhatsappTemplates,
     backupLogs,
     backupLogsTotal,
     loadingLogs,
@@ -139,6 +144,15 @@ export default function SettingsRoute() {
           {activeTab === 'invoice' && (
             <div className="space-y-6">
               <SettingsInvoiceSection invoice={invoice} setInvoice={setInvoice} />
+            </div>
+          )}
+
+          {activeTab === 'whatsapp' && (
+            <div className="space-y-6">
+              <SettingsWhatsappSection
+                templates={whatsappTemplates}
+                setTemplates={setWhatsappTemplates}
+              />
             </div>
           )}
 
