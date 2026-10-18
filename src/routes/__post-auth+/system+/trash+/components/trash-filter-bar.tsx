@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, X, RotateCcw, Trash2 } from 'lucide-react';
 import { SavedFilterControls } from '~/components/SavedFilterControls';
+import { SearchableFilterSelect } from '~/components/crud-page/SearchableFilterSelect';
 import { typeLabels } from '../types';
 
 interface TrashFilterBarProps {
@@ -62,18 +63,19 @@ export function TrashFilterBar({
           )}
         </div>
 
-        <select
-          className="input"
+        <SearchableFilterSelect
+          label="Type"
+          placeholder="All Types"
+          options={Object.entries(typeLabels).map(([val, label]) => ({
+            value: val,
+            label,
+          }))}
           value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="">All Types</option>
-          {Object.entries(typeLabels).map(([val, label]) => (
-            <option key={val} value={val}>
-              {label}
-            </option>
-          ))}
-        </select>
+          onChange={(val) => {
+            setType(val || '');
+            setPage(1);
+          }}
+        />
 
         <SavedFilterControls
           storageKey="wtb_saved_trash_filters"

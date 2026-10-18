@@ -2,6 +2,7 @@ import { Filter, RotateCcw, Search, Trash2, X } from 'lucide-react';
 import clsx from 'clsx';
 import { titleCase } from '~/lib/format';
 import { SavedFilterControls } from '~/components/SavedFilterControls';
+import { SearchableFilterSelect } from '~/components/crud-page/SearchableFilterSelect';
 import { invoiceStatuses } from '../types';
 
 interface InvoicesFilterBarProps {
@@ -110,48 +111,33 @@ export function InvoicesFilterBar({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              className={clsx(
-                'rounded-xl border px-3 py-2 text-xs font-bold transition shadow-2xs ' +
-                  'focus:outline-none focus:ring-2 min-w-[140px]',
-                status
-                  ? 'border-cherry-400 bg-cherry-50/70 text-cherry-900 focus:ring-cherry-300'
-                  : 'border-brand-200 bg-white text-brand-700 hover:border-brand-300 ' +
-                      'focus:border-brand-400 focus:ring-brand-200'
-              )}
+            <SearchableFilterSelect
+              label="Invoice Status"
+              placeholder="All Invoice Status"
+              options={invoiceStatuses.map((value) => ({
+                value,
+                label: titleCase(value),
+              }))}
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
+              onChange={(val) => {
+                setStatus(val || '');
                 setPage(1);
               }}
-            >
-              <option value="">All Invoice Status</option>
-              {invoiceStatuses.map((value) => (
-                <option key={value} value={value}>
-                  {titleCase(value)}
-                </option>
-              ))}
-            </select>
+            />
 
-            <select
-              className={clsx(
-                'rounded-xl border px-3 py-2 text-xs font-bold transition shadow-2xs ' +
-                  'focus:outline-none focus:ring-2 min-w-[140px]',
-                billingModel
-                  ? 'border-cherry-400 bg-cherry-50/70 text-cherry-900 focus:ring-cherry-300'
-                  : 'border-brand-200 bg-white text-brand-700 hover:border-brand-300 ' +
-                      'focus:border-brand-400 focus:ring-brand-200'
-              )}
+            <SearchableFilterSelect
+              label="Billing Model"
+              placeholder="All Billing Models"
+              options={[
+                { value: 'FULL', label: 'Full Payment' },
+                { value: 'DP', label: 'Deposit (DP)' },
+              ]}
               value={billingModel}
-              onChange={(e) => {
-                setBillingModel(e.target.value);
+              onChange={(val) => {
+                setBillingModel(val || '');
                 setPage(1);
               }}
-            >
-              <option value="">All Billing Models</option>
-              <option value="FULL">Full Payment</option>
-              <option value="DP">Deposit (DP)</option>
-            </select>
+            />
 
             {hasFilter && (
               <button

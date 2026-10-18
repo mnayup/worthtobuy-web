@@ -14,6 +14,9 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
   const [customers, setCustomers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState('');
+  const [unpackedInvoices, setUnpackedInvoices] = useState<any[]>([]);
+  const [targetInvoiceMode, setTargetInvoiceMode] = useState<'NEW' | 'EXISTING'>('NEW');
+  const [targetInvoiceId, setTargetInvoiceId] = useState<string>('');
   const [selected, setSelected] = useState<number[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<Record<number, any>>({});
   const [orderShippingMap, setOrderShippingMap] = useState<Record<number, number>>({});
@@ -40,6 +43,9 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
       setAvailableDeposit(0);
       setUseDeposit(false);
       setDepositAmount(0);
+      setUnpackedInvoices([]);
+      setTargetInvoiceMode('NEW');
+      setTargetInvoiceId('');
       return;
     }
     let active = true;
@@ -57,6 +63,29 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
       .finally(() => {
         if (active) setDepositLoading(false);
       });
+
+    // Check if customer already has unpacked invoices without keep items
+    api.get(`/invoices/unpacked-invoices?customerId=${customerId}`)
+      .then((res) => {
+        if (!active) return;
+        const list = res.data || [];
+        setUnpackedInvoices(list);
+        if (list.length > 0) {
+          setTargetInvoiceMode('NEW');
+          setTargetInvoiceId(String(list[0].id));
+        } else {
+          setTargetInvoiceMode('NEW');
+          setTargetInvoiceId('');
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setUnpackedInvoices([]);
+          setTargetInvoiceMode('NEW');
+          setTargetInvoiceId('');
+        }
+      });
+
     return () => { active = false; };
   }, [customerId]);
 
@@ -197,26 +226,43 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
         })
       );
 
-      const payload: any = {
-        customerId: Number(customerId),
-        orderIds: selected,
-        dueDate: new Date(dueDate).toISOString(),
-        notes: notes || null,
-        billingModel,
-      };
+      let invoiceIdToOpen: number;
 
-      if (billingModel === 'DP') {
-        payload.dpPercent = Number(dpPercent || 0);
-        payload.dpAmount = Number(dpAmount || 0);
-        payload.dpSettlementNote = dpSettlementNote.trim() || 'when products are ready to ship';
+      if (targetInvoiceMode === 'EXISTING' && targetInvoiceId) {
+        // Add selected orders into the existing unpacked invoice
+        const invId = Number(targetInvoiceId);
+        const invRes = await api.get(`/invoices/${invId}`);
+        const existingOrderIds = (invRes.data?.orders || []).map((o: any) => o.order_id);
+        const combinedOrderIds = [...new Set([...existingOrderIds, ...selected])];
+
+        await api.put(`/invoices/${invId}`, {
+          orderIds: combinedOrderIds,
+        });
+        invoiceIdToOpen = invId;
+      } else {
+        const payload: any = {
+          customerId: Number(customerId),
+          orderIds: selected,
+          dueDate: new Date(dueDate).toISOString(),
+          notes: notes || null,
+          billingModel,
+        };
+
+        if (billingModel === 'DP') {
+          payload.dpPercent = Number(dpPercent || 0);
+          payload.dpAmount = Number(dpAmount || 0);
+          payload.dpSettlementNote = dpSettlementNote.trim() || 'when products are ready to ship';
+        }
+
+        if (useDeposit && depositAmount > 0) {
+          payload.useDeposit = true;
+          payload.depositAmount = Number(depositAmount);
+        }
+
+        const res = await api.post('/invoices', payload);
+        invoiceIdToOpen = res.data.id;
       }
 
-      if (useDeposit && depositAmount > 0) {
-        payload.useDeposit = true;
-        payload.depositAmount = Number(depositAmount);
-      }
-
-      const res = await api.post('/invoices', payload);
       const isPriority = customers.find((c) => String(c.id) === String(customerId))?.segment === 'PRIORITY';
 
       await Promise.all(
@@ -226,7 +272,7 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
           })
         )
       );
-      onCreated(res.data.id);
+      onCreated(invoiceIdToOpen);
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -236,6 +282,8 @@ export function useCreateInvoice({ open, onCreated, initialOrderId }: UseCreateI
 
   return {
     searchParams, customers, orders, customerId, setCustomerId,
+    unpackedInvoices, targetInvoiceMode, setTargetInvoiceMode,
+    targetInvoiceId, setTargetInvoiceId,
     selected, setSelected, selectedRows, setSelectedOrders,
     orderShippingMap, setOrderShipping, orderSearch, setOrderSearch,
     dueDate, setDueDate, notes, setNotes, billingModel, setBillingModel,

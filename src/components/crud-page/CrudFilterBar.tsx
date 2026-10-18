@@ -9,6 +9,7 @@ import {
 import clsx from 'clsx';
 import type { TableFilterConfig } from '~/types';
 import type { SavedFilter } from './crud-filters.helper';
+import { SearchableFilterSelect } from './SearchableFilterSelect';
 
 interface CrudFilterBarProps {
   title: string;
@@ -74,37 +75,15 @@ export function CrudFilterBar({
         <div className="flex flex-wrap items-center gap-2">
           {resolvedFilters.map((filter) => {
             const currentValue = columnFilters[filter.key] || '';
-            const isActive = currentValue !== '' && currentValue !== 'ALL';
             return (
-              <div key={filter.key} className="relative min-w-[135px] sm:min-w-[155px]">
-                <select
-                  className={clsx(
-                    'w-full appearance-none rounded-xl border px-3 py-2 pr-8 text-xs font-bold transition shadow-2xs focus:outline-none focus:ring-2',
-                    isActive
-                      ? 'border-cherry-400 bg-cherry-50/70 text-cherry-900 focus:ring-cherry-300'
-                      : 'border-brand-200 bg-white text-brand-700 hover:border-brand-300 focus:border-brand-400 focus:ring-brand-200'
-                  )}
-                  value={currentValue}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    onColumnFilterChange(filter.key, val && val !== 'ALL' ? val : undefined);
-                  }}
-                >
-                  <option value="">{filter.placeholder || `All ${filter.label}`}</option>
-                  {filter.options.map((opt) => (
-                    <option key={String(opt.value)} value={String(opt.value)}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={14}
-                  className={clsx(
-                    'pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2',
-                    isActive ? 'text-cherry-600' : 'text-brand-400'
-                  )}
-                />
-              </div>
+              <SearchableFilterSelect
+                key={filter.key}
+                label={filter.label}
+                placeholder={filter.placeholder}
+                options={filter.options}
+                value={currentValue}
+                onChange={(val) => onColumnFilterChange(filter.key, val)}
+              />
             );
           })}
 

@@ -65,6 +65,11 @@ export function CreateInvoiceModal({
     handleToggleDeposit,
     toggleOrder,
     submit,
+    unpackedInvoices,
+    targetInvoiceMode,
+    setTargetInvoiceMode,
+    targetInvoiceId,
+    setTargetInvoiceId,
   } = useCreateInvoice({ open, onCreated, initialOrderId });
 
   if (!open) return null;
@@ -149,6 +154,11 @@ export function CreateInvoiceModal({
               setSelectedOrders({});
               setOrderSearch('');
             }}
+            unpackedInvoices={unpackedInvoices}
+            targetInvoiceMode={targetInvoiceMode}
+            setTargetInvoiceMode={setTargetInvoiceMode}
+            targetInvoiceId={targetInvoiceId}
+            setTargetInvoiceId={setTargetInvoiceId}
           />
 
           {/* Step 2: Estimated Shipping Cost (input before DP / Full scheme) */}
@@ -246,14 +256,16 @@ export function CreateInvoiceModal({
                 Cancel
               </button>
               <button
-                disabled={saving || !selected.length || !dueDate}
+                disabled={saving || !selected.length || (targetInvoiceMode === 'NEW' && !dueDate)}
                 className="btn-primary"
               >
                 {saving
-                  ? 'Issuing...'
-                  : billingModel === 'DP'
-                    ? 'Issue DP Invoice'
-                    : 'Issue Full Invoice'}
+                  ? 'Processing...'
+                  : targetInvoiceMode === 'EXISTING'
+                    ? 'Add to Existing Invoice'
+                    : billingModel === 'DP'
+                      ? 'Issue DP Invoice'
+                      : 'Issue Full Invoice'}
               </button>
             </div>
           </div>

@@ -175,6 +175,10 @@ export function prepareSubmitOrder(form: any) {
       additionalFee: totalAdditionalFee,
       additionalFees: validAdditionalFees,
       discount: Number(order.discount || 0),
+      targetInvoiceId:
+        order.targetInvoiceMode === 'EXISTING' && order.targetInvoiceId
+          ? Number(order.targetInvoiceId)
+          : undefined,
       items,
     };
   }

@@ -1,4 +1,5 @@
 import { RefreshCw } from 'lucide-react';
+import { SearchableFilterSelect } from '~/components/crud-page/SearchableFilterSelect';
 
 interface ReportFilterBarProps {
   periods: any[];
@@ -39,18 +40,17 @@ export function ReportFilterBar({
         >
           Event Filter:
         </label>
-        <select
-          className="input sm:max-w-md font-semibold text-slate-800"
+        <SearchableFilterSelect
+          label="Event"
+          placeholder="All Events (All Events & Ready Stock)"
+          options={periods.map((p) => ({
+            value: p.id,
+            label: `${p.code} • ${p.name} (${p.city || 'Indonesia'})`,
+          }))}
           value={periodId}
-          onChange={(e) => setPeriodId(e.target.value)}
-        >
-          <option value="">All Events (All Events & Ready Stock)</option>
-          {periods.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.code} • {p.name} ({p.city || 'Indonesia'})
-            </option>
-          ))}
-        </select>
+          onChange={(val) => setPeriodId(val || '')}
+          className="sm:min-w-[280px]"
+        />
         <button
           onClick={load}
           disabled={loading}

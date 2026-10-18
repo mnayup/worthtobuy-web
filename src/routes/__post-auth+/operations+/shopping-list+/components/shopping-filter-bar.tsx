@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 import { titleCase } from '~/lib/format';
 import { SavedFilterControls } from '~/components/SavedFilterControls';
+import { SearchableFilterSelect } from '~/components/crud-page/SearchableFilterSelect';
 import { shoppingStatuses } from '../types';
 
 interface ShoppingFilterBarProps {
@@ -53,30 +54,32 @@ export function ShoppingFilterBar({
             </button>
           )}
         </div>
-        <select
-          className="input"
+        <SearchableFilterSelect
+          label="Event"
+          placeholder="All Events"
+          options={periods.map((period) => ({
+            value: period.id,
+            label: `${period.code} • ${period.name}`,
+          }))}
           value={periodId}
-          onChange={(e) => setPeriodId(e.target.value)}
-        >
-          <option value="">All Events</option>
-          {periods.map((period) => (
-            <option key={period.id} value={period.id}>
-              {period.code} • {period.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="input"
+          onChange={(val) => {
+            setPeriodId(val || '');
+            setPage(1);
+          }}
+        />
+        <SearchableFilterSelect
+          label="Status"
+          placeholder="All Statuses"
+          options={shoppingStatuses.map((val) => ({
+            value: val,
+            label: titleCase(val),
+          }))}
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          {shoppingStatuses.map((val) => (
-            <option value={val} key={val}>
-              {titleCase(val)}
-            </option>
-          ))}
-        </select>
+          onChange={(val) => {
+            setStatus(val || '');
+            setPage(1);
+          }}
+        />
       </div>
       <div className="mt-3 flex justify-end">
         <SavedFilterControls

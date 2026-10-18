@@ -17,6 +17,11 @@ interface CreateInvoiceOrdersStepProps {
   toggleOrder: (order: any) => void;
   loading: boolean;
   onCustomerReset: () => void;
+  unpackedInvoices?: any[];
+  targetInvoiceMode?: 'NEW' | 'EXISTING';
+  setTargetInvoiceMode?: (mode: 'NEW' | 'EXISTING') => void;
+  targetInvoiceId?: string;
+  setTargetInvoiceId?: (id: string) => void;
 }
 
 export function CreateInvoiceOrdersStep({
@@ -34,7 +39,14 @@ export function CreateInvoiceOrdersStep({
   toggleOrder,
   loading,
   onCustomerReset,
+  unpackedInvoices = [],
+  targetInvoiceMode = 'NEW',
+  setTargetInvoiceMode,
+  targetInvoiceId = '',
+  setTargetInvoiceId,
 }: CreateInvoiceOrdersStepProps) {
+  const hasUnpackedInvoices = Boolean(customerId && unpackedInvoices.length > 0);
+
   return (
     <div className="mb-5">
       <div className="mb-3">
@@ -42,9 +54,68 @@ export function CreateInvoiceOrdersStep({
           Step 1: Customer & Orders Selection
         </span>
         <p className="text-[11px] font-semibold text-brand-500">
-          Select customer, payment due date, and orders to combine into this invoice
+          Select customer, invoice target option, and orders to combine into this invoice
         </p>
       </div>
+
+      {hasUnpackedInvoices && (
+        <div className="mb-4 rounded-2xl border border-honey-300 bg-honey-50/70 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-honey-950">
+                Invoice Option for Returning Customer
+              </p>
+              <p className="text-[11px] text-honey-800 font-medium">
+                Customer has unpacked order(s) without keep items. You can combine this order into an existing invoice or create a brand new one.
+              </p>
+            </div>
+            <div className="inline-flex rounded-xl bg-white p-1 border border-honey-300 shadow-sm shrink-0">
+              <button
+                type="button"
+                onClick={() => setTargetInvoiceMode?.('NEW')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                  targetInvoiceMode === 'NEW'
+                    ? 'bg-brand-900 text-white shadow-sm'
+                    : 'text-brand-600 hover:text-brand-900'
+                }`}
+              >
+                Create New Invoice
+              </button>
+              <button
+                type="button"
+                onClick={() => setTargetInvoiceMode?.('EXISTING')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                  targetInvoiceMode === 'EXISTING'
+                    ? 'bg-honey-500 text-brand-950 shadow-sm'
+                    : 'text-brand-600 hover:text-brand-900'
+                }`}
+              >
+                Add to Existing Invoice
+              </button>
+            </div>
+          </div>
+
+          {targetInvoiceMode === 'EXISTING' && (
+            <div className="mt-3 pt-3 border-t border-honey-200">
+              <label className="label text-honey-900 font-bold">
+                Select Existing Unpacked Invoice *
+              </label>
+              <select
+                className="input bg-white text-xs font-bold"
+                value={targetInvoiceId}
+                onChange={(e) => setTargetInvoiceId?.(e.target.value)}
+              >
+                {unpackedInvoices.map((inv) => (
+                  <option key={inv.id} value={inv.id}>
+                    {inv.invoice_number} • {inv.order_count} order(s) ({inv.order_numbers}) • Total {money(inv.total_bill)} • Status: {inv.status}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label">Customer *</label>
@@ -69,15 +140,17 @@ export function CreateInvoiceOrdersStep({
             disabled={disableCustomerSelect}
           />
         </div>
-        <div>
-          <label className="label">Due Date *</label>
-          <input
-            type="date"
-            className="input"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-        </div>
+        {targetInvoiceMode === 'NEW' && (
+          <div>
+            <label className="label">Due Date *</label>
+            <input
+              type="date"
+              className="input"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-5">

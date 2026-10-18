@@ -93,7 +93,22 @@ export function InvoiceStepperStages({
             <StageCard
               step={1}
               title="Stage 1: DP Billing"
-              subtitle={`${money(dpAmount)} (${invoice.dpPercent || 50}%)`}
+              subtitle={
+                paidAmount > 0 ? (
+                  <span className="flex flex-col">
+                    <span>
+                      Paid: <strong className="text-emerald-700">{money(paidAmount)}</strong>
+                    </span>
+                    {paidAmount !== dpAmount && (
+                      <span className="text-[10px] text-brand-400 font-medium">
+                        Initial Target: {money(dpAmount)} ({invoice.dpPercent || invoice.dp_percent || 50}%)
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  `${money(dpAmount)} (${invoice.dpPercent || invoice.dp_percent || 50}%)`
+                )
+              }
               statusLabel={
                 currentStage === 'SETTLEMENT' || currentStage === 'PAID'
                   ? '✓ DP Received'
@@ -230,7 +245,7 @@ function StageCard({
 }: {
   step: number;
   title: string;
-  subtitle: string;
+  subtitle: React.ReactNode;
   statusLabel: string;
   statusType: 'success' | 'warning' | 'danger' | 'muted';
   isActive: boolean;

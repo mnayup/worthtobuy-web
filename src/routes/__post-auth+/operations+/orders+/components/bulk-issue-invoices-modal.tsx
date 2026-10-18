@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FileText, X, AlertCircle, CheckCircle2, ArrowRight, Layers, Percent, Loader2, Sparkles, ExternalLink } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
@@ -47,6 +47,67 @@ export function BulkIssueInvoicesModal({
     return Array.from(map.values());
   }, [newOrders]);
 
+  const [customerUnpackedMap, setCustomerUnpackedMap] = useState<Record<number, any[]>>({});
+  const [customerModeMap, setCustomerModeMap] = useState<Record<number, 'NEW' | 'EXISTING'>>({});
+  const [customerSelectedInvMap, setCustomerSelectedInvMap] = useState<Record<number, string>>({});
+
+  const custIdsKey = useMemo(() => {
+    return customerGroups.map((g) => g.customer.id).filter(Boolean).sort().join(',');
+  }, [customerGroups]);
+
+  // Fetch unpacked invoices for all customer groups when modal opens or custIdsKey changes
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+
+    const custIds = customerGroups.map((g) => g.customer.id).filter(Boolean);
+    if (!custIds.length) return;
+
+    Promise.all(
+      custIds.map(async (cid) => {
+        try {
+          const res = await api.get(`/invoices/unpacked-invoices?customerId=${cid}`);
+          return { cid, list: res.data || [] };
+        } catch {
+          return { cid, list: [] };
+        }
+      })
+    ).then((results) => {
+      if (!active) return;
+      const uMap: Record<number, any[]> = {};
+      const sMap: Record<number, string> = {};
+
+      results.forEach(({ cid, list }) => {
+        uMap[cid] = list;
+        if (list.length > 0) {
+          sMap[cid] = String(list[0].id);
+        }
+      });
+
+      setCustomerUnpackedMap(uMap);
+      setCustomerModeMap((prev) => {
+        const next = { ...prev };
+        results.forEach(({ cid }) => {
+          if (!next[cid]) next[cid] = 'NEW';
+        });
+        return next;
+      });
+      setCustomerSelectedInvMap((prev) => {
+        const next = { ...prev };
+        results.forEach(({ cid, list }) => {
+          if (!next[cid] && list.length > 0) {
+            next[cid] = String(list[0].id);
+          }
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [open, custIdsKey]);
+
   const grandTotal = useMemo(() => {
     return customerGroups.reduce((sum, g) => sum + g.totalAmount, 0);
   }, [customerGroups]);
@@ -68,10 +129,20 @@ export function BulkIssueInvoicesModal({
     try {
       setSubmitting(true);
       setError(null);
+
+      // Build customer invoice mapping where mode is EXISTING
+      const custInvoiceMapPayload: Record<number, string> = {};
+      for (const [cid, mode] of Object.entries(customerModeMap)) {
+        if (mode === 'EXISTING' && customerSelectedInvMap[Number(cid)]) {
+          custInvoiceMapPayload[Number(cid)] = customerSelectedInvMap[Number(cid)];
+        }
+      }
+
       const res = await api.post('/invoices/bulk-issue', {
         orderIds: targetOrderIds.map(Number),
         billingModel,
         dpPercent: billingModel === 'DP' ? dpPercent : null,
+        customerInvoiceMap: custInvoiceMapPayload,
       });
 
       const data = res.data;
@@ -130,28 +201,102 @@ export function BulkIssueInvoicesModal({
               </span>
             </div>
 
-            <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-              {customerGroups.map((group, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between rounded-xl bg-white border border-brand-100 px-3.5 py-2.5 text-xs shadow-sm"
-                >
-                  <div className="min-w-0 pr-2">
-                    <p className="font-extrabold text-brand-900 truncate">
-                      {group.customer.full_name || group.customer.fullName || 'Unknown Customer'}
-                    </p>
-                    <p className="text-[11px] text-brand-400">
-                      {group.orders.length} order(s): {group.orders.map((o) => o.order_number || o.orderNumber).join(', ')}
-                    </p>
+            <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+              {customerGroups.map((group, idx) => {
+                const cid = group.customer.id;
+                const unpacked = customerUnpackedMap[cid] || [];
+                const currentMode = customerModeMap[cid] || 'NEW';
+                const currentInvId = customerSelectedInvMap[cid] || '';
+
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-xl bg-white border border-brand-100 p-3.5 text-xs shadow-sm space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 pr-2">
+                        <p className="font-extrabold text-brand-900 truncate">
+                          {group.customer.full_name || group.customer.fullName || 'Unknown Customer'}
+                        </p>
+                        <p className="text-[11px] text-brand-400">
+                          {group.orders.length} order(s): {group.orders.map((o) => o.order_number || o.orderNumber).join(', ')}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-black text-brand-900">{money(group.totalAmount)}</p>
+                        <span
+                          className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                            currentMode === 'EXISTING'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-honey-100 text-honey-800'
+                          }`}
+                        >
+                          {currentMode === 'EXISTING' ? 'Add to Existing' : 'New Invoice'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {unpacked.length > 0 && (
+                      <div className="rounded-xl bg-brand-50/70 border border-brand-200/70 p-2.5 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <span className="text-[11px] font-bold text-brand-700">
+                            Customer has unpacked invoice:
+                          </span>
+                          <div className="inline-flex rounded-lg bg-white p-0.5 border border-brand-200 shadow-xs shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCustomerModeMap((prev) => ({ ...prev, [cid]: 'NEW' }))
+                              }
+                              className={`rounded-md px-2 py-1 text-[10px] font-bold transition ${
+                                currentMode === 'NEW'
+                                  ? 'bg-brand-900 text-white shadow-xs'
+                                  : 'text-brand-600 hover:text-brand-900'
+                              }`}
+                            >
+                              New Invoice
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCustomerModeMap((prev) => ({ ...prev, [cid]: 'EXISTING' }))
+                              }
+                              className={`rounded-md px-2 py-1 text-[10px] font-bold transition ${
+                                currentMode === 'EXISTING'
+                                  ? 'bg-honey-500 text-brand-950 shadow-xs'
+                                  : 'text-brand-600 hover:text-brand-900'
+                              }`}
+                            >
+                              Add to Existing
+                            </button>
+                          </div>
+                        </div>
+
+                        {currentMode === 'EXISTING' && (
+                          <div className="pt-1">
+                            <select
+                              className="input bg-white !py-1 !px-2 !text-[11px] font-semibold w-full"
+                              value={currentInvId}
+                              onChange={(e) =>
+                                setCustomerSelectedInvMap((prev) => ({
+                                  ...prev,
+                                  [cid]: e.target.value,
+                                }))
+                              }
+                            >
+                              {unpacked.map((inv) => (
+                                <option key={inv.id} value={inv.id}>
+                                  {inv.invoice_number} ({inv.order_count} orders) • {money(inv.total_bill)} • Status: {inv.status}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-black text-brand-900">{money(group.totalAmount)}</p>
-                    <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold bg-honey-100 text-honey-800">
-                      1 Invoice
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

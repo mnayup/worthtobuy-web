@@ -18,6 +18,51 @@ export function getOrderFields(user: any): FieldConfig[] {
       loadOptions: loadCustomers,
       searchable: true,
       required: true,
+      onChange: async (value, option, set) => {
+        set('targetInvoiceMode', 'NEW');
+        set('targetInvoiceId', '');
+        set('unpackedInvoiceOptions', []);
+        if (value) {
+          try {
+            const res = await api.get(`/invoices/unpacked-invoices?customerId=${value}`);
+            const list = res.data || [];
+            if (list.length > 0) {
+              const opts = list.map((inv: any) => ({
+                value: String(inv.id),
+                label: `${inv.invoice_number} • ${inv.order_count} order(s) (${inv.order_numbers}) • Total ${inv.total_bill?.toLocaleString('id-ID')} • Status: ${inv.status}`,
+              }));
+              set('unpackedInvoiceOptions', opts);
+              set('targetInvoiceId', String(list[0].id));
+            }
+          } catch {
+            // ignore
+          }
+        }
+      },
+    },
+    {
+      name: 'targetInvoiceMode',
+      label: 'Invoice Option (Customer Has Unpacked Invoice)',
+      type: 'select',
+      defaultValue: 'NEW',
+      options: [
+        { value: 'NEW', label: 'Create New Invoice' },
+        { value: 'EXISTING', label: 'Include / Add to Existing Unpacked Invoice' },
+      ],
+      dependsOn: (form) =>
+        Boolean(form.customerId && form.unpackedInvoiceOptions && form.unpackedInvoiceOptions.length > 0),
+    },
+    {
+      name: 'targetInvoiceId',
+      label: 'Select Existing Unpacked Invoice',
+      type: 'select',
+      options: [],
+      loadOptions: async (_search, form) => {
+        return form?.unpackedInvoiceOptions || [];
+      },
+      dependsOn: (form) =>
+        form.targetInvoiceMode === 'EXISTING' &&
+        Boolean(form.unpackedInvoiceOptions && form.unpackedInvoiceOptions.length > 0),
     },
     {
       name: 'orderDate',

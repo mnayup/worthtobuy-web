@@ -107,10 +107,13 @@ export function InvoicePaymentVerificationModal(props: Props) {
             <h2 className="font-black text-brand-950 text-base sm:text-lg flex items-center gap-2">
               <span>Verify Customer Payment Proof</span>
               <span
-                className={
-                  'rounded bg-amber-100 px-2 py-0.5 text-[10px] font-black ' +
-                  'text-amber-900 border border-amber-300'
-                }
+                className={`rounded px-2 py-0.5 text-[10px] font-black border ${
+                  payment.status === 'VERIFIED'
+                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    : payment.status === 'REJECTED'
+                      ? 'bg-cherry-100 text-cherry-900 border-cherry-300'
+                      : 'bg-amber-100 text-amber-900 border-amber-300'
+                }`}
               >
                 {payment.status || 'PENDING'}
               </span>
@@ -255,18 +258,20 @@ export function InvoicePaymentVerificationModal(props: Props) {
           </button>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleReject}
-              className={
-                'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 ' +
-                'rounded-xl bg-cherry-100 border border-cherry-300 px-3.5 py-2 text-xs ' +
-                'font-black text-cherry-800 hover:bg-cherry-200 transition'
-              }
-            >
-              <XCircle size={14} /> Reject Proof (Tolak)
-            </button>
+            {payment.status !== 'VERIFIED' && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleReject}
+                className={
+                  'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 ' +
+                  'rounded-xl bg-cherry-100 border border-cherry-300 px-3.5 py-2 text-xs ' +
+                  'font-black text-cherry-800 hover:bg-cherry-200 transition disabled:opacity-50'
+                }
+              >
+                <XCircle size={14} /> Reject Proof (Tolak)
+              </button>
+            )}
             <button
               type="button"
               disabled={saving}
@@ -283,7 +288,7 @@ export function InvoicePaymentVerificationModal(props: Props) {
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={14} /> Verify Payment (Verifikasi)
+                  <CheckCircle2 size={14} /> {payment.status === 'VERIFIED' ? 'Update Details' : 'Verify Payment (Verifikasi)'}
                 </>
               )}
             </button>
