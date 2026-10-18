@@ -12,6 +12,8 @@ interface ShippingLabelPreviewProps {
   recipientName: string;
   recipientPhone: string;
   recipientAddress: string;
+  courier?: string | null;
+  serviceType?: string | null;
   items: LabelItem[];
   notes?: string | null;
 }
@@ -22,6 +24,8 @@ export function ShippingLabelPreview({
   recipientName,
   recipientPhone,
   recipientAddress,
+  courier,
+  serviceType,
   items,
   notes,
 }: ShippingLabelPreviewProps) {
@@ -45,6 +49,8 @@ export function ShippingLabelPreview({
       recipientAddress,
       senderName: 'Worthtobuy Official',
       senderPhone: '0812-3456-7890',
+      courier,
+      serviceType,
       items: items.slice(start, end),
       notes,
     };
@@ -164,6 +170,16 @@ export function ShippingLabelPreview({
             </span>
           </div>
 
+          {/* Courier Box on Label */}
+          <div className="rounded border-2 border-slate-900 bg-slate-50 px-2 py-1.5 flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase text-slate-600 tracking-wider">
+              Ekspedisi / Kurir
+            </span>
+            <span className="text-xs font-black text-slate-900 tracking-wide">
+              {courier || 'JNE'}{serviceType ? ` • ${serviceType}` : ''}
+            </span>
+          </div>
+
           {/* Recipient Box */}
           <div className="rounded border border-slate-800 p-2 space-y-0.5">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -224,11 +240,23 @@ export function ShippingLabelPreview({
             </div>
           )}
 
+          {/* Wajib Video Unboxing Warning Box */}
+          <div className="rounded border-2 border-slate-900 p-2 text-center bg-white space-y-1 shadow-2xs mt-auto">
+            <div className="text-[9px] font-black tracking-tight text-slate-950 uppercase leading-tight">
+              <u>WAJIB VIDEO UNBOXING. TIDAK TERIMA COMPLAIN TANPA VIDEO UNBOXING.</u>
+            </div>
+            <div className="text-[8px] font-semibold text-slate-800 leading-snug">
+              <div>Rekam jelas proses sebelum membuka paket hingga kelihatan barang yang diterima. Video tidak putus-putus (no edit).</div>
+              <div>Max complain 1x24 jam setelah barang diterima.</div>
+              <div className="pt-0.5">Terimakasih atas ordernya. Ditunggu next ordernya yaa ❤️</div>
+            </div>
+          </div>
+
           {/* Footer Barcode look */}
           <div
             className={
-              'pt-2 border-t border-slate-900 flex items-center justify-between ' +
-              'text-[9px] font-bold text-slate-600'
+              'pt-1.5 border-t border-slate-900 flex items-center justify-between ' +
+              'text-[8px] font-bold text-slate-600'
             }
           >
             <span>WORTH TO BUY JASTIP</span>

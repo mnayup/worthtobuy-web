@@ -4,13 +4,20 @@ import { money, date } from '~/lib/format';
 
 interface PendingProofBannerProps {
   pendingPayment: any;
+  onAddNewProof?: () => void;
+  allowMultiple?: boolean;
 }
 
-export function PendingProofBanner({ pendingPayment }: PendingProofBannerProps) {
+export function PendingProofBanner({
+  pendingPayment,
+  onAddNewProof,
+  allowMultiple,
+}: PendingProofBannerProps) {
   const amount = Number(pendingPayment?.amount || 0);
   const method = pendingPayment?.method || 'Bank Transfer';
   const payDate = pendingPayment?.payment_date || pendingPayment?.paymentDate;
   const proofUrl = pendingPayment?.proof_url || pendingPayment?.proofUrl;
+  const isQris = String(method).toUpperCase().includes('QRIS');
 
   return (
     <div
@@ -28,7 +35,7 @@ export function PendingProofBanner({ pendingPayment }: PendingProofBannerProps) 
         >
           <Clock size={20} />
         </div>
-        <div>
+        <div className="flex-1">
           <span
             className={
               'rounded-md bg-amber-200/80 text-amber-950 font-black ' +
@@ -42,9 +49,11 @@ export function PendingProofBanner({ pendingPayment }: PendingProofBannerProps) 
           </h3>
           <p className="text-xs text-amber-800 leading-relaxed mt-1">
             Anda telah mengirim bukti transfer sebesar{' '}
-            <strong className="text-amber-950">{money(amount)}</strong>.
-            Admin kami sedang memverifikasi dana yang masuk. Form transfer
-            ditutup sementara hingga proses verifikasi selesai.
+            <strong className="text-amber-950">{money(amount)}</strong> ({method}).
+            Admin kami sedang memverifikasi dana yang masuk.
+            {isQris || allowMultiple
+              ? ' Anda dapat mengirimkan bukti pembayaran QRIS tambahan di bawah jika melakukan transfer bertahap.'
+              : ' Form transfer ditutup sementara hingga proses verifikasi selesai.'}
           </p>
         </div>
       </div>

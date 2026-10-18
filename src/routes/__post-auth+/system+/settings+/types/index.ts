@@ -28,6 +28,7 @@ export interface InvoiceSettings {
   email: string;
   address: string;
   footer: string;
+  qrisImageUrl?: string;
 }
 
 export interface DatabaseBackupLog {

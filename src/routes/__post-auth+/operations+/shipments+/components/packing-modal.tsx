@@ -1,9 +1,11 @@
 import React, { useState, useEffect, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { X, PackageCheck, MapPin, Image, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, PackageCheck, MapPin, Image, AlertCircle, CheckCircle, Truck } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
 import { FileUploadInput } from '~/components/FileUploadInput';
-import { isShipmentFullyPaid, type Shipment } from '../types';
+import { SearchableSelect } from '~/components/SearchableSelect';
+import type { Option } from '~/types';
+import { isShipmentFullyPaid, type Shipment, type ShippingCounter } from '../types';
 import { ShippingLabelPreview } from './shipping-label-preview';
 import type { LabelItem } from '../helpers/shipping-label-printer.helper';
 
@@ -23,14 +25,35 @@ export function PackingModal({
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [proofBeforeUrl, setProofBeforeUrl] = useState('');
+  const [courier, setCourier] = useState('JNE');
+  const [customCourier, setCustomCourier] = useState('');
+  const [serviceType, setServiceType] = useState('Regular (REG)');
+  const [shippingCounters, setShippingCounters] = useState<ShippingCounter[]>([]);
+  const [shippingCounterId, setShippingCounterId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      api
+        .get('/shipping-counters?limit=200')
+        .then((res) => {
+          const items = res.data?.data || res.data || [];
+          setShippingCounters(items);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open && shipment) {
       setAddress(shipment.address || shipment.customer?.address || '');
       setNotes(shipment.notes || '');
       setProofBeforeUrl(shipment.proof_before_url || shipment.proofBeforeUrl || '');
+      setCourier(shipment.courier || 'JNE');
+      setServiceType(shipment.service_type || shipment.serviceType || 'Regular (REG)');
+      const rawCounterId = shipment.shipping_counter_id ?? shipment.shippingCounterId;
+      setShippingCounterId(rawCounterId ? Number(rawCounterId) : null);
       setError('');
     }
   }, [open, shipment]);
@@ -46,6 +69,37 @@ export function PackingModal({
   }));
 
   const fullyPaid = isShipmentFullyPaid(shipment);
+  const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
+
+  const defaultCouriers = [
+    'JNE',
+    'J&T Express',
+    'SiCepat',
+    'Paxel',
+    'Lion Parcel',
+    'Anteraja',
+    'POS Indonesia',
+    'TIKI',
+    'Ninja Xpress',
+    'GoSend',
+    'GrabExpress',
+  ];
+
+  const courierOptions: Option[] = [
+    ...(shippingCounters.length > 0
+      ? shippingCounters.map((sc) => ({
+          label: `${sc.name}${sc.code && sc.code !== sc.name ? ` (${sc.code})` : ''}`,
+          value: sc.name,
+        }))
+      : defaultCouriers.map((c) => ({ label: c, value: c }))),
+    ...(courier &&
+    courier !== 'Other' &&
+    !shippingCounters.some((c) => c.name === courier) &&
+    !defaultCouriers.includes(courier)
+      ? [{ label: courier, value: courier }]
+      : []),
+    { label: 'Other / Custom...', value: 'Other' },
+  ];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -61,6 +115,11 @@ export function PackingModal({
       return;
     }
 
+    if (!effectiveCourier) {
+      setError('Silakan pilih kurir / ekspedisi pengiriman.');
+      return;
+    }
+
     if (!proofBeforeUrl.trim()) {
       setError('Wajib mengunggah foto bukti barang sebelum packing.');
       return;
@@ -72,6 +131,10 @@ export function PackingModal({
     try {
       await api.put(`/shipments/${shipment.id}`, {
         address: address.trim(),
+        courier: effectiveCourier,
+        shippingCounterId: shippingCounterId || null,
+        shipping_counter_id: shippingCounterId || null,
+        serviceType: serviceType.trim() || null,
         notes: notes.trim() || null,
         proofBeforeUrl: proofBeforeUrl.trim(),
         status: 'PACKED',
@@ -149,8 +212,8 @@ export function PackingModal({
             </div>
           )}
 
-          {/* Section 1: Address Input */}
-          <div className="rounded-2xl border border-brand-200 bg-brand-50/30 p-4 space-y-3">
+          {/* Section 1: Address & Courier Selection */}
+          <div className="rounded-2xl border border-brand-200 bg-brand-50/30 p-4 space-y-3.5">
             <div className="flex items-center justify-between">
               <label
                 className={
@@ -159,16 +222,75 @@ export function PackingModal({
                 }
               >
                 <MapPin size={14} className="text-amber-600" />
-                1. Alamat Pengiriman (Recipient Address)
+                1. Alamat Pengiriman & Kurir Ekspedisi
               </label>
               <span className="text-[11px] text-brand-500 font-medium">
-                Pastikan alamat lengkap sebelum cetak label
+                Pilih ekspedisi & pastikan alamat lengkap
               </span>
             </div>
+
+            {/* Courier & Service Selection */}
+            <div className="grid gap-3 sm:grid-cols-2 bg-white rounded-xl p-3 border border-brand-200/80 shadow-2xs">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-brand-700 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Truck size={13} className="text-indigo-600" />
+                    Ekspedisi / Kurir <span className="text-cherry-500">*</span>
+                  </span>
+                  {shippingCounters.length > 0 && (
+                    <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">
+                      Master Data
+                    </span>
+                  )}
+                </label>
+                <SearchableSelect
+                  value={courier}
+                  placeholder="Cari atau pilih ekspedisi..."
+                  options={courierOptions}
+                  onChange={(val) => {
+                    const strVal = String(val || '');
+                    setCourier(strVal);
+                    const found = shippingCounters.find((c) => c.name === strVal);
+                    setShippingCounterId(found ? found.id : null);
+                  }}
+                />
+                {courier === 'Other' && (
+                  <input
+                    type="text"
+                    required
+                    className="input !h-8 text-xs mt-1"
+                    placeholder="Ketik nama ekspedisi custom..."
+                    value={customCourier}
+                    onChange={(e) => setCustomCourier(e.target.value)}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-brand-700">Layanan / Service Type</label>
+                <input
+                  type="text"
+                  list="packing-service-suggestions"
+                  className="input !h-9 text-xs"
+                  placeholder="e.g. Regular (REG), Express, Cargo"
+                  value={serviceType}
+                  onChange={(e) => setServiceType(e.target.value)}
+                />
+                <datalist id="packing-service-suggestions">
+                  <option value="Regular (REG)" />
+                  <option value="Next Day / Express (YES / BEST)" />
+                  <option value="Cargo / JTR" />
+                  <option value="Same Day" />
+                  <option value="Instant" />
+                  <option value="Economy (ECO)" />
+                </datalist>
+              </div>
+            </div>
+
             <textarea
-              rows={3}
+              rows={2}
               className="input !h-auto py-2 text-xs leading-relaxed"
-              placeholder="Nama Jalan, No. Rumah, RT/RW, Kelurahan, Kecamatan, Kota, Kode Pos..."
+              placeholder="Alamat lengkap tujuan pengiriman (Nama Jalan, No. Rumah, RT/RW, Kota, Kode Pos)..."
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               required
@@ -213,6 +335,8 @@ export function PackingModal({
               }
               recipientPhone={shipment.customer?.whatsapp || '-'}
               recipientAddress={address}
+              courier={effectiveCourier}
+              serviceType={serviceType}
               items={labelItems}
               notes={notes}
             />
@@ -239,53 +363,47 @@ export function PackingModal({
                 Wajib Upload
               </span>
             </div>
-            <p className="text-xs text-brand-600">
-              Foto semua barang yang telah disiapkan bersama cetakan label pengiriman sebelum
-              dibungkus/disegel.
-            </p>
             <FileUploadInput
+              accept="image/*"
+              entityType="SHIPMENT_PACKING_BEFORE"
               value={proofBeforeUrl}
-              onChange={setProofBeforeUrl}
-              entityType="shipments"
-              allowedType="image"
-              placeholder="Upload foto bukti sebelum packing (JPG/PNG)..."
+              onChange={(url) => setProofBeforeUrl(url || '')}
+              helpText="Upload foto kondisi barang pesanan sebelum dimasukkan ke dalam paket / kardus."
             />
-            {proofBeforeUrl && (
-              <div
-                className={
-                  'flex items-center gap-2 text-xs font-semibold text-emerald-700 ' +
-                  'bg-emerald-50 p-2 rounded-xl border border-emerald-200'
-                }
-              >
-                <CheckCircle size={14} className="text-emerald-600 shrink-0" />
-                <span>Foto bukti sebelum packing siap disimpan.</span>
-              </div>
-            )}
           </div>
 
-          {/* Action Footer */}
-          <div className="flex items-center justify-end gap-3 border-t border-brand-100 pt-4">
+          {/* Modal Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-brand-100">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="btn-secondary !py-2.5 !px-4 text-xs font-bold cursor-pointer"
+              className="btn-secondary !py-2.5 !px-5 text-xs font-bold cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={saving || !address.trim() || !proofBeforeUrl.trim()}
+              disabled={saving || !fullyPaid || !proofBeforeUrl.trim()}
               className={
                 'btn-primary !bg-amber-600 hover:!bg-amber-700 !py-2.5 !px-6 ' +
-                'text-xs font-bold flex items-center gap-2 shadow-md shadow-amber-600/20 ' +
-                (!address.trim() || !proofBeforeUrl.trim()
+                'text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-600/25 ' +
+                (saving || !fullyPaid || !proofBeforeUrl.trim()
                   ? 'opacity-50 cursor-not-allowed'
                   : 'cursor-pointer')
               }
             >
-              <PackageCheck size={16} />
-              <span>{saving ? 'Menyimpan...' : 'Konfirmasi Selesai Pack (PACKED)'}</span>
+              {saving ? (
+                <>
+                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Menyimpan Packing...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} />
+                  <span>Selesai Packing & Siap Kirim</span>
+                </>
+              )}
             </button>
           </div>
         </form>

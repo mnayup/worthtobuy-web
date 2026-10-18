@@ -1,5 +1,7 @@
 import React from 'react';
 import { MapPin, Truck, Hash } from 'lucide-react';
+import { SearchableSelect } from '~/components/SearchableSelect';
+import type { Option } from '~/types';
 
 export const COMMON_COURIERS = [
   'JNE',
@@ -60,6 +62,25 @@ export function SetTrackingCourierFields({
 }: SetTrackingCourierFieldsProps) {
   const selectedCounter = shippingCounters.find((sc) => sc.id === shippingCounterId);
 
+  const courierOptions: Option[] = [
+    ...(shippingCounters.length > 0
+      ? shippingCounters.map((sc) => ({
+          label: `${sc.name}${sc.code && sc.code !== sc.name ? ` (${sc.code})` : ''}`,
+          value: sc.name,
+        }))
+      : COMMON_COURIERS.filter((c) => c !== 'Other').map((c) => ({
+          label: c,
+          value: c,
+        }))),
+    ...(courier &&
+    courier !== 'Other' &&
+    !shippingCounters.some((c) => c.name === courier) &&
+    !COMMON_COURIERS.includes(courier)
+      ? [{ label: courier, value: courier }]
+      : []),
+    { label: 'Other / Custom Courier...', value: 'Other' },
+  ];
+
   return (
     <>
       {/* Destination Address */}
@@ -92,38 +113,17 @@ export function SetTrackingCourierFields({
               </span>
             )}
           </label>
-          <select
-            className="input !h-10 text-xs"
+          <SearchableSelect
             value={courier}
-            onChange={(e) => {
-              const val = e.target.value;
-              setCourier(val);
-              const found = shippingCounters.find((c) => c.name === val);
+            placeholder="Search or select courier..."
+            options={courierOptions}
+            onChange={(val) => {
+              const strVal = String(val || '');
+              setCourier(strVal);
+              const found = shippingCounters.find((c) => c.name === strVal);
               setShippingCounterId?.(found ? found.id : null);
             }}
-          >
-            {shippingCounters.length > 0 ? (
-              shippingCounters.map((sc) => (
-                <option key={sc.id} value={sc.name}>
-                  {sc.name} {sc.code && sc.code !== sc.name ? `(${sc.code})` : ''}
-                </option>
-              ))
-            ) : (
-              COMMON_COURIERS.filter((c) => c !== 'Other').map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))
-            )}
-            {/* If existing shipment has a courier not in master data */}
-            {courier &&
-              courier !== 'Other' &&
-              !shippingCounters.some((c) => c.name === courier) &&
-              !COMMON_COURIERS.includes(courier) && (
-                <option value={courier}>{courier}</option>
-              )}
-            <option value="Other">Other / Custom Courier...</option>
-          </select>
+          />
           {courier === 'Other' && (
             <input
               type="text"

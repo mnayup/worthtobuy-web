@@ -67,30 +67,44 @@ export function ShipmentDetailFooter({
 
         {/* If PACKED or READY */}
         {(currentStatus === 'PACKED' || currentStatus === 'READY') && (
-          <button
-            type="button"
-            onClick={() => {
-              if (!fullyPaid) return;
-              onClose();
-              onOpenSetTracking?.(shipment);
-            }}
-            disabled={!fullyPaid}
-            className={
-              'btn-primary !py-2.5 !px-5 text-xs font-bold flex items-center ' +
-              'gap-1.5 cursor-pointer ' +
-              (!fullyPaid
-                ? '!bg-slate-200 !text-slate-400 !border-transparent opacity-60 cursor-not-allowed'
-                : '!bg-indigo-600 hover:!bg-indigo-700 shadow-md shadow-indigo-600/30')
-            }
-            title={
-              !fullyPaid
-                ? 'Cannot set resi: Order must be Full Payment first'
-                : 'Set Tracking Number & Actual Ongkir'
-            }
-          >
-            <Truck size={16} />
-            Input Resi & Ongkir
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenPack?.(shipment);
+              }}
+              className="btn-secondary !py-2.5 !px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              title="Lihat atau cetak ulang label pengiriman"
+            >
+              <PackageCheck size={16} className="text-brand-600" />
+              <span>Cetak Label</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!fullyPaid) return;
+                onClose();
+                onOpenSetTracking?.(shipment);
+              }}
+              disabled={!fullyPaid}
+              className={
+                'btn-primary !py-2.5 !px-5 text-xs font-bold flex items-center ' +
+                'gap-1.5 cursor-pointer ' +
+                (!fullyPaid
+                  ? '!bg-slate-200 !text-slate-400 !border-transparent opacity-60 cursor-not-allowed'
+                  : '!bg-indigo-600 hover:!bg-indigo-700 shadow-md shadow-indigo-600/30')
+              }
+              title={
+                !fullyPaid
+                  ? 'Cannot set resi: Order must be Full Payment first'
+                  : 'Set Tracking Number & Actual Ongkir'
+              }
+            >
+              <Truck size={16} />
+              Input Resi & Ongkir
+            </button>
+          </>
         )}
 
         {/* If WAITING_SETTLEMENT */}

@@ -127,7 +127,10 @@ export function PublicInvoiceProofUploadForm(props: Props) {
       return;
     }
 
-    const dest = `${bankSettings.bankName || 'BCA'} - ${bankSettings.accountNumber || ''}`;
+    const isQris = method.toUpperCase().includes('QRIS');
+    const dest = isQris
+      ? `QRIS - ${bankSettings.accountHolder || 'WORTHTOBUY'}`
+      : `${bankSettings.bankName || 'BCA'} - ${bankSettings.accountNumber || ''}`;
     const success = await onSubmitProof({
       amount: numericAmount,
       method,
@@ -149,7 +152,17 @@ export function PublicInvoiceProofUploadForm(props: Props) {
   }
 
   // 1. If customer already transferred and proof is pending verification
-  if (pendingPayments && pendingPayments.length > 0) {
+  const isPendingQris = (pendingPayments || []).some((p: any) =>
+    String(p.method || '').toUpperCase().includes('QRIS')
+  );
+
+  // If there are pending non-QRIS payments (e.g. Bank Transfer) and method isn't QRIS, block.
+  // But if it's QRIS, allow multiple submit so customer can upload multiple partial QRIS proofs.
+  const hasPendingNonQris = (pendingPayments || []).some(
+    (p: any) => !String(p.method || '').toUpperCase().includes('QRIS')
+  );
+
+  if (hasPendingNonQris && !method.toUpperCase().includes('QRIS')) {
     return <PendingProofBanner pendingPayment={pendingPayments[0]} />;
   }
 
@@ -178,6 +191,28 @@ export function PublicInvoiceProofUploadForm(props: Props) {
         'shadow-sm space-y-5'
       }
     >
+      {/* If there are pending proofs, show compact notice above the upload fields */}
+      {pendingPayments && pendingPayments.length > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+              <span>⏳</span> Bukti Pembayaran Sebelumnya Menunggu Verifikasi ({pendingPayments.length})
+            </span>
+            <span className="text-[10px] font-bold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-md">
+              QRIS Multiple Submit Aktif
+            </span>
+          </div>
+          <div className="divide-y divide-amber-200/60 max-h-32 overflow-y-auto text-xs">
+            {pendingPayments.map((p: any) => (
+              <div key={p.id} className="py-1.5 flex items-center justify-between text-amber-900">
+                <span className="font-semibold">{p.method || 'QRIS'}: <strong>{money(Number(p.amount))}</strong></span>
+                <span className="text-[10px] text-amber-700">Status: Menunggu Cek Admin</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
         <div className="flex items-center gap-2">
           <span

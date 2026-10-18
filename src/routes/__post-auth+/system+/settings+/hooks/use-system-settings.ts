@@ -49,6 +49,7 @@ export const invoiceDefaults: InvoiceSettings = {
   email: '',
   address: '',
   footer: 'Thank you for shopping with WORTHTOBUY. Your items are handled with utmost care.',
+  qrisImageUrl: '',
 };
 
 export async function saveSettingsAction(data: {
