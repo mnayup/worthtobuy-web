@@ -512,10 +512,8 @@ export default function KeepItemsRoute() {
         open={confirmDialog.open}
         title={confirmDialog.title}
         message={confirmDialog.message}
-        confirmText="Ya, Pindahkan ke Pengiriman"
-        cancelText="Batal"
         onConfirm={() => handleMoveToShipment(confirmDialog.itemIds)}
-        onClose={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
       />
 
       {/* Toast Notification */}

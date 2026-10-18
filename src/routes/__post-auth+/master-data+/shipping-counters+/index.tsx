@@ -112,12 +112,7 @@ export default function ShippingCountersRoute() {
           label: 'Status',
           render: (row) => {
             const active = row.is_active ?? row.isActive ?? true;
-            return (
-              <StatusBadge
-                status={active ? 'ACTIVE' : 'INACTIVE'}
-                color={active ? 'green' : 'gray'}
-              />
-            );
+            return <StatusBadge value={active ? 'ACTIVE' : 'INACTIVE'} />;
           },
         },
       ]}
