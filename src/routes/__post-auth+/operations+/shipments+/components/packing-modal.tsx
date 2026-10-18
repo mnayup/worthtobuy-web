@@ -364,12 +364,15 @@ export function PackingModal({
               </span>
             </div>
             <FileUploadInput
-              accept="image/*"
-              entityType="SHIPMENT_PACKING_BEFORE"
+              allowedType="image"
+              entityType="shipments"
               value={proofBeforeUrl}
               onChange={(url) => setProofBeforeUrl(url || '')}
-              helpText="Upload foto kondisi barang pesanan sebelum dimasukkan ke dalam paket / kardus."
+              placeholder="Upload foto kondisi barang pesanan sebelum dipacking..."
             />
+            <p className="text-[11px] text-brand-500 font-medium">
+              Upload foto kondisi barang pesanan sebelum dimasukkan ke dalam paket / kardus.
+            </p>
           </div>
 
           {/* Modal Action Buttons */}
