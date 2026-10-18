@@ -145,10 +145,6 @@ export default function ShipmentsRoute() {
         renderActions={(row: Shipment) =>
           renderShipmentRowActions({
             row,
-            rowActionLoadingId: null,
-            onOpenPack: (s) => setPackingShipment(s),
-            onOpenSetTracking: (s) => setTrackingShipment(s),
-            onOpenConfirmDelivered: (s) => setDeliveringShipment(s),
             onOpenDetail: (s) => setDetailShipment(s),
           })
         }

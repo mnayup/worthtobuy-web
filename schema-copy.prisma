@@ -74,6 +74,7 @@ enum ShipmentStatus {
 }
 enum RefundStatus {
   REQUESTED
+  ON_PROCESS
   APPROVED
   PAID
   REJECTED

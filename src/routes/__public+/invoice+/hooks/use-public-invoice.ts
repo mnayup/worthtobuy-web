@@ -136,6 +136,7 @@ export function usePublicInvoice() {
     isDpScheme,
     currentStage,
     payments,
+    refunds: invoice?.refunds || [],
     pendingPayments,
     isOrdersWaitingSettlement,
     hasPendingProof,

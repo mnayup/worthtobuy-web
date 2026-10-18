@@ -123,8 +123,9 @@ export function DataTableBody({
                   {onEdit && (!canEditRow || canEditRow(row)) && (
                     <button
                       onClick={() => onEdit(row)}
-                      className="rounded-xl p-2 text-brand-500 transition hover:bg-brand-100 hover:text-brand-900"
+                      className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs transition hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 cursor-pointer"
                       title="Edit item"
+                      aria-label="Edit item"
                     >
                       <Edit3 size={15} />
                     </button>
@@ -132,8 +133,9 @@ export function DataTableBody({
                   {onDelete && (!canDeleteRow || canDeleteRow(row)) && (
                     <button
                       onClick={() => onDelete(row)}
-                      className="rounded-xl p-2 text-brand-400 transition hover:bg-cherry-50 hover:text-cherry-600"
+                      className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-rose-200 bg-rose-50/50 text-rose-600 shadow-2xs transition hover:bg-rose-100 hover:text-rose-700 hover:border-rose-300 cursor-pointer"
                       title="Delete item"
+                      aria-label="Delete item"
                     >
                       <Trash2 size={15} />
                     </button>

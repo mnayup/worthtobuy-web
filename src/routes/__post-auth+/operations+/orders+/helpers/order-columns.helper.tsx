@@ -132,7 +132,7 @@ export function renderOrderActions(
     row.invoice_links?.[0]?.invoiceId ??
     row.invoiceLinks?.[0]?.invoiceId;
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1.5">
       <button
         onClick={() => {
           if (invoiceId) {
@@ -141,10 +141,11 @@ export function renderOrderActions(
             setInvoiceModal(row.id);
           }
         }}
-        className="rounded-xl p-2 text-cherry-500 hover:bg-cherry-50 transition cursor-pointer"
+        className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-cherry-200 bg-cherry-50/50 text-cherry-600 shadow-2xs hover:bg-cherry-100 hover:text-cherry-700 hover:border-cherry-300 transition cursor-pointer"
         title={invoiceId ? 'Open Invoice' : 'Create Invoice'}
+        aria-label={invoiceId ? 'Open Invoice' : 'Create Invoice'}
       >
-        <FileText size={16} />
+        <FileText size={15} />
       </button>
     </div>
   );

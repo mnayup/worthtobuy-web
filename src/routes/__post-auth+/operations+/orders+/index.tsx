@@ -85,7 +85,7 @@ export async function action(data: {
 }
 
 export default function OrdersRoute() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [invoiceModal, setInvoiceModal] = useState<number | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
@@ -189,7 +189,9 @@ export default function OrdersRoute() {
           />
         }
         columns={columns}
-        canDelete={user?.role === 'OWNER'}
+        canCreate={hasPermission('orders', 'create')}
+        canEdit={hasPermission('orders', 'edit')}
+        canDelete={hasPermission('orders', 'delete')}
         canBulkDelete={false}
         selectable={true}
         canSelectRow={(row) => row.status === 'NEW'}

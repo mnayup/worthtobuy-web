@@ -141,6 +141,47 @@ export function TrackingOrderDetails({ data }: TrackingOrderDetailsProps) {
                   {money(outstandingAmount)}
                 </span>
               </div>
+
+              {/* Detail Refund & Bukti Transfer jika ada */}
+              {Array.isArray(data.invoice.refunds) && data.invoice.refunds.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                  <span className="text-[11px] font-black uppercase text-sky-700 tracking-wider block">
+                    Detail Refund ({data.invoice.refunds.length})
+                  </span>
+                  {data.invoice.refunds.map((ref: any) => {
+                    const isDep = ref.refund_type === 'CUSTOMER_DEPOSIT';
+                    return (
+                      <div
+                        key={ref.id}
+                        className="rounded-xl border border-sky-100 bg-sky-50/50 p-2.5 text-[11px] space-y-1"
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="text-slate-900">{ref.refund_number}</span>
+                          <span className="text-sky-700">{money(ref.amount)}</span>
+                        </div>
+                        <p className="text-slate-600">Alasan: {ref.reason}</p>
+                        {!isDep && (ref.bank_name || ref.account_number) && (
+                          <p className="text-slate-600">
+                            Tujuan: {ref.bank_name} {ref.account_number ? `(${ref.account_number})` : ''} {ref.account_holder ? `a/n ${ref.account_holder}` : ''}
+                          </p>
+                        )}
+                        {ref.proof_url && (
+                          <div className="pt-1">
+                            <a
+                              href={ref.proof_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-bold text-sky-700 hover:text-sky-900 underline"
+                            >
+                              Lihat Bukti Transfer Refund
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-xs text-slate-500">

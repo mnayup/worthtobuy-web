@@ -33,7 +33,7 @@ export async function loader() {
 }
 
 export default function ExpensesRoute() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const fields = useMemo<FieldConfig[]>(
     () => [
       { name: 'expenseNumber', label: 'Expense number' },
@@ -128,7 +128,9 @@ export default function ExpensesRoute() {
         },
         { key: 'payee', label: 'Payee' },
       ]}
-      canDelete={user?.role === 'OWNER' || user?.role === 'FINANCE'}
+      canCreate={hasPermission('expenses', 'create')}
+      canEdit={hasPermission('expenses', 'edit')}
+      canDelete={hasPermission('expenses', 'delete')}
       prepareInitial={(row) => ({
         ...row,
         expenseNumber: row.expense_number || row.expenseNumber,

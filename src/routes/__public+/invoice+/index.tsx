@@ -8,6 +8,7 @@ import { PublicInvoiceFinancialCard } from './components/PublicInvoiceFinancialC
 import { PublicInvoiceBankTransferCard } from './components/PublicInvoiceBankTransferCard';
 import { PublicInvoiceProofUploadForm } from './components/PublicInvoiceProofUploadForm';
 import { PublicInvoicePaymentsList } from './components/PublicInvoicePaymentsList';
+import { PublicInvoiceRefundsList } from './components/PublicInvoiceRefundsList';
 
 export default function PublicInvoiceViewRoute() {
   const d = usePublicInvoice();
@@ -127,6 +128,9 @@ export default function PublicInvoiceViewRoute() {
 
       {/* 5. Payment & Verification History */}
       <PublicInvoicePaymentsList payments={d.payments} />
+
+      {/* 6. Refund History & Transfer Evidence */}
+      <PublicInvoiceRefundsList refunds={d.refunds} />
     </div>
   );
 }

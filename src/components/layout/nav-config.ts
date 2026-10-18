@@ -125,22 +125,22 @@ export const navGroups: NavGroupConfig[] = [
         to: '/invoices',
         label: 'Invoices & Billing',
         icon: FileText,
-        roles: ['OWNER', 'ADMIN', 'FINANCE'],
+        roles: ['OWNER', 'ADMIN', 'FINANCE', 'SHOPPER'],
         subItems: [
           {
             to: '/invoices',
             label: 'Customer Invoices',
-            roles: ['OWNER', 'ADMIN', 'FINANCE'],
+            roles: ['OWNER', 'ADMIN', 'FINANCE', 'SHOPPER'],
           },
           {
             to: '/payments',
             label: 'Payment History',
-            roles: ['OWNER', 'ADMIN', 'FINANCE'],
+            roles: ['OWNER', 'ADMIN', 'FINANCE', 'SHOPPER'],
           },
           {
             to: '/refunds',
             label: 'Refunds',
-            roles: ['OWNER', 'FINANCE'],
+            roles: ['OWNER', 'ADMIN', 'FINANCE', 'SHOPPER'],
           },
         ],
       },

@@ -17,7 +17,7 @@ export async function loader() {
 
 export default function SummaryRoute() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const {
     stats,
     orders,
@@ -48,7 +48,7 @@ export default function SummaryRoute() {
           'Review executive revenue figures and calculate personal shopping fees dynamically.'
         }
         actions={
-          user?.role === 'OWNER' ? (
+          hasPermission('settings', 'edit') || hasPermission('summary', 'calculate') ? (
             <button
               onClick={() => navigate('/settings')}
               className="btn-secondary"

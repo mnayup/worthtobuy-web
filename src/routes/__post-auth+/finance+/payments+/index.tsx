@@ -53,7 +53,7 @@ export async function action(data: { id: string | number; status: string }) {
 }
 
 export default function PaymentsRoute() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const fields = useMemo<FieldConfig[]>(
     () => [
       { name: 'paymentNumber', label: 'Payment number' },
@@ -235,7 +235,9 @@ export default function PaymentsRoute() {
           render: (row) => date(row.payment_date || row.paymentDate),
         },
       ]}
-      canDelete={user?.role === 'OWNER' || user?.role === 'FINANCE'}
+      canCreate={hasPermission('payments', 'create')}
+      canEdit={hasPermission('payments', 'verify') || hasPermission('payments', 'create')}
+      canDelete={hasPermission('payments', 'delete')}
       prepareInitial={(row) => ({
         ...row,
         paymentNumber: row.payment_number || row.paymentNumber,

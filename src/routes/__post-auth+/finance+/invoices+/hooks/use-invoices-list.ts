@@ -34,7 +34,7 @@ export async function invoiceListLoader(params?: {
 }
 
 export function useInvoicesList() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [searchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -193,7 +193,7 @@ export function useInvoicesList() {
     }
   }
 
-  const canDeleteInvoices = user?.role === 'OWNER';
+  const canDeleteInvoices = hasPermission('invoices', 'delete');
   const allInvoicesSelected =
     canDeleteInvoices &&
     sortedInvoices.length > 0 &&

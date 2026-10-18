@@ -13,7 +13,9 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { money } from '~/lib/format';
+import { useAuth } from '~/context/AuthContext';
 import type { PrintFormat } from '../types';
+
 
 interface InvoiceDetailActionsProps {
   invoice: any;
@@ -36,8 +38,10 @@ export function InvoiceDetailActions({
   onOpenWhatsapp,
   onOpenDelete,
 }: InvoiceDetailActionsProps) {
+  const { hasPermission } = useAuth();
   const navigate = useNavigate();
   const [copiedLink, setCopiedLink] = useState(false);
+
 
   const invoiceNum =
     invoice?.invoice_number ||
@@ -153,7 +157,7 @@ export function InvoiceDetailActions({
           <Printer size={16} /> Print {printFormat === 'A4' ? 'A4 (PDF)' : 'Mobile Receipt (PDF)'}
         </button>
 
-        {user?.role === 'OWNER' && (
+        {hasPermission('invoices', 'delete') && (
           <button onClick={onOpenDelete} className="btn bg-rose-600 text-white hover:bg-rose-700">
             <Trash2 size={16} /> Move to Trash
           </button>

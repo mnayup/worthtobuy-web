@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { User } from '../types';
 import { api } from '../lib/api';
 
@@ -101,6 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Failed to refresh user session:', err);
     }
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('jastipflow_token');
+    if (token) {
+      refreshUser();
+    }
+  }, [refreshUser]);
 
   const value = useMemo(
     () => ({

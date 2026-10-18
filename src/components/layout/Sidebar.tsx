@@ -53,10 +53,18 @@ export function Sidebar({ collapsed, mobile, onClose, onToggle }: SidebarProps) 
       items: group.items.filter((item) => {
         if (!user) return false;
         const modKey = item.to.replace(/^\//, '') || 'dashboard';
-        return hasPermission(modKey, 'view');
+        const hasParentPerm = hasPermission(modKey, 'view');
+        const hasAnySubPerm =
+          item.subItems &&
+          item.subItems.some((sub) => {
+            const subKey = sub.to.replace(/^\//, '') || 'dashboard';
+            return hasPermission(subKey, 'view');
+          });
+        return hasParentPerm || Boolean(hasAnySubPerm);
       }),
     }))
     .filter((group) => group.items.length > 0);
+
 
   return (
     <aside

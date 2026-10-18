@@ -6,8 +6,9 @@ import { useAuth } from '~/context/AuthContext';
 import type { FieldConfig } from '~/types';
 
 export default function ShippingCountersRoute() {
-  const { user } = useAuth();
-  const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const { user, hasPermission } = useAuth();
+  const canManage = hasPermission('shipping-counters', 'edit') || hasPermission('shipping-counters', 'create') || hasPermission('shipments', 'dispatch');
+
 
   const fields = useMemo<FieldConfig[]>(
     () => [

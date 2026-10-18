@@ -150,10 +150,11 @@ export default function CustomersRoute() {
       renderActions={(row) => (
         <button
           onClick={() => navigate(`/customers/${row.id}`)}
-          className="rounded-xl p-2 text-brand-500 hover:bg-brand-50"
+          className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
           title="Customer 360°"
+          aria-label="Customer 360°"
         >
-          <Eye size={16} />
+          <Eye size={15} />
         </button>
       )}
     />
