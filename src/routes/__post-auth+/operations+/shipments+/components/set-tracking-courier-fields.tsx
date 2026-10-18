@@ -25,6 +25,8 @@ export const COMMON_SERVICES = [
   'Economy (ECO)',
 ];
 
+import type { ShippingCounter } from '../types';
+
 interface SetTrackingCourierFieldsProps {
   address: string;
   setAddress: (val: string) => void;
@@ -36,6 +38,9 @@ interface SetTrackingCourierFieldsProps {
   setServiceType: (val: string) => void;
   trackingNumber: string;
   setTrackingNumber: (val: string) => void;
+  shippingCounters?: ShippingCounter[];
+  shippingCounterId?: number | null;
+  setShippingCounterId?: (val: number | null) => void;
 }
 
 export function SetTrackingCourierFields({
@@ -49,7 +54,12 @@ export function SetTrackingCourierFields({
   setServiceType,
   trackingNumber,
   setTrackingNumber,
+  shippingCounters = [],
+  shippingCounterId = null,
+  setShippingCounterId,
 }: SetTrackingCourierFieldsProps) {
+  const selectedCounter = shippingCounters.find((sc) => sc.id === shippingCounterId);
+
   return (
     <>
       {/* Destination Address */}
@@ -71,30 +81,68 @@ export function SetTrackingCourierFields({
       {/* Courier & Service Grid */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-brand-700 flex items-center gap-1.5">
-            <Truck size={13} className="text-brand-500" />
-            Shipping Courier <span className="text-cherry-500">*</span>
+          <label className="text-xs font-bold text-brand-700 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Truck size={13} className="text-brand-500" />
+              Shipping Courier / Expedition <span className="text-cherry-500">*</span>
+            </span>
+            {shippingCounters.length > 0 && (
+              <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                Master Data
+              </span>
+            )}
           </label>
           <select
             className="input !h-10 text-xs"
             value={courier}
-            onChange={(e) => setCourier(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCourier(val);
+              const found = shippingCounters.find((c) => c.name === val);
+              setShippingCounterId?.(found ? found.id : null);
+            }}
           >
-            {COMMON_COURIERS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
+            {shippingCounters.length > 0 ? (
+              shippingCounters.map((sc) => (
+                <option key={sc.id} value={sc.name}>
+                  {sc.name} {sc.code && sc.code !== sc.name ? `(${sc.code})` : ''}
+                </option>
+              ))
+            ) : (
+              COMMON_COURIERS.filter((c) => c !== 'Other').map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))
+            )}
+            {/* If existing shipment has a courier not in master data */}
+            {courier &&
+              courier !== 'Other' &&
+              !shippingCounters.some((c) => c.name === courier) &&
+              !COMMON_COURIERS.includes(courier) && (
+                <option value={courier}>{courier}</option>
+              )}
+            <option value="Other">Other / Custom Courier...</option>
           </select>
           {courier === 'Other' && (
             <input
               type="text"
               required
               className="input !h-9 text-xs mt-1.5"
-              placeholder="Enter courier name..."
+              placeholder="Enter custom courier name..."
               value={customCourier}
               onChange={(e) => setCustomCourier(e.target.value)}
             />
+          )}
+          {selectedCounter && (selectedCounter.phone || selectedCounter.notes) && (
+            <div className="text-[11px] text-brand-600 bg-brand-50/70 border border-brand-200/60 rounded-lg p-2 mt-1 space-y-0.5">
+              {selectedCounter.phone && (
+                <div className="text-brand-700 font-medium">Hotline / CS: {selectedCounter.phone}</div>
+              )}
+              {selectedCounter.notes && (
+                <div className="text-brand-500 text-[10px]">{selectedCounter.notes}</div>
+              )}
+            </div>
           )}
         </div>
 

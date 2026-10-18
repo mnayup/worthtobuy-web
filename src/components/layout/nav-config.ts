@@ -79,6 +79,12 @@ export const navGroups: NavGroupConfig[] = [
         icon: Users,
         roles: ['OWNER', 'ADMIN', 'FINANCE'],
       },
+      {
+        to: '/shipping-counters',
+        label: 'Shipping Couriers',
+        icon: Truck,
+        roles: ['OWNER', 'ADMIN'],
+      },
     ],
   },
   {

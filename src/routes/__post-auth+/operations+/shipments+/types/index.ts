@@ -32,6 +32,21 @@ export interface ShipmentOrderItem {
   } | null;
 }
 
+export interface ShippingCounter {
+  id: number;
+  name: string;
+  courier: string;
+  code?: string | null;
+  address?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  contact_person?: string | null;
+  contactPerson?: string | null;
+  is_active?: boolean;
+  isActive?: boolean;
+  notes?: string | null;
+}
+
 export interface Shipment {
   id: number;
   trackingNumber?: string | null;
@@ -40,6 +55,10 @@ export interface Shipment {
   order_id?: number;
   customerId?: number;
   customer_id?: number;
+  shippingCounterId?: number | null;
+  shipping_counter_id?: number | null;
+  shippingCounter?: ShippingCounter | null;
+  shipping_counter?: ShippingCounter | null;
   address: string;
   courier: string;
   serviceType?: string | null;

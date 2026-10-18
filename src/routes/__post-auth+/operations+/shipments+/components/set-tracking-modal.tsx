@@ -2,7 +2,7 @@ import React, { useState, useEffect, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Truck, AlertCircle, AlertTriangle } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
-import { isShipmentFullyPaid, type Shipment } from '../types';
+import { isShipmentFullyPaid, type Shipment, type ShippingCounter } from '../types';
 import dayjs from 'dayjs';
 import { SetTrackingItemsPreview } from './set-tracking-items-preview';
 import {
@@ -24,6 +24,8 @@ export function SetTrackingModal({
   onClose,
   onSaved,
 }: SetTrackingModalProps) {
+  const [shippingCounters, setShippingCounters] = useState<ShippingCounter[]>([]);
+  const [shippingCounterId, setShippingCounterId] = useState<number | null>(null);
   const [courier, setCourier] = useState('JNE');
   const [customCourier, setCustomCourier] = useState('');
   const [serviceType, setServiceType] = useState('Regular (REG)');
@@ -38,7 +40,22 @@ export function SetTrackingModal({
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (open) {
+      api
+        .get('/shipping-counters?limit=200')
+        .then((res) => {
+          const items = res.data?.data || res.data || [];
+          setShippingCounters(items);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (open && shipment) {
+      const rawCounterId = shipment.shipping_counter_id ?? shipment.shippingCounterId;
+      setShippingCounterId(rawCounterId ? Number(rawCounterId) : null);
+
       const isKnown = COMMON_COURIERS.includes(shipment.courier || 'JNE');
       setCourier(isKnown ? shipment.courier || 'JNE' : 'Other');
       setCustomCourier(isKnown ? '' : shipment.courier || '');
@@ -113,6 +130,8 @@ export function SetTrackingModal({
       await api.put(`/shipments/${shipment.id}`, {
         trackingNumber: trackingNumber.trim(),
         courier: effectiveCourier,
+        shippingCounterId: shippingCounterId || null,
+        shipping_counter_id: shippingCounterId || null,
         serviceType: serviceType.trim() || null,
         address: address.trim(),
         weightKg: weightKg ? Number(weightKg) : null,
@@ -258,6 +277,9 @@ export function SetTrackingModal({
             setServiceType={setServiceType}
             trackingNumber={trackingNumber}
             setTrackingNumber={setTrackingNumber}
+            shippingCounters={shippingCounters}
+            shippingCounterId={shippingCounterId}
+            setShippingCounterId={setShippingCounterId}
           />
 
           <SetTrackingAdditionalFields

@@ -27,6 +27,9 @@ export function getShipmentColumns({
                 {tracking}
               </span>
               <span className="text-[10px] text-brand-500 font-semibold">
+                {(row.shipping_counter?.name || row.shippingCounter?.name) ? (
+                  <span className="text-brand-700 font-bold">{row.shipping_counter?.name || row.shippingCounter?.name} • </span>
+                ) : null}
                 {row.courier || 'JNE'} {service ? `• ${service}` : ''}
               </span>
             </div>

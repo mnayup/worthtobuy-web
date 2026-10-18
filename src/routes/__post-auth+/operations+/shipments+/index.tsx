@@ -21,6 +21,41 @@ export default function ShipmentsRoute() {
   const [trackingShipment, setTrackingShipment] = useState<Shipment | null>(null);
   const [deliveringShipment, setDeliveringShipment] = useState<Shipment | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [courierOptions, setCourierOptions] = useState<Array<{ label: string; value: string }>>([
+    { label: 'JNE', value: 'JNE' },
+    { label: 'J&T Express', value: 'J&T' },
+    { label: 'SiCepat', value: 'SiCepat' },
+    { label: 'Paxel', value: 'Paxel' },
+    { label: 'Lion Parcel', value: 'Lion Parcel' },
+    { label: 'Anteraja', value: 'Anteraja' },
+    { label: 'GoSend', value: 'GoSend' },
+    { label: 'GrabExpress', value: 'GrabExpress' },
+  ]);
+
+  useEffect(() => {
+    api
+      .get('/shipping-counters?limit=200')
+      .then((res) => {
+        const items = res.data?.data || res.data || [];
+        if (Array.isArray(items) && items.length > 0) {
+          const courierMap = new Map<string, string>();
+          items.forEach((item: any) => {
+            if (item.courier) {
+              courierMap.set(item.courier, item.courier);
+            }
+          });
+          if (courierMap.size > 0) {
+            setCourierOptions(
+              Array.from(courierMap.keys()).map((courier) => ({
+                label: courier,
+                value: courier,
+              }))
+            );
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchSummary = async () => {
     try {
@@ -96,16 +131,7 @@ export default function ShipmentsRoute() {
             key: 'courier',
             label: 'Courier',
             placeholder: 'All Couriers',
-            options: [
-              { label: 'JNE', value: 'JNE' },
-              { label: 'J&T Express', value: 'J&T' },
-              { label: 'SiCepat', value: 'SiCepat' },
-              { label: 'Paxel', value: 'Paxel' },
-              { label: 'Lion Parcel', value: 'Lion Parcel' },
-              { label: 'Anteraja', value: 'Anteraja' },
-              { label: 'GoSend', value: 'GoSend' },
-              { label: 'GrabExpress', value: 'GrabExpress' },
-            ],
+            options: courierOptions,
           },
         ]}
         topContent={

@@ -87,7 +87,16 @@ export function ShipmentDetailLogistics({
           <div className="flex items-center justify-between">
             <div>
               <p className="font-black text-brand-900 text-sm">
-                {shipment.courier || 'JNE'}{' '}
+                {(shipment.shipping_counter?.name || shipment.shippingCounter?.name) ? (
+                  <span>
+                    {shipment.shipping_counter?.name || shipment.shippingCounter?.name}
+                    <span className="font-normal text-xs text-brand-500 ml-1">
+                      ({shipment.courier || 'JNE'})
+                    </span>
+                  </span>
+                ) : (
+                  shipment.courier || 'JNE'
+                )}{' '}
                 <span
                   className={
                     'text-xs font-bold text-indigo-700 bg-indigo-50 border ' +
