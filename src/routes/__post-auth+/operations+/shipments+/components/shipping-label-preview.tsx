@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Printer, FileText, Plus, Minus } from 'lucide-react';
+import { api } from '~/lib/api';
+import { ADMIN_WA_NUMBER } from '~/lib/whatsapp';
 import {
   printShippingLabels,
   type LabelItem,
@@ -16,6 +18,8 @@ interface ShippingLabelPreviewProps {
   serviceType?: string | null;
   items: LabelItem[];
   notes?: string | null;
+  senderName?: string;
+  senderPhone?: string;
 }
 
 export function ShippingLabelPreview({
@@ -28,11 +32,63 @@ export function ShippingLabelPreview({
   serviceType,
   items,
   notes,
+  senderName: propSenderName,
+  senderPhone: propSenderPhone,
 }: ShippingLabelPreviewProps) {
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);
   const [itemsPerSheet, setItemsPerSheet] = useState<number>(() => {
     return items.length > 4 ? 3 : Math.max(1, items.length);
   });
+  const [senderInfo, setSenderInfo] = useState<{ name: string; phone: string }>({
+    name: propSenderName || 'Worthtobuy Official',
+    phone: propSenderPhone || ADMIN_WA_NUMBER,
+  });
+
+  useEffect(() => {
+    if (propSenderName && propSenderPhone) {
+      setSenderInfo({ name: propSenderName, phone: propSenderPhone });
+      return;
+    }
+
+    let isMounted = true;
+    api
+      .get('/settings')
+      .then((res) => {
+        if (!isMounted) return;
+        const brand = res.data?.brand;
+        const invoice = res.data?.invoice;
+        const name =
+          propSenderName ||
+          brand?.name ||
+          invoice?.businessName ||
+          'Worthtobuy Official';
+        const phone =
+          propSenderPhone ||
+          brand?.whatsapp ||
+          invoice?.whatsapp ||
+          ADMIN_WA_NUMBER;
+
+        setSenderInfo({ name, phone });
+      })
+      .catch(() => {
+        // Fallback to public overview if /settings is restricted
+        api
+          .get('/public/overview')
+          .then((res) => {
+            if (!isMounted) return;
+            const brand = res.data?.brand;
+            setSenderInfo({
+              name: propSenderName || brand?.name || 'Worthtobuy Official',
+              phone: propSenderPhone || brand?.whatsapp || ADMIN_WA_NUMBER,
+            });
+          })
+          .catch(() => {});
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [propSenderName, propSenderPhone]);
 
   const totalSheets = Math.max(1, Math.ceil(items.length / itemsPerSheet));
 
@@ -47,8 +103,8 @@ export function ShippingLabelPreview({
       recipientName,
       recipientPhone,
       recipientAddress,
-      senderName: 'Worthtobuy Official',
-      senderPhone: '0812-3456-7890',
+      senderName: senderInfo.name,
+      senderPhone: senderInfo.phone,
       courier,
       serviceType,
       items: items.slice(start, end),
@@ -197,8 +253,8 @@ export function ShippingLabelPreview({
             <span className="font-bold text-slate-500 uppercase tracking-wider block text-[8px]">
               Pengirim / Sender
             </span>
-            <span className="font-bold text-slate-800">Worthtobuy Official</span> • 0812-3456-7890
-            (Jakarta)
+            <span className="font-bold text-slate-800">{senderInfo.name}</span> •{' '}
+            {senderInfo.phone} (Jakarta)
           </div>
 
           {/* Items Preview Table */}
