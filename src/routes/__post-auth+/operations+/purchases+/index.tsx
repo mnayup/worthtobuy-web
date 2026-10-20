@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Layers } from 'lucide-react';
 import { CrudPage } from '~/components/CrudPage';
 import { StatusBadge } from '~/components/StatusBadge';
 import { api } from '~/lib/api';
@@ -8,6 +8,7 @@ import type { FieldConfig, Option } from '~/types';
 import { purchaseStatusOptions, type Purchase } from './types';
 import { PurchaseDetailModal } from './components/purchase-detail-modal';
 import { PurchaseStatusCards } from './components/purchase-status-cards';
+import { PurchaseSummaryModal } from './components/purchase-summary-modal';
 
 import {
   responseRows,
@@ -30,11 +31,13 @@ export async function loader() {
 
 export default function PurchasesRoute() {
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
+  const [selectedPurchaseForSummary, setSelectedPurchaseForSummary] = useState<Purchase | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [periodOptions, setPeriodOptions] = useState<Option[]>([]);
   const [brandOptions, setBrandOptions] = useState<Option[]>([]);
+  const [productOptions, setProductOptions] = useState<Option[]>([]);
 
   const fetchSummary = async () => {
     try {
@@ -84,6 +87,22 @@ export default function PurchasesRoute() {
           label: b,
         }))
       );
+
+      // Distinct products for product filter
+      const seenProductIds = new Set<number>();
+      const distinctProducts: Option[] = [];
+      for (const p of combined) {
+        if (p.id && !seenProductIds.has(p.id)) {
+          seenProductIds.add(p.id);
+          const brandPrefix = p.brand_name || p.brandName ? `[${p.brand_name || p.brandName}] ` : '';
+          distinctProducts.push({
+            value: String(p.id),
+            label: `${brandPrefix}${p.name}`,
+          });
+        }
+      }
+      distinctProducts.sort((a, b) => a.label.localeCompare(b.label));
+      setProductOptions(distinctProducts);
     } catch (err) {
       console.error('Failed to load purchase filter options:', err);
     }
@@ -176,6 +195,12 @@ export default function PurchasesRoute() {
             label: 'Event',
             placeholder: 'All Events',
             options: periodOptions,
+          },
+          {
+            key: 'productId',
+            label: 'Product',
+            placeholder: 'All Products',
+            options: productOptions,
           },
           {
             key: 'brand',
@@ -284,15 +309,26 @@ export default function PurchasesRoute() {
         ]}
         selectable={false}
         renderActions={(row) => (
-          <button
-            type="button"
-            onClick={() => setSelectedPurchase(row)}
-            className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
-            title="Details & Update Status"
-            aria-label="Details & Update Status"
-          >
-            <Eye size={15} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSelectedPurchaseForSummary(row)}
+              className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-indigo-200 bg-white text-indigo-600 shadow-2xs hover:bg-indigo-50 hover:text-indigo-900 hover:border-indigo-300 transition cursor-pointer"
+              title="Summary Variant & Color List"
+              aria-label="Summary Variant & Color List"
+            >
+              <Layers size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPurchase(row)}
+              className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
+              title="Details & Update Status"
+              aria-label="Details & Update Status"
+            >
+              <Eye size={15} />
+            </button>
+          </div>
         )}
         canDelete={false}
         canEdit={false}
@@ -328,6 +364,12 @@ export default function PurchasesRoute() {
           setRefreshKey((k) => k + 1);
           fetchSummary();
         }}
+      />
+
+      <PurchaseSummaryModal
+        open={Boolean(selectedPurchaseForSummary)}
+        purchase={selectedPurchaseForSummary}
+        onClose={() => setSelectedPurchaseForSummary(null)}
       />
     </>
   );
