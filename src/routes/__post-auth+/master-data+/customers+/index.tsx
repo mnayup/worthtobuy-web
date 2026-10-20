@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye } from 'lucide-react';
+import { Eye, MessageCircle, ExternalLink } from 'lucide-react';
 import { CrudPage } from '~/components/CrudPage';
 import { StatusBadge } from '~/components/StatusBadge';
 import { api } from '~/lib/api';
@@ -18,6 +19,22 @@ export async function loader() {
 export default function CustomersRoute() {
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
+  const [waGroupOptions, setWaGroupOptions] = useState<Option[]>([]);
+
+  useEffect(() => {
+    api
+      .get('/whatsapp-groups?limit=200')
+      .then((res) => {
+        const rows = res.data?.data || res.data || [];
+        setWaGroupOptions(
+          rows.map((g: any) => ({
+            label: g.name,
+            value: String(g.id),
+          }))
+        );
+      })
+      .catch(() => setWaGroupOptions([]));
+  }, []);
 
   const fields: FieldConfig[] = [
     { name: 'fullName', label: 'Full name', required: true },
@@ -27,6 +44,30 @@ export default function CustomersRoute() {
       type: 'tel',
       required: true,
       placeholder: 'e.g. 0812... or +62...',
+    },
+    {
+      name: 'whatsappGroupId',
+      label: 'WhatsApp Group',
+      type: 'select',
+      placeholder: 'Select WhatsApp Group...',
+      searchable: true,
+      loadOptions: async (search) => {
+        try {
+          const res = await api.get(
+            `/whatsapp-groups?limit=100&search=${encodeURIComponent(search || '')}`
+          );
+          const rows = res.data?.data || res.data || [];
+          return [
+            { label: 'None (Unassigned)', value: '' },
+            ...rows.map((g: any) => ({
+              label: `${g.name}${g.customerCount !== undefined ? ` (${g.customerCount} members)` : ''}`,
+              value: g.id,
+            })),
+          ];
+        } catch {
+          return [];
+        }
+      },
     },
     { name: 'email', label: 'Email (optional)', type: 'email' },
     { name: 'socialUsername', label: 'Social media handle' },
@@ -77,6 +118,16 @@ export default function CustomersRoute() {
             { label: 'Inactive', value: 'inactive' },
           ],
         },
+        ...(waGroupOptions.length > 0
+          ? [
+              {
+                key: 'whatsappGroupId',
+                label: 'WhatsApp Group',
+                placeholder: 'All WA Groups',
+                options: waGroupOptions,
+              },
+            ]
+          : []),
       ]}
       columns={[
         {
@@ -90,6 +141,36 @@ export default function CustomersRoute() {
           render: (row) => row.full_name || row.fullName,
         },
         { key: 'whatsapp', label: 'WhatsApp' },
+        {
+          key: 'whatsapp_group',
+          label: 'WA Group',
+          render: (row) => {
+            const group = row.whatsapp_group || row.whatsappGroup;
+            if (!group) {
+              return <span className="text-brand-300 text-xs italic">Unassigned</span>;
+            }
+            return (
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+                  <MessageCircle size={12} className="text-emerald-500 shrink-0" />
+                  <span className="max-w-[130px] truncate">{group.name}</span>
+                </span>
+                {group.url && (
+                  <a
+                    href={group.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-600 hover:text-emerald-800 p-1 hover:bg-emerald-50 rounded-lg transition"
+                    title={`Open ${group.name} link`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink size={12} />
+                  </a>
+                )}
+              </div>
+            );
+          },
+        },
         { key: 'city', label: 'City' },
         {
           key: 'segment',
@@ -126,6 +207,7 @@ export default function CustomersRoute() {
           whatsapp: wa,
           postalCode: postal,
           status: form.status ? 'active' : 'inactive',
+          whatsappGroupId: form.whatsappGroupId ? Number(form.whatsappGroupId) : null,
         };
       }}
       prepareInitial={(row) => {
@@ -139,6 +221,11 @@ export default function CustomersRoute() {
           fullName: row.full_name || row.fullName,
           socialUsername: row.social_username || row.socialUsername,
           postalCode: row.postal_code || row.postalCode,
+          whatsappGroupId:
+            row.whatsapp_group_id ||
+            row.whatsappGroupId ||
+            row.whatsapp_group?.id ||
+            '',
           segment,
           status: row.status === 'active',
         };

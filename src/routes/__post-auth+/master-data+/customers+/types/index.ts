@@ -15,6 +15,10 @@ export interface Customer {
   segment: 'REGULAR' | 'PRIORITY' | 'PROBLEM' | 'INACTIVE';
   status: 'active' | 'inactive';
   notes?: string;
+  whatsapp_group_id?: number | null;
+  whatsappGroupId?: number | null;
+  whatsapp_group?: { id: number; name: string; url?: string } | null;
+  whatsappGroup?: { id: number; name: string; url?: string } | null;
 }
 
 export interface CustomerOverviewSummary {

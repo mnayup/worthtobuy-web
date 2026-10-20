@@ -21,6 +21,7 @@ import {
   CheckSquare,
   Square,
   Archive,
+  MessageCircle,
 } from 'lucide-react';
 import type { ModuleDef } from '../types';
 
@@ -30,6 +31,7 @@ const MODULE_ICONS: Record<string, any> = {
   periods: ClipboardList,
   products: Boxes,
   customers: Users,
+  'whatsapp-groups': MessageCircle,
   orders: ReceiptText,
   purchases: ShoppingBag,
   shipments: Truck,

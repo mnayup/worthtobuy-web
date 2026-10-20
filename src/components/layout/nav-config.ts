@@ -12,6 +12,7 @@ import {
   Truck,
   UserCog,
   Users,
+  MessageCircle,
   Trash2,
   ShieldCheck,
   Archive,
@@ -77,6 +78,12 @@ export const navGroups: NavGroupConfig[] = [
         to: '/customers',
         label: 'Customers',
         icon: Users,
+        roles: ['OWNER', 'ADMIN', 'FINANCE'],
+      },
+      {
+        to: '/whatsapp-groups',
+        label: 'WhatsApp Groups',
+        icon: MessageCircle,
         roles: ['OWNER', 'ADMIN', 'FINANCE'],
       },
       {

@@ -130,6 +130,7 @@ export default function CustomerDetailRoute() {
             socialUsername={customer.socialUsername || customer.social_username}
             segment={derivedSegment}
             notes={customer.notes}
+            whatsappGroup={customer.whatsapp_group || customer.whatsappGroup}
           />
 
           <CustomerShipmentsCard shipments={customer.shipments || []} />

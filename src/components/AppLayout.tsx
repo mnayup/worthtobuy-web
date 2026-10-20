@@ -5,7 +5,7 @@ import {
   Bell, Boxes, Calculator, ChevronRight, CircleDollarSign, ClipboardList, FileBarChart2,
   FileText, Landmark, LayoutDashboard, LogOut, Menu, PackageCheck, PanelLeftClose,
   ReceiptText, RotateCcw, Search, Settings, ShoppingBag, Sparkles, Truck, UserCog, PackageSearch,
-  Users, WalletCards, X, Trash2, ScrollText, Archive,
+  Users, WalletCards, X, Trash2, ScrollText, Archive, MessageCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '~/context/AuthContext';
@@ -19,6 +19,7 @@ const nav = [
   { to: '/periods', label: 'Events', icon: ClipboardList, roles: ['OWNER','ADMIN','SHOPPER','FINANCE'] },
   { to: '/orders', label: 'Orders', icon: ReceiptText, roles: ['OWNER','ADMIN','FINANCE'] },
   { to: '/customers', label: 'Customers', icon: Users, roles: ['OWNER','ADMIN','FINANCE'] },
+  { to: '/whatsapp-groups', label: 'WhatsApp Groups', icon: MessageCircle, roles: ['OWNER','ADMIN','FINANCE'] },
   { to: '/products', label: 'Products', icon: Boxes, roles: ['OWNER','ADMIN','SHOPPER'] },
   { to: '/item-tracking', label: 'Item Tracking', icon: PackageSearch, roles: ['OWNER','ADMIN','SHOPPER','FINANCE'] },
   { to: '/shopping-list', label: 'Shopping List', icon: ShoppingBag, roles: ['OWNER','ADMIN','SHOPPER'] },

@@ -25,6 +25,7 @@ import CustomersRoute from '~/routes/__post-auth+/master-data+/customers+';
 import CustomerDetailRoute from '~/routes/__post-auth+/master-data+/customers+/$id+';
 import ProductsRoute from '~/routes/__post-auth+/master-data+/products+';
 import ShippingCountersRoute from '~/routes/__post-auth+/master-data+/shipping-counters+';
+import WhatsappGroupsRoute from '~/routes/__post-auth+/master-data+/whatsapp-groups+';
 import OrdersRoute from '~/routes/__post-auth+/operations+/orders+';
 import ItemTrackingRoute from '~/routes/__post-auth+/operations+/item-tracking+';
 import ShoppingListRoute from '~/routes/__post-auth+/operations+/shopping-list+';
@@ -158,6 +159,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard roles={['OWNER', 'ADMIN']}>
             <ShippingCountersRoute />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'whatsapp-groups',
+        element: (
+          <RoleGuard roles={['OWNER', 'ADMIN', 'FINANCE']}>
+            <WhatsappGroupsRoute />
           </RoleGuard>
         ),
       },
