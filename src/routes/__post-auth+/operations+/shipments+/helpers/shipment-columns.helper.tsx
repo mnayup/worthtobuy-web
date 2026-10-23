@@ -1,8 +1,8 @@
 import React from 'react';
-import { AlertCircle, Box, Check, Copy } from 'lucide-react';
+import { AlertCircle, Box, Check, Copy, ShoppingBag } from 'lucide-react';
 import { money, number } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
-import { isShipmentFullyPaid, type Shipment } from '../types';
+import { isShipmentFullyPaid, getShipmentItems, getShipmentOrderNumbers, type Shipment } from '../types';
 
 export function getShipmentColumns({
   copiedId,
@@ -20,17 +20,31 @@ export function getShipmentColumns({
       render: (row: Shipment) => {
         const tracking = row.tracking_number || row.trackingNumber;
         const service = row.service_type || row.serviceType;
+        const isShopee =
+          (row.courier || '').toLowerCase().includes('shopee') ||
+          row.shipping_method === 'SHOPEE' ||
+          row.shippingMethod === 'SHOPEE';
+        const shopeeUser = row.shopee_username || row.shopeeUsername;
+
         return tracking ? (
           <div className="flex items-center gap-1.5">
             <div className="flex flex-col">
               <span className="font-mono font-black text-brand-900 text-xs tracking-wider">
                 {tracking}
               </span>
-              <span className="text-[10px] text-brand-500 font-semibold">
-                {(row.shipping_counter?.name || row.shippingCounter?.name) ? (
-                  <span className="text-brand-700 font-bold">{row.shipping_counter?.name || row.shippingCounter?.name} • </span>
+              <span className="text-[10px] text-brand-500 font-semibold flex items-center gap-1">
+                {row.shipping_counter?.name || row.shippingCounter?.name ? (
+                  <span className="text-brand-700 font-bold">
+                    {row.shipping_counter?.name || row.shippingCounter?.name} •{' '}
+                  </span>
                 ) : null}
-                {row.courier || 'JNE'} {service ? `• ${service}` : ''}
+                {isShopee ? (
+                  <span className="inline-flex items-center gap-0.5 text-orange-700 font-bold">
+                    <ShoppingBag size={10} /> Shopee {shopeeUser ? `(@${shopeeUser.replace(/^@/, '')})` : ''}
+                  </span>
+                ) : (
+                  `${row.courier || 'JNE'} ${service ? `• ${service}` : ''}`
+                )}
               </span>
             </div>
             <button
@@ -53,37 +67,92 @@ export function getShipmentColumns({
             </button>
           </div>
         ) : (
-          <span
-            className={
-              'inline-flex items-center gap-1 rounded-lg bg-amber-50 ' +
-              'border border-amber-200/80 px-2 py-0.5 text-[11px] font-bold text-amber-700'
-            }
-          >
-            <AlertCircle size={12} />
-            Awaiting Resi
-          </span>
+          <div className="flex flex-col gap-1 items-start">
+            <span
+              className={
+                'inline-flex items-center gap-1 rounded-lg bg-amber-50 ' +
+                'border border-amber-200/80 px-2 py-0.5 text-[11px] font-bold text-amber-700'
+              }
+            >
+              <AlertCircle size={12} />
+              Awaiting Resi
+            </span>
+            {isShopee && (
+              <span className="inline-flex items-center gap-1 rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-700">
+                <ShoppingBag size={10} /> Shopee {shopeeUser ? `(@${shopeeUser.replace(/^@/, '')})` : ''}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'customer',
+      label: 'Customer',
+      render: (row: Shipment) => {
+        const custName = row.customer?.full_name || row.customer?.fullName || '-';
+        const custCode = row.customer?.customer_code || row.customer?.customerCode;
+        const phone = row.customer?.whatsapp;
+        return (
+          <div className="flex flex-col max-w-[170px]">
+            <span className="font-bold text-brand-900 text-xs truncate" title={custName}>
+              {custName}
+            </span>
+            <div className="flex items-center gap-1.5 text-[10px] text-brand-500 font-medium">
+              {custCode && <span className="font-mono text-brand-600 font-semibold">{custCode}</span>}
+              {custCode && phone && <span>•</span>}
+              {phone && <span className="truncate">{phone}</span>}
+            </div>
+          </div>
         );
       },
     },
     {
       key: 'order',
-      label: 'Order & Customer',
-      render: (row: Shipment) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-brand-900 text-xs">
-            {row.order?.order_number || row.order?.orderNumber || '-'}
-          </span>
-          <span className="text-xs text-brand-600 font-medium truncate max-w-[140px]">
-            {row.customer?.full_name || row.customer?.fullName || '-'}
-          </span>
-        </div>
-      ),
+      label: 'Order',
+      render: (row: Shipment) => {
+        const orderNumbers = getShipmentOrderNumbers(row);
+        const isMerged = orderNumbers.length > 1;
+
+        return (
+          <div className="flex flex-col gap-1 max-w-[160px]">
+            {isMerged ? (
+              <>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-brand-900 text-xs font-mono">
+                    {orderNumbers[0]}
+                  </span>
+                  <span
+                    className={
+                      'rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 ' +
+                      'text-[10px] font-extrabold text-purple-700 shadow-xs'
+                    }
+                    title={`Merged orders in this shipment:\n${orderNumbers.join('\n')}`}
+                  >
+                    +{orderNumbers.length - 1} merged
+                  </span>
+                </div>
+                <span
+                  className="text-[10px] text-purple-600 font-medium truncate"
+                  title={orderNumbers.join(', ')}
+                >
+                  {orderNumbers.slice(1).join(', ')}
+                </span>
+              </>
+            ) : (
+              <span className="font-bold text-brand-900 text-xs font-mono">
+                {orderNumbers[0] || row.order?.order_number || row.order?.orderNumber || '-'}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'itemsToPack',
       label: 'Items to Pack',
       render: (row: Shipment) => {
-        const items = row.order?.items || [];
+        const items = getShipmentItems(row);
         if (!items.length) {
           return <span className="text-brand-400 text-xs italic">No items listed</span>;
         }
@@ -170,6 +239,27 @@ export function getShipmentColumns({
       key: 'shippingCost',
       label: 'Shipping Fee (Est / Act)',
       render: (row: Shipment) => {
+        const isShopee =
+          (row.courier || '').toLowerCase().includes('shopee') ||
+          row.shipping_method === 'SHOPEE' ||
+          row.shippingMethod === 'SHOPEE';
+        const shopeeRefund = row.shopee_refund_amount ?? row.shopeeRefundAmount;
+
+        if (isShopee) {
+          return (
+            <div className="flex flex-col text-xs space-y-0.5">
+              <span className="font-bold text-orange-700">Checkout Shopee</span>
+              {shopeeRefund !== null && shopeeRefund !== undefined && Number(shopeeRefund) > 0 ? (
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/70 px-1 rounded w-fit">
+                  Refund: Rp{Number(shopeeRefund).toLocaleString('id-ID')}
+                </span>
+              ) : (
+                <span className="text-[10px] text-brand-400">Gratis Ongkir CO</span>
+              )}
+            </div>
+          );
+        }
+
         const est = Number(row.shipping_cost ?? row.shippingCost ?? 0);
         const act = row.actual_shipping_cost ?? row.actualShippingCost;
         const diff = row.shipping_cost_difference ?? row.shippingCostDifference;

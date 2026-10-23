@@ -2,7 +2,14 @@ import React, { useState, useEffect, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Truck, AlertCircle, AlertTriangle } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
-import { isShipmentFullyPaid, type Shipment, type ShippingCounter } from '../types';
+import {
+  isShipmentFullyPaid,
+  getShipmentItems,
+  getShipmentOrders,
+  getShipmentOrderNumbers,
+  type Shipment,
+  type ShippingCounter,
+} from '../types';
 import dayjs from 'dayjs';
 import { SetTrackingItemsPreview } from './set-tracking-items-preview';
 import {
@@ -33,6 +40,8 @@ export function SetTrackingModal({
   const [address, setAddress] = useState('');
   const [weightKg, setWeightKg] = useState<string>('');
   const [actualShippingCost, setActualShippingCost] = useState<string>('');
+  const [shopeeRefundAmount, setShopeeRefundAmount] = useState<string>('');
+  const [shopeeUsername, setShopeeUsername] = useState<string>('');
   const [shippedAt, setShippedAt] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [notes, setNotes] = useState('');
@@ -68,6 +77,11 @@ export function SetTrackingModal({
       setAddress(shipment.address || shipment.customer?.address || '');
       setWeightKg(rawWeight !== null && rawWeight !== undefined ? String(rawWeight) : '');
       setActualShippingCost(rawActual !== null && rawActual !== undefined ? String(rawActual) : '');
+      const rawShopeeRefund = shipment.shopee_refund_amount ?? shipment.shopeeRefundAmount;
+      setShopeeRefundAmount(
+        rawShopeeRefund !== null && rawShopeeRefund !== undefined ? String(rawShopeeRefund) : ''
+      );
+      setShopeeUsername(shipment.shopee_username || shipment.shopeeUsername || '');
       setProofUrl(shipment.proof_url || shipment.proofUrl || '');
       setNotes(shipment.notes || '');
 
@@ -83,7 +97,15 @@ export function SetTrackingModal({
   if (!open || !shipment) return null;
 
   const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
-  const items = shipment.order?.items || [];
+  const isShopee =
+    effectiveCourier.toLowerCase().includes('shopee') ||
+    shipment.shipping_method === 'SHOPEE' ||
+    shipment.shippingMethod === 'SHOPEE';
+  const totalBill = getShipmentOrders(shipment).reduce(
+    (sum, ord) => sum + Number(ord?.total_bill ?? ord?.totalBill ?? 0),
+    0
+  );
+  const items = getShipmentItems(shipment);
   const fullyPaid = isShipmentFullyPaid(shipment);
   const isNotPackedYet = shipment.status === 'WAITING_PACKING';
   const estimatedCost = Number(
@@ -118,7 +140,7 @@ export function SetTrackingModal({
       return;
     }
 
-    if (!actualShippingCost || isNaN(Number(actualShippingCost))) {
+    if (!isShopee && (!actualShippingCost || isNaN(Number(actualShippingCost)))) {
       setError('Aktual ongkir wajib diisi angka valid.');
       return;
     }
@@ -132,10 +154,15 @@ export function SetTrackingModal({
         courier: effectiveCourier,
         shippingCounterId: shippingCounterId || null,
         shipping_counter_id: shippingCounterId || null,
-        serviceType: serviceType.trim() || null,
+        serviceType: serviceType.trim() || (isShopee ? 'Checkout Shopee' : null),
         address: address.trim(),
         weightKg: weightKg ? Number(weightKg) : null,
-        actualShippingCost: Number(actualShippingCost),
+        actualShippingCost: isShopee ? 0 : Number(actualShippingCost),
+        shopeeRefundAmount: isShopee ? Number(shopeeRefundAmount || 0) : null,
+        shippingMethod: isShopee ? 'SHOPEE' : 'MANUAL',
+        shopeeUsername: isShopee
+          ? shopeeUsername || shipment.shopee_username || shipment.shopeeUsername || null
+          : null,
         shippedAt: shippedAt ? new Date(shippedAt).toISOString() : new Date().toISOString(),
         proofUrl: proofUrl.trim() || null,
         notes: notes.trim() || null,
@@ -188,7 +215,7 @@ export function SetTrackingModal({
               <p className="text-xs text-brand-500 font-medium">
                 Order{' '}
                 <strong className="font-bold text-brand-800">
-                  {shipment.order?.orderNumber || shipment.order?.order_number || '-'}
+                  {getShipmentOrderNumbers(shipment).join(', ') || '-'}
                 </strong>{' '}
                 • Customer{' '}
                 <strong className="font-bold text-brand-800">
@@ -288,13 +315,18 @@ export function SetTrackingModal({
             estimatedCost={estimatedCost}
             actualShippingCost={actualShippingCost}
             setActualShippingCost={setActualShippingCost}
+            isShopee={isShopee}
+            shopeeRefundAmount={shopeeRefundAmount}
+            setShopeeRefundAmount={setShopeeRefundAmount}
+            shopeeUsername={shopeeUsername || shipment.shopee_username || shipment.shopeeUsername || ''}
+            totalBill={totalBill}
             shippedAt={shippedAt}
             setShippedAt={setShippedAt}
             proofUrl={proofUrl}
             setProofUrl={setProofUrl}
             notes={notes}
             setNotes={setNotes}
-            orderNumber={shipment.order?.orderNumber || shipment.order?.order_number}
+            orderNumber={getShipmentOrderNumbers(shipment).join(', ') || '-'}
             saving={saving}
             fullyPaid={fullyPaid && !isNotPackedYet}
             trackingNumber={trackingNumber}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { PackageCheck, Truck, CheckCircle2, Clock } from 'lucide-react';
-import type { Shipment } from '../types';
+import { PackageCheck, Truck, CheckCircle2, Clock, Split } from 'lucide-react';
+import { getShipmentOrders, type Shipment } from '../types';
 
 interface ShipmentDetailFooterProps {
   currentStatus: string;
@@ -11,6 +11,7 @@ interface ShipmentDetailFooterProps {
   onOpenPack?: (shipment: Shipment) => void;
   onOpenSetTracking?: (shipment: Shipment) => void;
   onOpenConfirmDelivered?: (shipment: Shipment) => void;
+  onOpenSplit?: (shipment: Shipment) => void;
 }
 
 export function ShipmentDetailFooter({
@@ -22,7 +23,10 @@ export function ShipmentDetailFooter({
   onOpenPack,
   onOpenSetTracking,
   onOpenConfirmDelivered,
+  onOpenSplit,
 }: ShipmentDetailFooterProps) {
+  const isMultiOrder = getShipmentOrders(shipment).length > 1;
+
   return (
     <div
       className={
@@ -39,6 +43,22 @@ export function ShipmentDetailFooter({
       </button>
 
       <div className="flex items-center gap-2">
+        {/* Split shipment option for merged multi-order shipments */}
+        {currentStatus === 'WAITING_PACKING' && isMultiOrder && onOpenSplit && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenSplit(shipment);
+            }}
+            className="btn-secondary !border-amber-300 !bg-amber-50 !text-amber-800 hover:!bg-amber-100 !py-2.5 !px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            title="Split merged orders into separate shipments"
+          >
+            <Split size={15} className="text-amber-600" />
+            <span>Split Shipment</span>
+          </button>
+        )}
+
         {/* If WAITING_PACKING: Cannot set resi before pack! Only show Pack */}
         {currentStatus === 'WAITING_PACKING' && (
           <button

@@ -26,10 +26,14 @@ interface Props {
     proofUrl: string;
     notes?: string;
     keepItem?: boolean;
+    shippingMethod?: 'MANUAL' | 'SHOPEE';
+    shopeeUsername?: string;
   }) => Promise<boolean>;
   bankSettings: any;
   pendingPayments: any[];
   isOrdersWaitingSettlement: boolean;
+  shippingMethod?: 'MANUAL' | 'SHOPEE';
+  shopeeUsername?: string;
 }
 
 export function PublicInvoiceProofUploadForm(props: Props) {
@@ -138,6 +142,8 @@ export function PublicInvoiceProofUploadForm(props: Props) {
       proofUrl: uploadedUrl,
       notes: notes || undefined,
       keepItem: isFirstProof ? keepItem : undefined,
+      shippingMethod: isFirstProof ? props.shippingMethod : undefined,
+      shopeeUsername: isFirstProof ? props.shopeeUsername : undefined,
     });
 
     if (success) {

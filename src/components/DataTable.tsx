@@ -22,6 +22,7 @@ type Props = {
   canEditRow?: (row: any) => boolean;
   canDeleteRow?: (row: any) => boolean;
   canSelectRow?: (row: any) => boolean;
+  getSelectDisabledReason?: (row: any) => string | undefined;
   renderActions?: (row: any) => ReactNode;
   emptyText?: string;
   selectedRowIds?: Array<string | number>;
@@ -45,6 +46,7 @@ export function DataTable({
   canEditRow,
   canDeleteRow,
   canSelectRow,
+  getSelectDisabledReason,
   renderActions,
   emptyText = 'No records found.',
   selectedRowIds = [],
@@ -140,6 +142,7 @@ export function DataTable({
             canEditRow={canEditRow}
             canDeleteRow={canDeleteRow}
             canSelectRow={canSelectRow}
+            getSelectDisabledReason={getSelectDisabledReason}
             renderActions={renderActions}
             onEdit={onEdit}
             onDelete={onDelete}

@@ -6,6 +6,7 @@ import { PublicInvoiceHeader } from './components/PublicInvoiceHeader';
 import { PublicInvoiceOrdersTable } from './components/PublicInvoiceOrdersTable';
 import { PublicInvoiceFinancialCard } from './components/PublicInvoiceFinancialCard';
 import { PublicInvoiceBankTransferCard } from './components/PublicInvoiceBankTransferCard';
+import { PublicInvoiceShippingMethodCard } from './components/PublicInvoiceShippingMethodCard';
 import { PublicInvoiceProofUploadForm } from './components/PublicInvoiceProofUploadForm';
 import { PublicInvoicePaymentsList } from './components/PublicInvoicePaymentsList';
 import { PublicInvoiceRefundsList } from './components/PublicInvoiceRefundsList';
@@ -49,6 +50,8 @@ export default function PublicInvoiceViewRoute() {
       </div>
     );
   }
+
+  const isFirstProof = !d.payments || d.payments.length === 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10 space-y-6">
@@ -110,7 +113,15 @@ export default function PublicInvoiceViewRoute() {
         />
       </div>
 
-      {/* 4. Proof of Transfer Upload Form */}
+      {/* 4. Shipment Method Selection (Manual Shipment vs Kirim via Shopee) */}
+      <PublicInvoiceShippingMethodCard
+        currentMethod={d.shippingMethod}
+        currentShopeeUsername={d.shopeeUsername}
+        isFirstProof={isFirstProof}
+        onUpdateShippingMethod={d.updateShippingMethod}
+      />
+
+      {/* 5. Proof of Transfer Upload Form */}
       <PublicInvoiceProofUploadForm
         invoice={d.invoice}
         payments={d.payments}
@@ -124,6 +135,8 @@ export default function PublicInvoiceViewRoute() {
         bankSettings={d.bankSettings}
         pendingPayments={d.pendingPayments}
         isOrdersWaitingSettlement={d.isOrdersWaitingSettlement}
+        shippingMethod={d.shippingMethod}
+        shopeeUsername={d.shopeeUsername}
       />
 
       {/* 5. Payment & Verification History */}

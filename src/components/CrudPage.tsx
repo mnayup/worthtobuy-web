@@ -31,6 +31,7 @@ export function CrudPage({
   canEditRow,
   canDeleteRow,
   canSelectRow,
+  getSelectDisabledReason,
   prepareInitial,
   prepareSubmit,
   renderActions,
@@ -243,6 +244,24 @@ export function CrudPage({
           setLimit(val);
           setPage(1);
         }}
+        canSelectRow={
+          canSelectRow
+            ? (row) =>
+                canSelectRow(
+                  row,
+                  data.filter((r: any) => selectedIds.includes(String(r.id)))
+                )
+            : undefined
+        }
+        getSelectDisabledReason={
+          getSelectDisabledReason
+            ? (row) =>
+                getSelectDisabledReason(
+                  row,
+                  data.filter((r: any) => selectedIds.includes(String(r.id)))
+                )
+            : undefined
+        }
         selectedRowIds={selectedIds}
         onSelectedRowIdsChange={
           selectable === false ||
@@ -261,7 +280,6 @@ export function CrudPage({
         onDelete={canDelete ? (row) => setDeleting(row) : undefined}
         canEditRow={canEditRow}
         canDeleteRow={canDeleteRow}
-        canSelectRow={canSelectRow}
         renderActions={renderActions}
       />
 

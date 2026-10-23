@@ -1,11 +1,18 @@
 import React, { useState, useEffect, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { X, PackageCheck, MapPin, Image, AlertCircle, CheckCircle, Truck } from 'lucide-react';
+import { X, PackageCheck, MapPin, Image, AlertCircle, CheckCircle, Truck, ShoppingBag, RotateCcw } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
 import { FileUploadInput } from '~/components/FileUploadInput';
 import { SearchableSelect } from '~/components/SearchableSelect';
 import type { Option } from '~/types';
-import { isShipmentFullyPaid, type Shipment, type ShippingCounter } from '../types';
+import {
+  isShipmentFullyPaid,
+  getShipmentItems,
+  getShipmentOrderNumbers,
+  getShipmentOrders,
+  type Shipment,
+  type ShippingCounter,
+} from '../types';
 import { ShippingLabelPreview } from './shipping-label-preview';
 import type { LabelItem } from '../helpers/shipping-label-printer.helper';
 
@@ -28,6 +35,7 @@ export function PackingModal({
   const [courier, setCourier] = useState('JNE');
   const [customCourier, setCustomCourier] = useState('');
   const [serviceType, setServiceType] = useState('Regular (REG)');
+  const [shopeeRefundAmount, setShopeeRefundAmount] = useState('');
   const [shippingCounters, setShippingCounters] = useState<ShippingCounter[]>([]);
   const [shippingCounterId, setShippingCounterId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -52,6 +60,10 @@ export function PackingModal({
       setProofBeforeUrl(shipment.proof_before_url || shipment.proofBeforeUrl || '');
       setCourier(shipment.courier || 'JNE');
       setServiceType(shipment.service_type || shipment.serviceType || 'Regular (REG)');
+      const rawShopeeRefund = shipment.shopee_refund_amount ?? shipment.shopeeRefundAmount;
+      setShopeeRefundAmount(
+        rawShopeeRefund !== null && rawShopeeRefund !== undefined ? String(rawShopeeRefund) : ''
+      );
       const rawCounterId = shipment.shipping_counter_id ?? shipment.shippingCounterId;
       setShippingCounterId(rawCounterId ? Number(rawCounterId) : null);
       setError('');
@@ -60,7 +72,7 @@ export function PackingModal({
 
   if (!open || !shipment) return null;
 
-  const labelItems: LabelItem[] = (shipment.order?.items || []).map((item) => ({
+  const labelItems: LabelItem[] = getShipmentItems(shipment).map((item) => ({
     name: item.product?.name || item.manual_product_name || item.manualProductName || 'Item',
     variant: item.variation || null,
     size: item.size || null,
@@ -70,11 +82,20 @@ export function PackingModal({
 
   const fullyPaid = isShipmentFullyPaid(shipment);
   const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
+  const isShopee =
+    effectiveCourier.toLowerCase().includes('shopee') ||
+    shipment.shipping_method === 'SHOPEE' ||
+    shipment.shippingMethod === 'SHOPEE';
+  const totalBill = getShipmentOrders(shipment).reduce(
+    (sum, ord) => sum + Number(ord?.total_bill ?? ord?.totalBill ?? 0),
+    0
+  );
 
   const defaultCouriers = [
     'JNE',
     'J&T Express',
     'SiCepat',
+    'Shopee (Checkout Shopee)',
     'Paxel',
     'Lion Parcel',
     'Anteraja',
@@ -132,6 +153,10 @@ export function PackingModal({
       await api.put(`/shipments/${shipment.id}`, {
         address: address.trim(),
         courier: effectiveCourier,
+        shippingMethod: isShopee ? 'SHOPEE' : 'MANUAL',
+        shipping_method: isShopee ? 'SHOPEE' : 'MANUAL',
+        shopeeRefundAmount: isShopee ? Number(shopeeRefundAmount || 0) : null,
+        shopee_refund_amount: isShopee ? Number(shopeeRefundAmount || 0) : null,
         shippingCounterId: shippingCounterId || null,
         shipping_counter_id: shippingCounterId || null,
         serviceType: serviceType.trim() || null,
@@ -181,7 +206,7 @@ export function PackingModal({
               <p className="text-xs text-brand-500 font-medium">
                 Order{' '}
                 <strong className="font-bold text-brand-800">
-                  {shipment.order?.orderNumber || shipment.order?.order_number || '-'}
+                  {getShipmentOrderNumbers(shipment).join(', ') || '-'}
                 </strong>{' '}
                 • Customer{' '}
                 <strong className="font-bold text-brand-800">
@@ -287,6 +312,59 @@ export function PackingModal({
               </div>
             </div>
 
+            {/* Shopee Refund Nominal Input (Before Packing) */}
+            {isShopee && (
+              <div className="rounded-xl border border-orange-300 bg-gradient-to-r from-orange-50 via-amber-50/50 to-orange-50 p-3.5 space-y-2 shadow-2xs">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <label className="text-xs font-black text-orange-950 flex items-center gap-1.5">
+                    <RotateCcw size={13} className="text-orange-600" />
+                    Nominal Refund Shopee (Input Sebelum Packing)
+                  </label>
+                  <span className="text-[10px] font-extrabold text-orange-800 bg-orange-200/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <ShoppingBag size={10} /> Kirim via Shopee
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-orange-900 leading-relaxed font-medium">
+                  Karena pengiriman dialihkan melalui checkout Shopee, masukkan nominal dana yang harus di-refund ke customer. Sistem akan otomatis membuat data tiket refund di menu Finance Refunds saat packing disimpan.
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-orange-800">
+                      Rp
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input !h-9 !pl-8 text-xs font-bold !border-orange-300 focus:!border-orange-500 bg-white"
+                      placeholder="0"
+                      value={shopeeRefundAmount}
+                      onChange={(e) => setShopeeRefundAmount(e.target.value)}
+                    />
+                  </div>
+
+                  {totalBill > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShopeeRefundAmount(String(totalBill))}
+                      className="px-2.5 py-1.5 rounded-lg border border-orange-300 bg-white hover:bg-orange-100/70 text-[11px] font-bold text-orange-900 transition shrink-0 cursor-pointer"
+                      title="Isi nominal sebesar total tagihan pesanan"
+                    >
+                      Total Pesanan (Rp{totalBill.toLocaleString('id-ID')})
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShopeeRefundAmount('0')}
+                    className="px-2 py-1.5 rounded-lg border border-orange-300 bg-white hover:bg-orange-100/70 text-[11px] font-bold text-orange-800 transition shrink-0 cursor-pointer"
+                  >
+                    Rp 0
+                  </button>
+                </div>
+              </div>
+            )}
+
             <textarea
               rows={2}
               className="input !h-auto py-2 text-xs leading-relaxed"
@@ -328,7 +406,7 @@ export function PackingModal({
               </span>
             </div>
             <ShippingLabelPreview
-              orderNumber={shipment.order?.orderNumber || shipment.order?.order_number || '-'}
+              orderNumber={getShipmentOrderNumbers(shipment).join(', ') || '-'}
               shipmentId={shipment.id}
               recipientName={
                 shipment.customer?.fullName || shipment.customer?.full_name || 'Customer'

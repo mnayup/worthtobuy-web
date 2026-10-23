@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle2, AlertCircle, X, PackageCheck, User, Truck, MapPin } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
-import type { Shipment } from '../types';
+import { isShipmentFullyPaid, getShipmentItems, getShipmentOrderNumbers, type Shipment } from '../types';
 
 interface ConfirmDeliveredModalProps {
   open: boolean;
@@ -35,8 +35,10 @@ export function ConfirmDeliveredModal({ open, shipment, onClose, onConfirmed }: 
     }
   }
 
-  const items = shipment.order?.items || [];
+  const items = getShipmentItems(shipment);
   const totalQty = items.reduce((s, it) => s + (it.quantity || 1), 0);
+  const orderNumbers = getShipmentOrderNumbers(shipment);
+  const orderNumbersStr = orderNumbers.join(', ') || shipment.order?.orderNumber || '-';
 
   return createPortal(
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-brand-900/50 p-4 backdrop-blur-sm animate-in fade-in-0 duration-200">
@@ -75,14 +77,14 @@ export function ConfirmDeliveredModal({ open, shipment, onClose, onConfirmed }: 
             <span className="text-brand-500 font-medium flex items-center gap-1.5">
               <PackageCheck size={14} className="text-brand-600" /> Order Number
             </span>
-            <span className="font-extrabold text-brand-900">{shipment.order?.orderNumber || '-'}</span>
+            <span className="font-extrabold text-brand-900">{orderNumbersStr}</span>
           </div>
 
           <div className="flex items-center justify-between border-b border-brand-100/80 pb-2">
             <span className="text-brand-500 font-medium flex items-center gap-1.5">
               <User size={14} className="text-brand-600" /> Customer
             </span>
-            <span className="font-bold text-brand-800">{shipment.customer?.fullName || '-'}</span>
+            <span className="font-bold text-brand-800">{shipment.customer?.fullName || shipment.customer?.full_name || '-'}</span>
           </div>
 
           <div className="flex items-center justify-between border-b border-brand-100/80 pb-2">
@@ -90,7 +92,7 @@ export function ConfirmDeliveredModal({ open, shipment, onClose, onConfirmed }: 
               <Truck size={14} className="text-indigo-600" /> Tracking # (Resi)
             </span>
             <span className="font-mono font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
-              {shipment.trackingNumber || '-'} ({shipment.courier || 'JNE'})
+              {shipment.trackingNumber || shipment.tracking_number || '-'} ({shipment.courier || 'JNE'})
             </span>
           </div>
 
@@ -107,7 +109,7 @@ export function ConfirmDeliveredModal({ open, shipment, onClose, onConfirmed }: 
             Automatic Status Completion
           </p>
           <p className="text-[11px] leading-relaxed text-emerald-700">
-            Confirming this will mark shipment as <strong className="font-bold">Delivered</strong> and update Order <strong className="font-bold">{shipment.order?.orderNumber}</strong> status to <strong className="font-bold">COMPLETED</strong>.
+            Confirming this will mark shipment as <strong className="font-bold">Delivered</strong> and update Order(s) <strong className="font-bold">{orderNumbersStr}</strong> status to <strong className="font-bold">COMPLETED</strong>.
           </p>
         </div>
 

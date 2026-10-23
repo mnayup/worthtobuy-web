@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, AlertCircle, Package } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
 import { StatusBadge } from '~/components/StatusBadge';
-import { isShipmentFullyPaid, type Shipment } from '../types';
+import { isShipmentFullyPaid, getShipmentItems, getShipmentOrders, getShipmentOrderNumbers, type Shipment } from '../types';
 import { ShipmentDetailPipeline } from './shipment-detail-pipeline';
 import { ShipmentDetailItemsCard } from './shipment-detail-items-card';
 import { ShipmentDetailLogistics } from './shipment-detail-logistics';
@@ -17,6 +17,7 @@ interface ShipmentDetailModalProps {
   onOpenPack?: (shipment: Shipment) => void;
   onOpenSetTracking?: (shipment: Shipment) => void;
   onOpenConfirmDelivered?: (shipment: Shipment) => void;
+  onOpenSplit?: (shipment: Shipment) => void;
 }
 
 export function ShipmentDetailModal({
@@ -27,6 +28,7 @@ export function ShipmentDetailModal({
   onOpenPack,
   onOpenSetTracking,
   onOpenConfirmDelivered,
+  onOpenSplit,
 }: ShipmentDetailModalProps) {
   const [copiedResi, setCopiedResi] = useState(false);
   const [packingLoading, setPackingLoading] = useState(false);
@@ -42,7 +44,10 @@ export function ShipmentDetailModal({
   if (!open || !shipment) return null;
 
   const currentStatus = shipment.status || 'WAITING_PACKING';
-  const items = shipment.order?.items || [];
+  const orders = getShipmentOrders(shipment);
+  const items = getShipmentItems(shipment);
+  const orderNumbers = getShipmentOrderNumbers(shipment);
+  const isMerged = orders.length > 1;
   const totalItemsCount = items.reduce((acc, it) => acc + (it.quantity || 1), 0);
   const fullyPaid = isShipmentFullyPaid(shipment);
 
@@ -117,18 +122,23 @@ export function ShipmentDetailModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-black text-brand-900 text-lg tracking-tight">
-                  {shipment.trackingNumber || 'Awaiting Tracking (Resi)'}
+                  {shipment.trackingNumber || shipment.tracking_number || 'Awaiting Tracking (Resi)'}
                 </h2>
                 <StatusBadge value={currentStatus} />
+                {isMerged && (
+                  <span className="rounded-full bg-purple-100 text-purple-800 font-extrabold px-2.5 py-0.5 text-[10px]">
+                    Merged ({orders.length} Orders)
+                  </span>
+                )}
               </div>
               <p className="text-xs text-brand-500 font-medium">
                 Order{' '}
                 <strong className="font-bold text-brand-800">
-                  {shipment.order?.orderNumber || '-'}
+                  {orderNumbers.join(', ') || '-'}
                 </strong>{' '}
                 • Customer{' '}
                 <strong className="font-bold text-brand-800">
-                  {shipment.customer?.fullName || '-'}
+                  {shipment.customer?.fullName || shipment.customer?.full_name || '-'}
                 </strong>
               </p>
             </div>
@@ -220,6 +230,7 @@ export function ShipmentDetailModal({
           onOpenPack={onOpenPack}
           onOpenSetTracking={onOpenSetTracking}
           onOpenConfirmDelivered={onOpenConfirmDelivered}
+          onOpenSplit={onOpenSplit}
         />
       </div>
     </div>,

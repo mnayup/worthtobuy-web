@@ -90,6 +90,8 @@ export function usePublicInvoice() {
     proofUrl: string;
     notes?: string;
     keepItem?: boolean;
+    shippingMethod?: 'MANUAL' | 'SHOPEE';
+    shopeeUsername?: string;
   }) => {
     if (!invoiceNumber) return false;
     setSubmitting(true);
@@ -103,6 +105,8 @@ export function usePublicInvoice() {
         proof_url: formData.proofUrl,
         notes: formData.notes || null,
         keep_item: formData.keepItem,
+        shipping_method: formData.shippingMethod,
+        shopee_username: formData.shopeeUsername,
       });
       setSuccessMsg(
         res.data?.message ||
@@ -117,6 +121,26 @@ export function usePublicInvoice() {
       setSubmitting(false);
     }
   };
+
+  const updateShippingMethod = async (method: 'MANUAL' | 'SHOPEE', username?: string) => {
+    if (!invoiceNumber) return false;
+    try {
+      await api.patch(`/public/invoices/${invoiceNumber}/shipping-method`, {
+        shipping_method: method,
+        shopee_username: username || null,
+      });
+      await loadInvoice();
+      return true;
+    } catch (caught) {
+      setError(errorMessage(caught));
+      return false;
+    }
+  };
+
+  const shippingMethod = (invoice?.shipping_method || invoice?.shippingMethod || 'MANUAL') as
+    | 'MANUAL'
+    | 'SHOPEE';
+  const shopeeUsername = invoice?.shopee_username || invoice?.shopeeUsername || '';
 
   return {
     invoiceNumber,
@@ -143,5 +167,8 @@ export function usePublicInvoice() {
     canUploadProof,
     loadInvoice,
     submitProof,
+    shippingMethod,
+    shopeeUsername,
+    updateShippingMethod,
   };
 }

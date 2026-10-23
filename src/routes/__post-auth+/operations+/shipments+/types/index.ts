@@ -76,6 +76,12 @@ export interface Shipment {
   packedAt?: string | null;
   packed_at?: string | null;
   status: string;
+  shippingMethod?: string | null;
+  shipping_method?: string | null;
+  shopeeUsername?: string | null;
+  shopee_username?: string | null;
+  shopeeRefundAmount?: number | null;
+  shopee_refund_amount?: number | null;
   proofBeforeUrl?: string | null;
   proof_before_url?: string | null;
   proofUrl?: string | null;
@@ -138,39 +144,85 @@ export interface Shipment {
       };
     }>;
   };
+  shipment_orders?: Array<{
+    id: number;
+    shipment_id?: number;
+    order_id?: number;
+    order?: Shipment['order'];
+  }>;
+  shipmentOrders?: Array<{
+    id: number;
+    shipment_id?: number;
+    order_id?: number;
+    order?: Shipment['order'];
+  }>;
 }
 
-export function isShipmentFullyPaid(shipment?: Shipment | null): boolean {
-  if (!shipment?.order) return false;
-  const order = shipment.order;
+export function getShipmentOrders(shipment?: Shipment | null): Array<NonNullable<Shipment['order']>> {
+  if (!shipment) return [];
+  const map = new Map<number, NonNullable<Shipment['order']>>();
+  if (shipment.order && shipment.order.id) {
+    map.set(shipment.order.id, shipment.order);
+  }
+  const links = shipment.shipment_orders || shipment.shipmentOrders || [];
+  for (const link of links) {
+    if (link.order && link.order.id) {
+      map.set(link.order.id, link.order);
+    }
+  }
+  return Array.from(map.values());
+}
 
-  // 1. If invoice exists, check whether invoice is fully paid
+export function getShipmentItems(shipment?: Shipment | null): ShipmentOrderItem[] {
+  const orders = getShipmentOrders(shipment);
+  if (!orders.length && shipment?.order?.items) {
+    return shipment.order.items;
+  }
+  return orders.flatMap((o) => o.items || []);
+}
+
+export function getShipmentOrderNumbers(shipment?: Shipment | null): string[] {
+  const orders = getShipmentOrders(shipment);
+  if (!orders.length && (shipment?.order?.order_number || shipment?.order?.orderNumber)) {
+    return [shipment.order.order_number || shipment.order.orderNumber || ''];
+  }
+  return orders
+    .map((o) => o.order_number || o.orderNumber)
+    .filter(Boolean) as string[];
+}
+
+export function isSingleOrderFullyPaid(order?: Shipment['order'] | null): boolean {
+  if (!order) return false;
+
   const invoiceLinks = order.invoice_links || order.invoiceLinks;
   if (invoiceLinks && invoiceLinks.length > 0) {
     const hasUnpaidInvoice = invoiceLinks.some((link) => {
       const inv = link.invoice;
       if (!inv) return false;
       const outstanding = Number(inv.outstanding_amount ?? inv.outstandingAmount ?? 0);
-      return !['PAID', 'OVERPAID'].includes(inv.status) || outstanding > 0;
+      return !['PAID', 'OVERPAID', 'REFUND_DUE'].includes(inv.status) || outstanding > 0;
     });
     if (hasUnpaidInvoice) return false;
   }
 
-  // 2. Check order outstanding amount
   const outstanding = Number(order.outstanding_amount ?? order.outstandingAmount ?? 0);
   if (outstanding > 0) return false;
 
-  // 3. Check paidAmount vs totalBill
   const totalBill = Number(order.total_bill ?? order.totalBill ?? 0);
   const paid = Number(order.paid_amount ?? order.paidAmount ?? 0);
   if (totalBill > 0 && paid < totalBill) return false;
 
-  // 4. Status check: if order is still waiting for DP, settlement, or new
   if (['NEW', 'WAITING_DP', 'DP_RECEIVED', 'WAITING_SETTLEMENT'].includes(order.status || '')) {
     return false;
   }
 
   return true;
+}
+
+export function isShipmentFullyPaid(shipment?: Shipment | null): boolean {
+  const orders = getShipmentOrders(shipment);
+  if (!orders.length) return false;
+  return orders.every((ord) => isSingleOrderFullyPaid(ord));
 }
 
 export const shipmentStatuses = [

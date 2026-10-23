@@ -7,6 +7,7 @@ export const COMMON_COURIERS = [
   'JNE',
   'J&T Express',
   'SiCepat',
+  'Shopee (Checkout Shopee)',
   'Paxel',
   'Lion Parcel',
   'Anteraja',
