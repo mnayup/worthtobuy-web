@@ -82,10 +82,7 @@ export function PackingModal({
 
   const fullyPaid = isShipmentFullyPaid(shipment);
   const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
-  const isShopee =
-    effectiveCourier.toLowerCase().includes('shopee') ||
-    shipment.shipping_method === 'SHOPEE' ||
-    shipment.shippingMethod === 'SHOPEE';
+  const isShopee = effectiveCourier.toLowerCase().includes('shopee');
   const totalBill = getShipmentOrders(shipment).reduce(
     (sum, ord) => sum + Number(ord?.total_bill ?? ord?.totalBill ?? 0),
     0
@@ -293,22 +290,20 @@ export function PackingModal({
 
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-brand-700">Layanan / Service Type</label>
-                <input
-                  type="text"
-                  list="packing-service-suggestions"
-                  className="input !h-9 text-xs"
-                  placeholder="e.g. Regular (REG), Express, Cargo"
+                <SearchableSelect
                   value={serviceType}
-                  onChange={(e) => setServiceType(e.target.value)}
+                  placeholder="Cari atau ketik layanan..."
+                  options={[
+                    { label: 'Regular (REG)', value: 'Regular (REG)' },
+                    { label: 'Next Day / Express (YES / BEST)', value: 'Next Day / Express (YES / BEST)' },
+                    { label: 'Cargo / JTR', value: 'Cargo / JTR' },
+                    { label: 'Same Day', value: 'Same Day' },
+                    { label: 'Instant', value: 'Instant' },
+                    { label: 'Economy (ECO)', value: 'Economy (ECO)' },
+                  ]}
+                  onChange={(val) => setServiceType(String(val || ''))}
+                  allowCustom={true}
                 />
-                <datalist id="packing-service-suggestions">
-                  <option value="Regular (REG)" />
-                  <option value="Next Day / Express (YES / BEST)" />
-                  <option value="Cargo / JTR" />
-                  <option value="Same Day" />
-                  <option value="Instant" />
-                  <option value="Economy (ECO)" />
-                </datalist>
               </div>
             </div>
 
@@ -417,6 +412,7 @@ export function PackingModal({
               serviceType={serviceType}
               items={labelItems}
               notes={notes}
+              isShopee={isShopee}
             />
           </div>
 

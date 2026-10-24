@@ -157,6 +157,26 @@ export function OverviewCashFlowReconciliation({
               </strong>
             </div>
           )}
+          {Boolean(report.shopeeRefund && report.shopeeRefund > 0) && (
+            <div
+              className={
+                'mt-2 flex items-center justify-between rounded-xl ' +
+                'bg-amber-50/70 p-3 border border-amber-200'
+              }
+            >
+              <div>
+                <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">
+                  Shopee Checkout Offsets
+                </span>
+                <span className="text-[10px] text-amber-600">
+                  Dikeluarkan dari beban kas masuk/keluar (ditalangi via Shopee)
+                </span>
+              </div>
+              <strong className="text-sm font-extrabold text-amber-900">
+                {money(report.shopeeRefund || 0)}
+              </strong>
+            </div>
+          )}
         </div>
 
         <div

@@ -50,6 +50,11 @@ export default function ShippingCountersRoute() {
       canCreate={canManage}
       canEdit={canManage}
       canDelete={canManage}
+      canDeleteRow={(row) => !(row.name || '').toLowerCase().includes('shopee') && (row.code || '').toUpperCase() !== 'SHOPEE'}
+      canSelectRow={(row) => !(row.name || '').toLowerCase().includes('shopee') && (row.code || '').toUpperCase() !== 'SHOPEE'}
+      getSelectDisabledReason={(row) =>
+        (row.name || '').toLowerCase().includes('shopee') ? 'Default sistem tidak dapat dihapus' : undefined
+      }
       searchPlaceholder="Search courier name, code, services..."
       prepareInitial={(item) => ({
         name: item.name || '',
@@ -85,7 +90,14 @@ export default function ShippingCountersRoute() {
                 <Truck size={17} />
               </div>
               <div>
-                <div className="font-bold text-brand-900 leading-snug">{row.name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-brand-900 leading-snug">{row.name}</span>
+                  {(row.name || '').toLowerCase().includes('shopee') && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-orange-100 text-orange-800 border border-orange-200">
+                      Default Sistem
+                    </span>
+                  )}
+                </div>
                 {row.code && (
                   <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-brand-100 text-brand-700">
                     {row.code}

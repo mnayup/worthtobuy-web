@@ -18,13 +18,21 @@ export const loadPaginatedOptions =
     return responseRows(response).map(mapper);
   };
 
-export const loadPeriods = loadPaginatedOptions('/periods?status=OPEN', (row) => ({
-  value: row.id,
-  label: `${row.code} • ${row.name}`,
-  code: row.code,
-  orderOpenAt: row.orderOpenAt || row.order_open_at,
-  orderCloseAt: row.orderCloseAt || row.order_close_at,
-}));
+export const loadPeriods = async (search: string): Promise<Option[]> => {
+  const query = new URLSearchParams({ limit: '50', status: 'OPEN' });
+  if (search) query.set('search', search);
+  const response = await api.get(`/periods?${query}`);
+  const rows = responseRows(response);
+  return rows
+    .filter((row: any) => (row.status || '').toUpperCase() === 'OPEN')
+    .map((row: any) => ({
+      value: row.id,
+      label: `${row.code} • ${row.name}`,
+      code: row.code,
+      orderOpenAt: row.orderOpenAt || row.order_open_at,
+      orderCloseAt: row.orderCloseAt || row.order_close_at,
+    }));
+};
 
 export const loadCustomers = loadPaginatedOptions('/customers', (row) => {
   const code = row.customerCode || row.customer_code || '';

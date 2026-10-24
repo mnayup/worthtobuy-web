@@ -20,6 +20,7 @@ export interface ShippingLabelSheet {
   serviceType?: string | null;
   items: LabelItem[];
   notes?: string | null;
+  isShopee?: boolean;
 }
 
 export function printShippingLabels(
@@ -122,11 +123,20 @@ export function printShippingLabels(
               <span>Shipment: <strong>#${sheet.shipmentId}</strong></span>
             </div>
 
+            ${
+              sheet.isShopee
+                ? `
+            <div class="courier-box" style="background: #fff7ed; border-color: #ea580c;">
+              <span class="courier-label" style="color: #c2410c;">METODE PENGIRIMAN:</span>
+              <span class="courier-name" style="color: #ea580c;">CHECKOUT SHOPEE (PACKING LIST)</span>
+            </div>
+            `
+                : `
             <div class="courier-box">
               <span class="courier-label">EKSPEDISI / KURIR:</span>
               <span class="courier-name">${sheet.courier || 'JNE'}${
-                sheet.serviceType ? ` • ${sheet.serviceType}` : ''
-              }</span>
+                    sheet.serviceType ? ` • ${sheet.serviceType}` : ''
+                  }</span>
             </div>
 
             <div class="box">
@@ -142,6 +152,8 @@ export function printShippingLabels(
                 <strong>${sheet.senderName}</strong> • ${sheet.senderPhone} (Jakarta)
               </div>
             </div>
+            `
+            }
 
             <div style="flex: 1; overflow: hidden; margin-bottom: 3px;">
               <div class="items-title">

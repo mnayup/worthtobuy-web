@@ -20,6 +20,7 @@ interface ShippingLabelPreviewProps {
   notes?: string | null;
   senderName?: string;
   senderPhone?: string;
+  isShopee?: boolean;
 }
 
 export function ShippingLabelPreview({
@@ -34,6 +35,7 @@ export function ShippingLabelPreview({
   notes,
   senderName: propSenderName,
   senderPhone: propSenderPhone,
+  isShopee,
 }: ShippingLabelPreviewProps) {
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);
   const [itemsPerSheet, setItemsPerSheet] = useState<number>(() => {
@@ -109,6 +111,7 @@ export function ShippingLabelPreview({
       serviceType,
       items: items.slice(start, end),
       notes,
+      isShopee,
     };
   });
 
@@ -226,36 +229,49 @@ export function ShippingLabelPreview({
             </span>
           </div>
 
-          {/* Courier Box on Label */}
-          <div className="rounded border-2 border-slate-900 bg-slate-50 px-2 py-1.5 flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase text-slate-600 tracking-wider">
-              Ekspedisi / Kurir
-            </span>
-            <span className="text-xs font-black text-slate-900 tracking-wide">
-              {courier || 'JNE'}{serviceType ? ` • ${serviceType}` : ''}
-            </span>
-          </div>
-
-          {/* Recipient Box */}
-          <div className="rounded border border-slate-800 p-2 space-y-0.5">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
-              Penerima / Recipient
-            </span>
-            <div className="font-black text-slate-900 text-xs">{recipientName}</div>
-            <div className="font-bold text-slate-700 text-[10px]">{recipientPhone}</div>
-            <div className="text-[10px] text-slate-800 leading-tight pt-1">
-              {recipientAddress || '-'}
+          {/* Courier Box on Label (Omitted on Shopee) */}
+          {isShopee ? (
+            <div className="rounded border-2 border-amber-600 bg-amber-50 px-2 py-1.5 flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase text-amber-700 tracking-wider">
+                Metode Pengiriman
+              </span>
+              <span className="text-xs font-black text-amber-800 tracking-wide">
+                Checkout Shopee (Packing List)
+              </span>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="rounded border-2 border-slate-900 bg-slate-50 px-2 py-1.5 flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-slate-600 tracking-wider">
+                  Ekspedisi / Kurir
+                </span>
+                <span className="text-xs font-black text-slate-900 tracking-wide">
+                  {courier || 'JNE'}{serviceType ? ` • ${serviceType}` : ''}
+                </span>
+              </div>
 
-          {/* Sender Box */}
-          <div className="rounded border border-slate-300 bg-slate-50 p-1.5 text-[9px]">
-            <span className="font-bold text-slate-500 uppercase tracking-wider block text-[8px]">
-              Pengirim / Sender
-            </span>
-            <span className="font-bold text-slate-800">{senderInfo.name}</span> •{' '}
-            {senderInfo.phone} (Jakarta)
-          </div>
+              {/* Recipient Box */}
+              <div className="rounded border border-slate-800 p-2 space-y-0.5">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Penerima / Recipient
+                </span>
+                <div className="font-black text-slate-900 text-xs">{recipientName}</div>
+                <div className="font-bold text-slate-700 text-[10px]">{recipientPhone}</div>
+                <div className="text-[10px] text-slate-800 leading-tight pt-1">
+                  {recipientAddress || '-'}
+                </div>
+              </div>
+
+              {/* Sender Box */}
+              <div className="rounded border border-slate-300 bg-slate-50 p-1.5 text-[9px]">
+                <span className="font-bold text-slate-500 uppercase tracking-wider block text-[8px]">
+                  Pengirim / Sender
+                </span>
+                <span className="font-bold text-slate-800">{senderInfo.name}</span> •{' '}
+                {senderInfo.phone} (Jakarta)
+              </div>
+            </>
+          )}
 
           {/* Items Preview Table */}
           <div className="border-t border-slate-300 pt-1.5 space-y-1">

@@ -231,7 +231,7 @@ export function OrderVariantQuantitySelector({
                   }
                   title={`Click to add row with size: ${s}`}
                 >
-                  + Size {s}
+                  + {s}
                 </button>
               ))}
             </div>

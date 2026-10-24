@@ -1,6 +1,6 @@
 import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { ReceiptText } from 'lucide-react';
 import { money } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
 
@@ -141,11 +141,11 @@ export function renderOrderActions(
             setInvoiceModal(row.id);
           }
         }}
-        className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-cherry-200 bg-cherry-50/50 text-cherry-600 shadow-2xs hover:bg-cherry-100 hover:text-cherry-700 hover:border-cherry-300 transition cursor-pointer"
+        className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-indigo-200 bg-indigo-50/70 text-indigo-600 shadow-2xs hover:bg-indigo-100 hover:text-indigo-700 hover:border-indigo-300 transition cursor-pointer"
         title={invoiceId ? 'Open Invoice' : 'Create Invoice'}
         aria-label={invoiceId ? 'Open Invoice' : 'Create Invoice'}
       >
-        <FileText size={15} />
+        <ReceiptText size={15} />
       </button>
     </div>
   );

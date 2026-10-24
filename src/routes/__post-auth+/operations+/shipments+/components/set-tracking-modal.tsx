@@ -97,10 +97,7 @@ export function SetTrackingModal({
   if (!open || !shipment) return null;
 
   const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
-  const isShopee =
-    effectiveCourier.toLowerCase().includes('shopee') ||
-    shipment.shipping_method === 'SHOPEE' ||
-    shipment.shippingMethod === 'SHOPEE';
+  const isShopee = effectiveCourier.toLowerCase().includes('shopee');
   const totalBill = getShipmentOrders(shipment).reduce(
     (sum, ord) => sum + Number(ord?.total_bill ?? ord?.totalBill ?? 0),
     0

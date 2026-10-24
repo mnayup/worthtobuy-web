@@ -239,10 +239,7 @@ export function getShipmentColumns({
       key: 'shippingCost',
       label: 'Shipping Fee (Est / Act)',
       render: (row: Shipment) => {
-        const isShopee =
-          (row.courier || '').toLowerCase().includes('shopee') ||
-          row.shipping_method === 'SHOPEE' ||
-          row.shippingMethod === 'SHOPEE';
+        const isShopee = (row.courier || '').toLowerCase().includes('shopee');
         const shopeeRefund = row.shopee_refund_amount ?? row.shopeeRefundAmount;
 
         if (isShopee) {

@@ -50,6 +50,7 @@ function buildNewProductPayload(form: any, periodOption: any, unitPriceForeign: 
     category: form.newProductCategory?.trim() || undefined,
     store_location: form.newProductStoreLocation?.trim() || undefined,
     variant: form.newProductVariant?.trim() || undefined,
+    size: form.newProductSize?.trim() || undefined,
     buy_price: Number(form.newProductBuyPrice ?? unitPriceForeign ?? 0),
     selling_price: Number(unitPriceForeign || 0),
     stock_mode: periodOption?.code === 'READY-STOCK' ? 'READY_STOCK' : 'EVENT',

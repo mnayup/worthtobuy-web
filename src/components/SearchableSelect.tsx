@@ -11,9 +11,19 @@ type Props = {
   placeholder: string;
   disabled?: boolean;
   form?: Record<string, any>;
+  allowCustom?: boolean;
 };
 
-export function SearchableSelect({ value, options = [], loadOptions, onChange, placeholder, disabled, form }: Props) {
+export function SearchableSelect({
+  value,
+  options = [],
+  loadOptions,
+  onChange,
+  placeholder,
+  disabled,
+  form,
+  allowCustom,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [remote, setRemote] = useState<Option[]>([]);
@@ -67,18 +77,23 @@ export function SearchableSelect({ value, options = [], loadOptions, onChange, p
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-400" size={16} />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-400" size={16} />
         <input
-          className="input !pl-9 !pr-16"
+          className="input !pl-10 !pr-18"
+          style={{ paddingLeft: '2.5rem', paddingRight: '4.5rem' }}
           disabled={disabled}
-          value={open ? query : selected?.label || (value ? `ID ${value}` : '')}
+          value={open ? query : selected?.label || (value ? (allowCustom ? String(value) : `ID ${value}`) : '')}
           onFocus={() => {
             setOpen(true);
-            setQuery('');
+            setQuery(allowCustom && value ? String(value) : '');
           }}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const next = event.target.value;
+            setQuery(next);
             setOpen(true);
+            if (allowCustom) {
+              onChange(next);
+            }
           }}
           placeholder={placeholder}
           autoComplete="off"
@@ -88,26 +103,29 @@ export function SearchableSelect({ value, options = [], loadOptions, onChange, p
             type="button"
             disabled={disabled}
             aria-label="Clear selection"
-            className="absolute right-8 top-1/2 -translate-y-1/2 rounded p-1 text-brand-400 hover:bg-brand-50 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute right-9 top-1/2 -translate-y-1/2 rounded-full p-1 text-brand-400 hover:bg-brand-100/70 hover:text-brand-700 transition disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => {
               onChange('');
               setQuery('');
             }}
           >
-            <X size={15} />
+            <X size={14} />
           </button>
         ) : null}
         <button
           type="button"
           disabled={disabled}
           aria-label="Open options"
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-brand-400 hover:bg-brand-50 hover:text-brand-600 transition disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => {
             setOpen((current) => !current);
-            setQuery('');
+            setQuery(allowCustom && value ? String(value) : '');
           }}
         >
-          <ChevronDown size={16} />
+          <ChevronDown
+            size={16}
+            className={`transition-transform duration-200 ${open ? 'rotate-180 text-brand-700' : ''}`}
+          />
         </button>
       </div>
       {open && (

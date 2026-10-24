@@ -37,11 +37,18 @@ export function PurchaseSummaryModal({
     const map = new Map<string, SummaryRow>();
 
     for (const it of purchase.items) {
-      const prodName = it.product_name || 'Unnamed Product';
+      const prodName = (it.product_name || 'Unnamed Product').trim();
       // If variation is present use it, otherwise fall back to color or 'Default'
-      const variantLabel = it.variation?.trim() || it.color?.trim() || 'Default';
-      const sizeLabel = it.size?.trim() || '-';
-      const rowKey = `${it.product_id || prodName}__${variantLabel}__${sizeLabel}`;
+      const variantLabel = (it.variation?.trim() || it.color?.trim() || 'Default');
+      const sizeLabel = (it.size?.trim() || '-');
+
+      // Group key using normalized (lowercase trimmed) product name/id, variant, and size
+      // Matching by normalized product name ensures that whether product_id is set or null,
+      // identical products with matching variant and size merge together across customers & orders
+      const normProd = prodName.toLowerCase();
+      const normVariant = variantLabel.toLowerCase();
+      const normSize = sizeLabel.toLowerCase();
+      const rowKey = `${normProd}__${normVariant}__${normSize}`;
 
       const existing = map.get(rowKey);
       const qty = Number(it.quantity || 1);
@@ -60,7 +67,13 @@ export function PurchaseSummaryModal({
       }
     }
 
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => {
+      const cmpProd = a.productName.localeCompare(b.productName);
+      if (cmpProd !== 0) return cmpProd;
+      const cmpVar = a.variant.localeCompare(b.variant);
+      if (cmpVar !== 0) return cmpVar;
+      return a.size.localeCompare(b.size);
+    });
   }, [purchase]);
 
   // Unique product options for the filter dropdown

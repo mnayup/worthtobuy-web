@@ -35,7 +35,7 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
     );
   }
 
-  if (field.type === 'select' && (field.searchable || field.loadOptions)) {
+  if (field.type === 'select') {
     return (
       <SearchableSelect
         value={form[field.name]}
@@ -47,31 +47,9 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
           if (option) set(`${field.name}_option`, option);
           if (field.onChange) field.onChange(value, option, set, form);
         }}
-        placeholder={`Search ${field.label.toLowerCase()}...`}
+        placeholder={`Select or search ${field.label.toLowerCase()}...`}
         form={form}
       />
-    );
-  }
-
-  if (field.type === 'select') {
-    return (
-      <select
-        className="input"
-        required={field.required}
-        disabled={disabled}
-        value={form[field.name] ?? ''}
-        onChange={(event) => {
-          set(field.name, event.target.value);
-          if (field.onChange) field.onChange(event.target.value, undefined, set, form);
-        }}
-      >
-        <option value="">Select {field.label.toLowerCase()}</option>
-        {field.options?.map((option) => (
-          <option key={String(option.value)} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
     );
   }
 

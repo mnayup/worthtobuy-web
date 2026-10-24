@@ -149,19 +149,13 @@ export function SetTrackingCourierFields({
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-brand-700">Courier Service Type</label>
-          <input
-            type="text"
-            list="service-suggestions"
-            className="input !h-10 text-xs"
-            placeholder="e.g. Regular (REG), Express (YES)"
+          <SearchableSelect
             value={serviceType}
-            onChange={(e) => setServiceType(e.target.value)}
+            placeholder="Search or enter service (e.g. Regular, YES)..."
+            options={COMMON_SERVICES.map((s) => ({ label: s, value: s }))}
+            onChange={(val) => setServiceType(String(val || ''))}
+            allowCustom={true}
           />
-          <datalist id="service-suggestions">
-            {COMMON_SERVICES.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
         </div>
       </div>
 

@@ -42,6 +42,7 @@ export interface FinanceReportData {
   operational: number;
   expenseBreakdown: Record<string, number>;
   refund: number;
+  shopeeRefund?: number;
   grossProfit: number;
   netProfit: number;
   margin: number;
