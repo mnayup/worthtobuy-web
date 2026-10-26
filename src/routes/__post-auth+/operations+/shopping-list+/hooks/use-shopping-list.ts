@@ -68,7 +68,7 @@ export function useShoppingList() {
     api
       .get('/periods?limit=100')
       .then((response) => setPeriods(response.data.data || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -113,6 +113,8 @@ export function useShoppingList() {
     const headers = [
       'Brand',
       'Product',
+      'Variant / Details',
+      'Size',
       'Order #',
       'Customer',
       'Event Code',
@@ -122,17 +124,19 @@ export function useShoppingList() {
       'Store Location',
       'Notes',
     ];
-    const rows = items.map((item) => [
-      item.product?.brandName || item.brandName || '-',
-      item.product?.name || item.manualProductName || 'Custom Item',
-      item.order?.orderNumber || '-',
-      item.order?.customer?.fullName || '-',
+    const rows = items.map((item: any) => [
+      item.product?.brandName || item.product?.brand_name || item.brandName || '-',
+      item.product?.name || item.manualProductName || item.manual_product_name || 'Custom Item',
+      item.variation || item.variant || '-',
+      item.size || '-',
+      item.order?.orderNumber || item.order?.order_number || '-',
+      item.order?.customer?.fullName || item.order?.customer?.full_name || '-',
       item.order?.period?.code || '-',
       Number(item.quantity || 1),
-      Number(item.targetPriceIdr || 0),
-      item.purchaseStatus,
-      item.product?.storeLocation || '-',
-      item.purchaseNotes || '-',
+      Number(item.targetPriceIdr ?? item.target_price_idr ?? 0),
+      item.purchaseStatus || item.purchase_status || '-',
+      item.product?.storeLocation || item.product?.store_location || '-',
+      item.purchaseNotes || item.purchase_notes || '-',
     ]);
     exportToExcel(
       `shopping-list-${new Date().toISOString().slice(0, 10)}.xlsx`,

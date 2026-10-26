@@ -149,11 +149,17 @@ export default function PaymentsRoute() {
         {
           key: 'paymentNumber',
           label: 'Payment #',
+          exportValue: (row) => row.payment_number || row.paymentNumber || '-',
           render: (row) => row.payment_number || row.paymentNumber,
         },
         {
           key: 'target',
           label: 'Invoice / Order',
+          exportValue: (row) => {
+            const invNum = row.invoice?.invoice_number || row.invoice?.invoiceNumber;
+            const ordNum = row.order?.order_number || row.order?.orderNumber;
+            return invNum || ordNum || '-';
+          },
           render: (row) => {
             const num =
               row.invoice?.invoice_number ||
@@ -179,6 +185,12 @@ export default function PaymentsRoute() {
         {
           key: 'customer',
           label: 'Customer',
+          exportValue: (row) =>
+            row.invoice?.customer?.full_name ||
+            row.invoice?.customer?.fullName ||
+            row.order?.customer?.full_name ||
+            row.order?.customer?.fullName ||
+            '-',
           render: (row) =>
             row.invoice?.customer?.full_name ||
             row.invoice?.customer?.fullName ||
@@ -188,17 +200,20 @@ export default function PaymentsRoute() {
         },
         {
           key: 'amount',
-          label: 'Amount',
+          label: 'Amount (IDR)',
+          exportValue: (row) => Number(row.amount || 0),
           render: (row) => <strong>{money(row.amount)}</strong>,
         },
         {
           key: 'method',
           label: 'Method',
+          exportValue: (row) => row.payment_method || row.method || '-',
           render: (row) => row.payment_method || row.method,
         },
         {
           key: 'proof',
           label: 'Receipt Proof',
+          exportValue: (row) => row.proof_url || row.proofUrl || '-',
           render: (row) => {
             const url = row.proof_url || row.proofUrl;
             if (!url) {
@@ -227,11 +242,13 @@ export default function PaymentsRoute() {
         {
           key: 'status',
           label: 'Status',
+          exportValue: (row) => row.status || 'PENDING',
           render: (row) => <StatusBadge value={row.status} />,
         },
         {
           key: 'paymentDate',
           label: 'Date',
+          exportValue: (row) => date(row.payment_date || row.paymentDate),
           render: (row) => date(row.payment_date || row.paymentDate),
         },
       ]}

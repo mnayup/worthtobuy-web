@@ -133,17 +133,23 @@ export default function CustomersRoute() {
         {
           key: 'customerCode',
           label: 'Customer ID',
+          exportValue: (row) => row.customer_code || row.customerCode || '-',
           render: (row) => row.customer_code || row.customerCode,
         },
         {
           key: 'fullName',
           label: 'Full Name',
+          exportValue: (row) => row.full_name || row.fullName || '-',
           render: (row) => row.full_name || row.fullName,
         },
-        { key: 'whatsapp', label: 'WhatsApp' },
+        { key: 'whatsapp', label: 'WhatsApp', exportValue: (row) => row.whatsapp || '-' },
         {
           key: 'whatsapp_group',
           label: 'WA Group',
+          exportValue: (row) => {
+            const group = row.whatsapp_group || row.whatsappGroup;
+            return group?.name || 'Unassigned';
+          },
           render: (row) => {
             const group = row.whatsapp_group || row.whatsappGroup;
             if (!group) {
@@ -171,10 +177,18 @@ export default function CustomersRoute() {
             );
           },
         },
-        { key: 'city', label: 'City' },
+        { key: 'city', label: 'City', exportValue: (row) => row.city || '-' },
         {
           key: 'segment',
           label: 'Segment',
+          exportValue: (row) => {
+            let segment = row.segment;
+            const orderCount = row._count?.orders || row.orders?.length || 0;
+            if (segment === 'REGULAR' && orderCount >= 24) {
+              segment = 'PRIORITY';
+            }
+            return segment || 'REGULAR';
+          },
           render: (row) => {
             let segment = row.segment;
             const orderCount = row._count?.orders || row.orders?.length || 0;
@@ -187,6 +201,7 @@ export default function CustomersRoute() {
         {
           key: 'status',
           label: 'Status',
+          exportValue: (row) => row.status || 'inactive',
           render: (row) => <StatusBadge value={row.status || 'inactive'} />,
         },
       ]}

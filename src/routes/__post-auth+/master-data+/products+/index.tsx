@@ -61,6 +61,15 @@ export default function ProductsRoute() {
         {
           key: 'imageUrl',
           label: 'Photo',
+          exportValue: (row) => {
+            const raw = row.image_urls || row.imageUrls;
+            const imgs = Array.isArray(raw) && raw.length > 0
+              ? raw
+              : row.image_url || row.imageUrl
+              ? [row.image_url || row.imageUrl]
+              : [];
+            return imgs[0] || row.image_url || row.imageUrl || '-';
+          },
           render: (row) => {
             const raw = row.image_urls || row.imageUrls;
             const imgs = Array.isArray(raw) && raw.length > 0
@@ -93,10 +102,18 @@ export default function ProductsRoute() {
             );
           },
         },
-        { key: 'sku', label: 'SKU' },
+        { key: 'sku', label: 'SKU', exportValue: (row) => row.sku || '-' },
         {
           key: 'name',
           label: 'Product',
+          exportValue: (row) => {
+            const variant = row.variant || row.variation;
+            const size = row.size;
+            const parts = [row.name];
+            if (variant) parts.push(`[${variant}]`);
+            if (size) parts.push(`Sz ${size}`);
+            return parts.join(' ');
+          },
           render: (row) => {
             const variant = row.variant || row.variation;
             const size = row.size;
@@ -137,6 +154,7 @@ export default function ProductsRoute() {
         {
           key: 'brandName',
           label: 'Brand',
+          exportValue: (row) => row.brand_name || row.brandName || '-',
           render: (row) => {
             const brand = row.brand_name || row.brandName;
             return brand ? (
@@ -151,11 +169,13 @@ export default function ProductsRoute() {
         {
           key: 'stockMode',
           label: 'Type',
+          exportValue: (row) => row.stock_mode || row.stockMode || 'EVENT',
           render: (row) => <StatusBadge value={row.stock_mode || row.stockMode} />,
         },
         {
           key: 'stockQuantity',
-          label: 'Stock',
+          label: 'Stock Total',
+          exportValue: (row) => Number(row.stock_quantity ?? row.stockQuantity ?? 0),
           render: (row) => {
             const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
             const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
@@ -169,7 +189,12 @@ export default function ProductsRoute() {
         },
         {
           key: 'availableStock',
-          label: 'Available',
+          label: 'Available Stock',
+          exportValue: (row) => {
+            const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
+            const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
+            return Math.max(0, Number(qty) - Number(reserved));
+          },
           render: (row) => {
             const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
             const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
@@ -184,12 +209,14 @@ export default function ProductsRoute() {
         },
         {
           key: 'buyPrice',
-          label: 'Buy Price',
+          label: 'Buy Price (IDR)',
+          exportValue: (row) => Number(row.buy_price ?? row.buyPrice ?? 0),
           render: (row) => money(row.buy_price ?? row.buyPrice ?? 0),
         },
         {
           key: 'sellingPrice',
-          label: 'Selling Price',
+          label: 'Selling Price (IDR)',
+          exportValue: (row) => Number(row.selling_price ?? row.sellingPrice ?? 0),
           render: (row) => money(row.selling_price ?? row.sellingPrice ?? 0),
         },
       ]}

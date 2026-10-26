@@ -5,6 +5,61 @@ import {
 } from '~/lib/master-data-templates';
 import type { ColumnConfig, FieldConfig } from '~/types';
 
+function formatExportValue(val: any, row: any, col: ColumnConfig): string | number | boolean | null | undefined {
+  if (col.exportValue) {
+    return col.exportValue(row);
+  }
+
+  if (val === null || val === undefined) {
+    return '';
+  }
+
+  if (typeof val === 'number' || typeof val === 'boolean') {
+    return val;
+  }
+
+  // Handle Date objects or ISO strings for dates
+  if (val instanceof Date) {
+    return val.toISOString().slice(0, 10);
+  }
+
+  if (typeof val === 'object') {
+    // If it's an array of items/objects
+    if (Array.isArray(val)) {
+      if (val.length === 0) return '-';
+      return val
+        .map((item) => {
+          if (typeof item === 'object' && item !== null) {
+            return (
+              item.fullName ||
+              item.full_name ||
+              item.name ||
+              item.code ||
+              item.title ||
+              JSON.stringify(item)
+            );
+          }
+          return String(item);
+        })
+        .join(', ');
+    }
+
+    // Common entity relations (Customer, Period/Event, User, ShippingCounter, WhatsAppGroup)
+    return (
+      val.fullName ||
+      val.full_name ||
+      val.name ||
+      val.code ||
+      val.username ||
+      val.title ||
+      val.label ||
+      '-'
+    );
+  }
+
+  return val;
+}
+
 export function handleExportExcel(
   title: string,
   columns: ColumnConfig[],
@@ -13,10 +68,12 @@ export function handleExportExcel(
   const headers = columns.map((col) => col.label);
   const rows = data.map((row) =>
     columns.map((col) => {
-      const val = row[col.key];
-      return typeof val === 'object' && val !== null
-        ? JSON.stringify(val)
-        : (val ?? '');
+      // Direct property or nested path if key contains dot (e.g. "customer.name")
+      let val = row[col.key];
+      if (val === undefined && col.key.includes('.')) {
+        val = col.key.split('.').reduce((acc, part) => acc?.[part], row);
+      }
+      return formatExportValue(val, row, col);
     })
   );
   const filename = `${title.toLowerCase().replace(/\s+/g, '-')}-${new Date()

@@ -166,6 +166,7 @@ export default function RefundsRoute() {
           {
             key: 'refundNumber',
             label: 'Refund #',
+            exportValue: (row) => row.refund_number || row.refundNumber || '-',
             render: (row) => (
               <span className="font-mono font-bold text-brand-900">
                 {row.refund_number || row.refundNumber || '-'}
@@ -175,6 +176,11 @@ export default function RefundsRoute() {
           {
             key: 'target',
             label: 'Invoice / Order',
+            exportValue: (row) => {
+              const invNum = row.invoice?.invoice_number || row.invoice?.invoiceNumber;
+              const ordNum = row.order?.order_number || row.order?.orderNumber;
+              return invNum || ordNum || '-';
+            },
             render: (row) => {
               const invNum = row.invoice?.invoice_number || row.invoice?.invoiceNumber;
               const ordNum = row.order?.order_number || row.order?.orderNumber;
@@ -211,6 +217,14 @@ export default function RefundsRoute() {
           {
             key: 'customer',
             label: 'Customer',
+            exportValue: (row) =>
+              row.customer?.full_name ||
+              row.customer?.fullName ||
+              row.invoice?.customer?.full_name ||
+              row.invoice?.customer?.fullName ||
+              row.order?.customer?.full_name ||
+              row.order?.customer?.fullName ||
+              '-',
             render: (row) =>
               row.customer?.full_name ||
               row.customer?.fullName ||
@@ -220,11 +234,26 @@ export default function RefundsRoute() {
               row.order?.customer?.fullName ||
               '-',
           },
-          { key: 'amount', label: 'Amount', render: (row) => <strong>{money(row.amount)}</strong> },
+          {
+            key: 'amount',
+            label: 'Amount (IDR)',
+            exportValue: (row) => Number(row.amount || 0),
+            render: (row) => <strong>{money(row.amount)}</strong>,
+          },
 
           {
             key: 'refundType',
             label: 'Resolution Type',
+            exportValue: (row) => {
+              if (row.refundType === 'CUSTOMER_DEPOSIT') return 'Customer Deposit';
+              const bank = row.bankName || row.bank_name;
+              const acc = row.accountNumber || row.account_number;
+              const holder = row.accountHolder || row.account_holder;
+              if (bank || acc) {
+                return `Direct Transfer (${bank || ''} ${acc || ''} - ${holder || ''})`.trim();
+              }
+              return 'Direct Transfer';
+            },
             render: (row) => (
               <div className="space-y-1">
                 <span
@@ -255,8 +284,18 @@ export default function RefundsRoute() {
               </div>
             ),
           },
-          { key: 'source', label: 'Source', render: (row) => <StatusBadge value={row.source} /> },
-          { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> },
+          {
+            key: 'source',
+            label: 'Source',
+            exportValue: (row) => row.source || '-',
+            render: (row) => <StatusBadge value={row.source} />,
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            exportValue: (row) => row.status || 'REQUESTED',
+            render: (row) => <StatusBadge value={row.status} />,
+          },
         ]}
         renderActions={(row) => {
           const status = row.status;

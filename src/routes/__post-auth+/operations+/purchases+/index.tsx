@@ -230,6 +230,7 @@ export default function PurchasesRoute() {
           {
             key: 'purchaseNumber',
             label: 'Purchase #',
+            exportValue: (row) => row.purchase_number || row.purchaseNumber,
             render: (row) => (
               <div className="flex items-center gap-1.5">
                 <span className="font-mono font-bold text-brand-900 text-xs">
@@ -248,10 +249,21 @@ export default function PurchasesRoute() {
               </div>
             ),
           },
-          { key: 'period', label: 'Event', render: (row) => row.period?.name || '-' },
+          {
+            key: 'period',
+            label: 'Event',
+            exportValue: (row) => (row.period ? `${row.period.code ? `[${row.period.code}] ` : ''}${row.period.name}` : '-'),
+            render: (row) => row.period?.name || '-',
+          },
           {
             key: 'product',
             label: 'Product / Items',
+            exportValue: (row) =>
+              row.product_summary ||
+              row.product?.name ||
+              row.orderItem?.manualProductName ||
+              row.order_item?.manual_product_name ||
+              '-',
             render: (row) =>
               row.product_summary ||
               row.product?.name ||
@@ -262,6 +274,7 @@ export default function PurchasesRoute() {
           {
             key: 'quantity',
             label: 'Target Qty',
+            exportValue: (row) => Number(row.eligibleQuantity ?? row.totalQuantity ?? row.quantity ?? 1),
             render: (row) => {
               const eligible = row.eligibleQuantity;
               const total = row.totalQuantity ?? row.quantity ?? 1;
@@ -276,25 +289,34 @@ export default function PurchasesRoute() {
               return `${total} pcs`;
             },
           },
-          { key: 'shopper', label: 'Shopper', render: (row) => row.shopper?.name || '-' },
+          {
+            key: 'shopper',
+            label: 'Shopper',
+            exportValue: (row) => row.shopper?.name || '-',
+            render: (row) => row.shopper?.name || '-',
+          },
           {
             key: 'brandName',
             label: 'Brand',
+            exportValue: (row) => row.brand_name || row.brandName || '-',
             render: (row) => row.brand_name || row.brandName,
           },
           {
             key: 'estimatedPrice',
-            label: 'Estimated',
+            label: 'Estimated (IDR)',
+            exportValue: (row) => Number(row.estimated_price ?? row.estimatedPrice ?? 0),
             render: (row) => money(row.estimated_price ?? row.estimatedPrice),
           },
           {
             key: 'actualPrice',
-            label: 'Actual',
+            label: 'Actual (IDR)',
+            exportValue: (row) => Number(row.actual_price ?? row.actualPrice ?? 0),
             render: (row) => money(row.actual_price ?? row.actualPrice),
           },
           {
             key: 'priceDifference',
-            label: 'Difference',
+            label: 'Difference (IDR)',
+            exportValue: (row) => Number(row.price_difference ?? row.priceDifference ?? 0),
             render: (row) => {
               const diff = Number(row.price_difference ?? row.priceDifference ?? 0);
               const cls = diff > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold';
@@ -304,6 +326,7 @@ export default function PurchasesRoute() {
           {
             key: 'status',
             label: 'Status',
+            exportValue: (row) => row.status || 'WAITING_PURCHASE',
             render: (row) => <StatusBadge value={row.status || 'WAITING_PURCHASE'} />,
           },
         ]}

@@ -135,6 +135,7 @@ export default function PeriodsRoute() {
         { 
           key: 'code', 
           label: 'Code',
+          exportValue: (row) => row.code || '-',
           render: (row) => (
             <div className="flex items-center gap-1.5 font-semibold">
               <span>{row.code}</span>
@@ -151,11 +152,12 @@ export default function PeriodsRoute() {
             </div>
           )
         },
-        { key: 'name', label: 'Event Name' },
-        { key: 'city', label: 'Destination' },
+        { key: 'name', label: 'Event Name', exportValue: (row) => row.name || '-' },
+        { key: 'city', label: 'Destination', exportValue: (row) => row.city || '-' },
         {
           key: 'type',
           label: 'Type',
+          exportValue: (row) => (row.type === 'LOCAL' ? 'Local' : row.type === 'INTERNATIONAL' ? 'International' : row.type || '-'),
           render: (row) =>
             row.type === 'LOCAL'
               ? 'Local'
@@ -166,6 +168,11 @@ export default function PeriodsRoute() {
         {
           key: 'departureAt',
           label: 'Event Period',
+          exportValue: (row) => {
+            const dep = row.departure_at ?? row.departureAt;
+            const ret = row.return_at ?? row.returnAt;
+            return row.code === 'READY-STOCK' ? 'Permanent' : `${date(dep)} - ${date(ret)}`;
+          },
           render: (row) => {
             const dep = row.departure_at ?? row.departureAt;
             const ret = row.return_at ?? row.returnAt;
@@ -175,6 +182,11 @@ export default function PeriodsRoute() {
         {
           key: 'orderOpenAt',
           label: 'Orders Period',
+          exportValue: (row) => {
+            const open = row.order_open_at ?? row.orderOpenAt;
+            const close = row.order_close_at ?? row.orderCloseAt;
+            return row.code === 'READY-STOCK' ? 'Always Open' : `${date(open)} - ${date(close)}`;
+          },
           render: (row) => {
             const open = row.order_open_at ?? row.orderOpenAt;
             const close = row.order_close_at ?? row.orderCloseAt;
@@ -184,6 +196,15 @@ export default function PeriodsRoute() {
         {
           key: 'status',
           label: 'Status',
+          exportValue: (row) => {
+            let currentStatus = row.status;
+            const closeAt = row.order_close_at ?? row.orderCloseAt;
+            const isExpired = closeAt && new Date() > new Date(closeAt);
+            if (row.code !== 'READY-STOCK' && currentStatus === 'OPEN' && isExpired) {
+              currentStatus = 'CLOSED';
+            }
+            return currentStatus || '-';
+          },
           render: (row) => {
             let currentStatus = row.status;
             const closeAt = row.order_close_at ?? row.orderCloseAt;

@@ -17,6 +17,7 @@ export function getShipmentColumns({
     {
       key: 'trackingNumber',
       label: 'Tracking # (Resi)',
+      exportValue: (row: Shipment) => row.tracking_number || row.trackingNumber || 'Awaiting Resi',
       render: (row: Shipment) => {
         const tracking = row.tracking_number || row.trackingNumber;
         const service = row.service_type || row.serviceType;
@@ -89,6 +90,7 @@ export function getShipmentColumns({
     {
       key: 'customer',
       label: 'Customer',
+      exportValue: (row: Shipment) => row.customer?.full_name || row.customer?.fullName || '-',
       render: (row: Shipment) => {
         const custName = row.customer?.full_name || row.customer?.fullName || '-';
         const custCode = row.customer?.customer_code || row.customer?.customerCode;
@@ -110,6 +112,10 @@ export function getShipmentColumns({
     {
       key: 'order',
       label: 'Order',
+      exportValue: (row: Shipment) => {
+        const orderNumbers = getShipmentOrderNumbers(row);
+        return orderNumbers.length > 0 ? orderNumbers.join(', ') : '-';
+      },
       render: (row: Shipment) => {
         const orderNumbers = getShipmentOrderNumbers(row);
         const isMerged = orderNumbers.length > 1;
@@ -151,6 +157,20 @@ export function getShipmentColumns({
     {
       key: 'itemsToPack',
       label: 'Items to Pack',
+      exportValue: (row: Shipment) => {
+        const items = getShipmentItems(row);
+        if (!items.length) return '-';
+        return items
+          .map((it) => {
+            const name =
+              it.product?.name ||
+              it.manual_product_name ||
+              it.manualProductName ||
+              'Item';
+            return `${it.quantity || 1}x ${name}`;
+          })
+          .join('; ');
+      },
       render: (row: Shipment) => {
         const items = getShipmentItems(row);
         if (!items.length) {
@@ -210,6 +230,7 @@ export function getShipmentColumns({
     {
       key: 'address',
       label: 'Destination Address',
+      exportValue: (row: Shipment) => row.address || '-',
       render: (row: Shipment) => (
         <span
           className={
@@ -225,7 +246,8 @@ export function getShipmentColumns({
     },
     {
       key: 'weightKg',
-      label: 'Weight',
+      label: 'Weight (kg)',
+      exportValue: (row: Shipment) => Number(row.weight_kg ?? row.weightKg ?? 0),
       render: (row: Shipment) => {
         const weight = row.weight_kg ?? row.weightKg;
         return (
@@ -237,7 +259,12 @@ export function getShipmentColumns({
     },
     {
       key: 'shippingCost',
-      label: 'Shipping Fee (Est / Act)',
+      label: 'Shipping Fee (IDR)',
+      exportValue: (row: Shipment) => {
+        const act = row.actual_shipping_cost ?? row.actualShippingCost;
+        const est = row.shipping_cost ?? row.shippingCost ?? 0;
+        return Number(act !== null && act !== undefined ? act : est);
+      },
       render: (row: Shipment) => {
         const isShopee = (row.courier || '').toLowerCase().includes('shopee');
         const shopeeRefund = row.shopee_refund_amount ?? row.shopeeRefundAmount;
@@ -296,6 +323,7 @@ export function getShipmentColumns({
     {
       key: 'paymentStatus',
       label: 'Payment',
+      exportValue: (row: Shipment) => (isShipmentFullyPaid(row) ? 'Full Payment' : 'Not Full Payment'),
       render: (row: Shipment) => {
         const fullyPaid = isShipmentFullyPaid(row);
         if (fullyPaid) {
@@ -335,6 +363,7 @@ export function getShipmentColumns({
     {
       key: 'status',
       label: 'Status',
+      exportValue: (row: Shipment) => row.status,
       render: (row: Shipment) => <StatusBadge value={row.status} />,
     },
   ];

@@ -110,23 +110,26 @@ export default function ExpensesRoute() {
         {
           key: 'expenseNumber',
           label: 'Expense #',
+          exportValue: (row) => row.expense_number || row.expenseNumber || '-',
           render: (row) => row.expense_number || row.expenseNumber,
         },
         {
           key: 'expenseDate',
           label: 'Date',
+          exportValue: (row) => date(row.expense_date || row.expenseDate),
           render: (row) => date(row.expense_date || row.expenseDate),
         },
-        { key: 'category', label: 'Category' },
-        { key: 'period', label: 'Event', render: (row) => row.period?.code || '-' },
+        { key: 'category', label: 'Category', exportValue: (row) => row.category || '-' },
+        { key: 'period', label: 'Event', exportValue: (row) => row.period?.code || row.period?.name || '-', render: (row) => row.period?.code || '-' },
         {
           key: 'amountIdr',
-          label: 'Amount',
+          label: 'Amount (IDR)',
+          exportValue: (row) => Number(row.amount_idr ?? row.amountIdr ?? row.amount ?? 0),
           render: (row) => (
             <strong>{money(row.amount_idr ?? row.amountIdr ?? row.amount)}</strong>
           ),
         },
-        { key: 'payee', label: 'Payee' },
+        { key: 'payee', label: 'Payee', exportValue: (row) => row.payee || '-' },
       ]}
       canCreate={hasPermission('expenses', 'create')}
       canEdit={hasPermission('expenses', 'edit')}

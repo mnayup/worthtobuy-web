@@ -10,11 +10,13 @@ export function getOrderColumns() {
       key: 'orderNumber',
       label: 'Order Number',
       render: (row: any) => row.order_number || row.orderNumber,
+      exportValue: (row: any) => row.order_number || row.orderNumber || '-',
     },
     {
       key: 'customer',
       label: 'Customer',
       render: (row: any) => row.customer?.full_name || row.customer?.fullName,
+      exportValue: (row: any) => row.customer?.full_name || row.customer?.fullName || '-',
     },
     {
       key: 'period',
@@ -28,6 +30,8 @@ export function getOrderColumns() {
         ) : (
           '-'
         ),
+      exportValue: (row: any) =>
+        row.period ? `${row.period.code ? `[${row.period.code}] ` : ''}${row.period.name}` : '-',
     },
     {
       key: 'item',
@@ -64,6 +68,24 @@ export function getOrderColumns() {
           </div>
         );
       },
+      exportValue: (row: any) => {
+        const items = row.items || [];
+        if (items.length === 0) return '-';
+        return items
+          .map((it: any) => {
+            const name =
+              it.product?.name ||
+              it.manual_product_name ||
+              it.manualProductName ||
+              'Item';
+            const variant = [it.variation || it.variant, it.size ? `Sz ${it.size}` : null]
+              .filter(Boolean)
+              .join(' / ');
+            const qty = Number(it.quantity || 1);
+            return `${qty}x ${name}${variant ? ` (${variant})` : ''}`;
+          })
+          .join('; ');
+      },
     },
     {
       key: 'feeMode',
@@ -90,11 +112,18 @@ export function getOrderColumns() {
           </span>
         );
       },
+      exportValue: (row: any) => {
+        const mode = row.service_fee_mode || row.serviceFeeMode;
+        if (mode === 'AUTO_RESELLER') return 'Auto (Reseller)';
+        if (mode === 'AUTO' || mode === 'AUTO_CUSTOMER') return 'Auto (Customer)';
+        return 'Manual';
+      },
     },
     {
       key: 'totalBill',
       label: 'Total',
       render: (row: any) => <strong>{money(row.total_bill ?? row.totalBill ?? 0)}</strong>,
+      exportValue: (row: any) => Number(row.total_bill ?? row.totalBill ?? 0),
     },
     {
       key: 'outstandingAmount',
@@ -113,11 +142,13 @@ export function getOrderColumns() {
           </span>
         );
       },
+      exportValue: (row: any) => Number(row.outstanding_amount ?? row.outstandingAmount ?? 0),
     },
     {
       key: 'status',
       label: 'Status',
       render: (row: any) => <StatusBadge value={row.status} />,
+      exportValue: (row: any) => row.status || '-',
     },
   ];
 }

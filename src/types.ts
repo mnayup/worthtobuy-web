@@ -62,6 +62,7 @@ export type ColumnConfig={
   key:string;
   label:string;
   render?:(row:any)=>ReactNode;
+  exportValue?:(row:any)=>string | number | boolean | null | undefined;
   sortable?:boolean;
   sortKey?:string;
   sortFn?:(a:any, b:any)=>number;
