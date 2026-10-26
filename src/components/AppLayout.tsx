@@ -126,23 +126,28 @@ export function AppLayout() {
           <div className="flex items-center gap-2">
             <div className="relative">
               <button onClick={() => setNotificationOpen(value => !value)} className="relative rounded-xl border border-brand-100 bg-white p-2.5 text-brand-600 hover:bg-brand-50">
-                <Bell size={19}/>{notifications.some(item => !item.isRead) && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-cherry-500 ring-2 ring-white"/>}
+                <Bell size={19}/>{notifications.some(item => !(item.is_read ?? item.isRead)) && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-cherry-500 ring-2 ring-white"/>}
               </button>
               {notificationOpen && createPortal(<>
                 <button aria-label="Close notifications" className="fixed inset-0 z-[80] cursor-default bg-transparent" onClick={() => setNotificationOpen(false)} />
                 <div className="fixed right-4 top-[72px] z-[90] w-[min(calc(100vw-2rem),390px)] overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-2xl sm:right-6">
                   <div className="border-b border-brand-100 px-4 py-3"><p className="font-extrabold text-brand-900">Notifications</p></div>
                   <div className="max-h-96 overflow-y-auto scrollbar-thin">
-                    {notifications.length ? notifications.slice(0,8).map(item => <button key={item.id} onClick={async () => {
-                      await api.patch(`/notifications/${item.id}/read`);
-                      if (item.link) navigate(item.link);
-                      setNotificationOpen(false);
-                      setNotifications(value => value.map(row => row.id === item.id ? { ...row, isRead: true } : row));
-                    }} className={clsx('block w-full border-b border-brand-50 px-4 py-3 text-left hover:bg-brand-50', !item.isRead && 'bg-honey-50/60')}>
-                      <p className="text-sm font-extrabold text-brand-900">{item.title}</p>
-                      <p className="mt-0.5 text-xs text-brand-500">{item.message}</p>
-                      <p className="mt-1 text-[11px] text-brand-300">{dateTime(item.createdAt)}</p>
-                    </button>) : <p className="p-6 text-center text-sm text-brand-400">No notifications.</p>}
+                    {notifications.length ? notifications.slice(0,8).map(item => {
+                      const isRead = Boolean(item.is_read ?? item.isRead);
+                      return (
+                        <button key={item.id} onClick={async () => {
+                          try { await api.patch(`/notifications/${item.id}/read`); } catch {}
+                          if (item.link) navigate(item.link);
+                          setNotificationOpen(false);
+                          setNotifications(value => value.map(row => row.id === item.id ? { ...row, is_read: true, isRead: true } : row));
+                        }} className={clsx('block w-full border-b border-brand-50 px-4 py-3 text-left hover:bg-brand-50', !isRead && 'bg-honey-50/60')}>
+                          <p className="text-sm font-extrabold text-brand-900">{item.title}</p>
+                          <p className="mt-0.5 text-xs text-brand-500">{item.message}</p>
+                          <p className="mt-1 text-[11px] text-brand-300">{dateTime(item.created_at ?? item.createdAt)}</p>
+                        </button>
+                      );
+                    }) : <p className="p-6 text-center text-sm text-brand-400">No notifications.</p>}
                   </div>
                 </div>
               </>, document.body)}
