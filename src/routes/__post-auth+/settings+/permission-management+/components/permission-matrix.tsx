@@ -27,7 +27,6 @@ import type { ModuleDef } from '../types';
 
 const MODULE_ICONS: Record<string, any> = {
   dashboard: TrendingUp,
-  'ai-assistant': Sparkles,
   periods: ClipboardList,
   products: Boxes,
   customers: Users,

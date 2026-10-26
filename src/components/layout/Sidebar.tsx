@@ -1,9 +1,10 @@
 import { ChevronDown, ChevronRight, PanelLeftClose, Sparkles, X } from 'lucide-react';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '~/context/AuthContext';
-import { navGroups, type NavItemConfig } from './nav-config';
+import { api } from '~/lib/api';
+import { navGroups as fallbackNavGroups, resolveIcon, type NavGroupConfig, type NavItemConfig } from './nav-config';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -17,6 +18,38 @@ export function Sidebar({ collapsed, mobile, onClose, onToggle }: SidebarProps) 
   const location = useLocation();
   const compact = collapsed && !mobile;
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+  const [dbNavGroups, setDbNavGroups] = useState<NavGroupConfig[] | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    if (user) {
+      api
+        .get('/navigation/user-menu')
+        .then((res) => {
+          if (!mounted || !Array.isArray(res.data) || res.data.length === 0) return;
+          const mapped: NavGroupConfig[] = res.data.map((group: any) => ({
+            title: group.title,
+            items: (group.items || []).map((item: any) => ({
+              to: item.path,
+              label: item.label,
+              icon: resolveIcon(item.icon),
+              subItems: (item.sub_items || []).map((sub: any) => ({
+                to: sub.path,
+                label: sub.label,
+                icon: resolveIcon(sub.icon),
+              })),
+            })),
+          }));
+          setDbNavGroups(mapped);
+        })
+        .catch(() => {
+          // fallback to client-defined navGroups on network failure
+        });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   const toggleSubmenu = (to: string) => {
     setOpenSubmenus((curr) => ({ ...curr, [to]: !curr[to] }));
@@ -47,11 +80,14 @@ export function Sidebar({ collapsed, mobile, onClose, onToggle }: SidebarProps) 
     return false;
   };
 
-  const filteredGroups = navGroups
+  const activeGroups = dbNavGroups || fallbackNavGroups;
+
+  const filteredGroups = activeGroups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
         if (!user) return false;
+        // If loaded from backend API, items are already pre-filtered, but still double-check
         const modKey = item.to.replace(/^\//, '') || 'dashboard';
         const hasParentPerm = hasPermission(modKey, 'view');
         const hasAnySubPerm =

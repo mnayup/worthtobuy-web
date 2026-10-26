@@ -8,7 +8,6 @@ import {
   ReceiptText,
   Settings,
   ShoppingBag,
-  Sparkles,
   Truck,
   UserCog,
   Users,
@@ -21,22 +20,49 @@ import {
 export interface NavSubItem {
   to: string;
   label: string;
-  roles: string[];
+  roles?: string[];
+  icon?: any;
 }
 
 export interface NavItemConfig {
   to: string;
   label: string;
   icon: any;
-  roles: string[];
+  roles?: string[];
   subItems?: NavSubItem[];
   colorBadge?: string;
 }
 
 export interface NavGroupConfig {
   title: string;
-  roles: string[];
+  roles?: string[];
   items: NavItemConfig[];
+}
+
+export const ICON_MAP: Record<string, any> = {
+  Boxes,
+  CircleDollarSign,
+  ClipboardList,
+  FileText,
+  Landmark,
+  LayoutDashboard,
+  ReceiptText,
+  Settings,
+  ShoppingBag,
+  Truck,
+  UserCog,
+  Users,
+  MessageCircle,
+  Trash2,
+  ShieldCheck,
+  Archive,
+};
+
+export function resolveIcon(iconName: any, fallback = LayoutDashboard) {
+  if (typeof iconName === 'string') {
+    return ICON_MAP[iconName] || fallback;
+  }
+  return iconName || fallback;
 }
 
 export const navGroups: NavGroupConfig[] = [
@@ -49,12 +75,6 @@ export const navGroups: NavGroupConfig[] = [
         label: 'Dashboard',
         icon: LayoutDashboard,
         roles: ['OWNER', 'ADMIN', 'SHOPPER', 'FINANCE'],
-      },
-      {
-        to: '/ai-assistant',
-        label: 'WORTHTOBUY AI',
-        icon: Sparkles,
-        roles: ['OWNER', 'FINANCE', 'ADMIN'],
       },
     ],
   },

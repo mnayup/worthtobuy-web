@@ -41,7 +41,6 @@ import UsersRoute from '~/routes/__post-auth+/system+/users+';
 import PermissionManagementRoute from '~/routes/__post-auth+/settings+/permission-management+';
 import ProfileRoute from '~/routes/__post-auth+/profile+';
 import SettingsRoute from '~/routes/__post-auth+/system+/settings+';
-import AiInsightsRoute from '~/routes/__post-auth+/ai-insights+';
 import TrashRoute from '~/routes/__post-auth+/system+/trash+';
 import NotFoundRoute from '~/routes/$';
 
@@ -291,22 +290,6 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard roles={['OWNER']}>
             <SettingsRoute />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: 'ai-assistant',
-        element: (
-          <RoleGuard roles={['OWNER', 'FINANCE', 'ADMIN']}>
-            <AiInsightsRoute />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: 'ai-insights',
-        element: (
-          <RoleGuard roles={['OWNER', 'FINANCE', 'ADMIN']}>
-            <AiInsightsRoute />
           </RoleGuard>
         ),
       },
