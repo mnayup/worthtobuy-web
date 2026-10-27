@@ -73,7 +73,7 @@ export function SettingsFeeScheduleSection({
           <div>
             <h2 className="section-title">Concierge Fee Schedule</h2>
             <p className="text-sm font-medium text-brand-500">
-              Automated service fees tiered by purchase price. Can be overridden on orders.
+              Automated service fees tiered by each item price and calculated per item. Can be overridden on orders.
             </p>
           </div>
         </div>
