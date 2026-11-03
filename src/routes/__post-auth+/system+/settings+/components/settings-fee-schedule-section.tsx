@@ -13,18 +13,18 @@ import type { FeeRule } from '../types';
 import { SettingsFeeRuleRow } from './settings-fee-rule-row';
 
 interface SettingsFeeScheduleSectionProps {
-  feeTab: 'customer' | 'reseller';
-  setFeeTab: (tab: 'customer' | 'reseller') => void;
-  feeRulesCustomer: FeeRule[];
-  feeRulesReseller: FeeRule[];
-  currentRules: FeeRule[];
-  sortedFeeRules: FeeRule[];
-  sortKey: keyof FeeRule | null;
-  sortDirection: 'asc' | 'desc' | null;
-  toggleSort: (key: keyof FeeRule) => void;
-  updateRule: (id: string, patch: Partial<FeeRule>) => void;
-  addRule: () => void;
-  deleteRule: (id: string) => void;
+  readonly feeTab: 'customer' | 'reseller';
+  readonly setFeeTab: (tab: 'customer' | 'reseller') => void;
+  readonly feeRulesCustomer: readonly FeeRule[];
+  readonly feeRulesReseller: readonly FeeRule[];
+  readonly currentRules: readonly FeeRule[];
+  readonly sortedFeeRules: readonly FeeRule[];
+  readonly sortKey: keyof FeeRule | null;
+  readonly sortDirection: 'asc' | 'desc' | null;
+  readonly toggleSort: (key: keyof FeeRule) => void;
+  readonly updateRule: (id: string, patch: Partial<FeeRule>) => void;
+  readonly addRule: () => void;
+  readonly deleteRule: (id: string) => void;
 }
 
 export function SettingsFeeScheduleSection({
@@ -40,7 +40,7 @@ export function SettingsFeeScheduleSection({
   updateRule,
   addRule,
   deleteRule,
-}: SettingsFeeScheduleSectionProps) {
+}: Readonly<SettingsFeeScheduleSectionProps>) {
   const renderSortIndicator = (key: keyof FeeRule) => {
     if (sortKey !== key || !sortDirection) {
       return (

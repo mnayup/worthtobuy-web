@@ -6,7 +6,7 @@ import { useAuth } from '~/context/AuthContext';
 import type { FieldConfig } from '~/types';
 
 export default function ShippingCountersRoute() {
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const canManage = hasPermission('shipping-counters', 'edit') || hasPermission('shipping-counters', 'create') || hasPermission('shipments', 'dispatch');
 
 
