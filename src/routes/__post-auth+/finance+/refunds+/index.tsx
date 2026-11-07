@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Wallet } from 'lucide-react';
 import clsx from 'clsx';
 import { CrudPage } from '~/components/CrudPage';
@@ -9,6 +9,7 @@ import { useAuth } from '~/context/AuthContext';
 import type { FieldConfig, Option } from '~/types';
 import { refundStatusOptions, refundTypeOptions, type Refund } from './types';
 import { ProcessRefundModal } from './components/process-refund-modal';
+import { RefundStatusCards } from './components/refund-status-cards';
 
 const opts = (values: string[]): Option[] => values.map((value) => ({ value, label: titleCase(value) }));
 
@@ -59,6 +60,21 @@ export default function RefundsRoute() {
   const { user, hasPermission } = useAuth();
   const [processingRefund, setProcessingRefund] = useState<{ refund: Refund; mode: 'method' | 'execute' } | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [summary, setSummary] = useState<Record<string, number>>({});
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+
+  const fetchSummary = async () => {
+    try {
+      const res = await api.get('/refunds/summary');
+      setSummary(res.data || {});
+    } catch (err) {
+      console.error('Failed to load refund summary:', err);
+    }
+  };
+
+  useEffect(() => {
+    void fetchSummary();
+  }, [refreshTrigger]);
 
   const canRequest = hasPermission('refunds', 'request');
   const canExecute = hasPermission('refunds', 'execute');
@@ -136,7 +152,17 @@ export default function RefundsRoute() {
         description="Manage customer refunds, choose resolution methods (Deposit / Rekening), and verify bank transfers."
         endpoint="/refunds"
         fields={fields}
-        extraQuery={{ _v: refreshTrigger }}
+        extraQuery={{
+          _v: refreshTrigger,
+          ...(selectedStatus ? { status: selectedStatus } : {}),
+        }}
+        topContent={
+          <RefundStatusCards
+            selectedStatus={selectedStatus}
+            onSelectStatus={setSelectedStatus}
+            summary={summary}
+          />
+        }
         searchPlaceholder="Search refund number, customer, invoice / order, reason..."
         filters={[
           {
