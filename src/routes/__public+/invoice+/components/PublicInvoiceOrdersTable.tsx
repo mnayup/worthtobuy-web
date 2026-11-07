@@ -1,4 +1,5 @@
 import React from 'react';
+import { MessageSquareText } from 'lucide-react';
 import { money } from '~/lib/format';
 
 interface PublicInvoiceOrdersTableProps {
@@ -57,6 +58,20 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
               </div>
               <span className="font-black text-brand-950">{money(totalAmount)}</span>
             </div>
+
+            {(() => {
+              const customerNotes = order.customer_notes || order.customerNotes;
+              if (!customerNotes) return null;
+              return (
+                <div className="flex items-start gap-2 bg-amber-50/70 border-b border-amber-200/80 px-4 py-2 text-xs">
+                  <MessageSquareText size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <span className="font-bold text-amber-900 mr-1.5">Customer Note:</span>
+                    <span className="text-amber-800 break-words">{customerNotes}</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="divide-y divide-brand-100">
               {(order.items || []).map((item: any) => {

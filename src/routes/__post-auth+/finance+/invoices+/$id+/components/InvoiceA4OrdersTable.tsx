@@ -1,4 +1,5 @@
 import React from 'react';
+import { MessageSquareText } from 'lucide-react';
 import { date, money, titleCase } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
 
@@ -46,6 +47,8 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
             Math.max(0, totalAmount - serviceFee - shippingCost - totalAdditionalFee)
         );
 
+        const customerNotes = order.customer_notes || order.customerNotes;
+
         return (
           <section key={link.id} className="overflow-hidden rounded-xl border border-brand-200">
             <div
@@ -68,6 +71,15 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
                 {money(totalAmount)}
               </p>
             </div>
+            {customerNotes && (
+              <div className="flex items-start gap-2 bg-amber-50/70 border-b border-amber-200/80 px-3.5 py-2 text-xs">
+                <MessageSquareText size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <span className="font-bold text-amber-900 mr-1.5">Customer Note:</span>
+                  <span className="text-amber-800 break-words">{customerNotes}</span>
+                </div>
+              </div>
+            )}
             <div className="overflow-x-auto scrollbar-thin">
               <table className="min-w-full divide-y divide-brand-200">
                 <thead className="bg-brand-50/60">
