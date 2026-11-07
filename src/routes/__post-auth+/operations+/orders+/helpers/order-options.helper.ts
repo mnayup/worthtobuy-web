@@ -36,13 +36,15 @@ export const loadPeriods = async (search: string): Promise<Option[]> => {
 
 export const loadCustomers = loadPaginatedOptions('/customers', (row) => {
   const code = row.customerCode || row.customer_code || '';
-  const name = row.fullName || row.full_name || row.name || '';
+  const name = row.fullName || row.full_name || row.name || `Customer #${row.id}`;
   const wa = row.whatsapp || row.phone || '';
-  const labelParts = [code, name, wa].filter(Boolean).join(' • ');
   const vip = row.segment === 'PRIORITY' ? ' (VIP Priority)' : '';
+  const subLabelParts = [code ? `ID: ${code}` : `ID: #${row.id}`, wa].filter(Boolean).join(' • ');
+
   return {
     value: row.id,
-    label: (labelParts || `Customer #${row.id}`) + vip,
+    label: `${name}${vip}`,
+    subLabel: subLabelParts,
     segment: row.segment,
     raw: row,
   };
@@ -65,12 +67,15 @@ export const loadProducts = async (
     const variant = row.variant || row.variation;
     const size = row.size;
     const details = [variant, size ? `Size: ${size}` : ''].filter(Boolean).join(' • ');
-    const detailSuffix = details ? ` (${details})` : '';
-    const stockSuffix = isReady ? ` • stock ${availStock}` : '';
+    const stockSuffix = isReady ? `stock: ${availStock}` : '';
+    const subLabelParts = [row.sku ? `SKU: ${row.sku}` : '', details, stockSuffix]
+      .filter(Boolean)
+      .join(' • ');
 
     return {
       value: row.id,
-      label: `${row.sku} • ${row.name}${detailSuffix}${stockSuffix}`,
+      label: row.name,
+      subLabel: subLabelParts,
       stock: isReady ? availStock : undefined,
       stockMode: row.stock_mode || row.stockMode,
       price: Number(row.selling_price ?? row.sellingPrice ?? 0),

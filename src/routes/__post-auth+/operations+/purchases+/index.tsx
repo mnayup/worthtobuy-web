@@ -61,7 +61,8 @@ export default function PurchasesRoute() {
         setPeriodOptions(
           rows.map((p: any) => ({
             value: String(p.id),
-            label: `${p.code} • ${p.name}`,
+            label: p.name,
+            subLabel: p.code ? `Event Code: ${p.code}` : undefined,
           }))
         );
       }

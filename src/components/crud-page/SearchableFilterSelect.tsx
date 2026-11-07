@@ -46,7 +46,11 @@ export function SearchableFilterSelect({
   const filteredOptions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return options;
-    return options.filter((opt) => opt.label.toLowerCase().includes(q));
+    return options.filter(
+      (opt) =>
+        opt.label.toLowerCase().includes(q) ||
+        opt.subLabel?.toLowerCase().includes(q)
+    );
   }, [options, query]);
 
   const defaultPlaceholder = placeholder || `All ${label}`;
@@ -157,7 +161,14 @@ export function SearchableFilterSelect({
                         : 'text-brand-800 hover:bg-brand-50'
                     )}
                   >
-                    <span className="truncate">{opt.label}</span>
+                    <div className="flex flex-col min-w-0 pr-1">
+                      <span className="truncate">{opt.label}</span>
+                      {opt.subLabel && (
+                        <span className="text-[10px] font-mono text-brand-400 font-normal truncate">
+                          {opt.subLabel}
+                        </span>
+                      )}
+                    </div>
                     {isSelected && <Check size={14} className="text-cherry-600 shrink-0" />}
                   </button>
                 );

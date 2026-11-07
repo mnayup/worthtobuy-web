@@ -119,7 +119,8 @@ export default function OrdersRoute() {
       const rows = res.data?.data || res.data || [];
       setPeriodOptions(
         rows.map((row: any) => ({
-          label: `${row.code} • ${row.name}`,
+          label: row.name,
+          subLabel: row.code ? `Event Code: ${row.code}` : undefined,
           value: row.id,
         }))
       );
@@ -128,10 +129,15 @@ export default function OrdersRoute() {
     api.get('/customers?limit=300').then((res) => {
       const rows = res.data?.data || res.data || [];
       setCustomerOptions(
-        rows.map((row: any) => ({
-          label: `${row.customer_code ? `${row.customer_code} • ` : ''}${row.full_name || row.fullName}`,
-          value: row.id,
-        }))
+        rows.map((row: any) => {
+          const code = row.customer_code || row.customerCode || '';
+          const name = row.full_name || row.fullName || `Customer #${row.id}`;
+          return {
+            label: name,
+            subLabel: code ? `ID: ${code}` : `ID: #${row.id}`,
+            value: row.id,
+          };
+        })
       );
     }).catch(() => {});
   }, []);

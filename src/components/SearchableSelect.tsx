@@ -66,7 +66,13 @@ export function SearchableSelect({
     const rows = [...map.values()];
     if (loadOptions) return rows;
     const normalized = query.toLowerCase();
-    return normalized ? rows.filter((option) => option.label.toLowerCase().includes(normalized)) : rows;
+    return normalized
+      ? rows.filter(
+          (option) =>
+            option.label.toLowerCase().includes(normalized) ||
+            option.subLabel?.toLowerCase().includes(normalized)
+        )
+      : rows;
   }, [options, remote, query, loadOptions]);
 
   const selected = useMemo(
@@ -152,7 +158,14 @@ export function SearchableSelect({
                     setQuery('');
                   }}
                 >
-                  <span className="truncate">{option.label}</span>
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="truncate">{option.label}</span>
+                    {option.subLabel && (
+                      <span className="text-[11px] font-mono text-brand-400 font-normal truncate">
+                        {option.subLabel}
+                      </span>
+                    )}
+                  </div>
                   {active && <Check size={16} className="shrink-0 text-cherry-600" />}
                 </button>
               );

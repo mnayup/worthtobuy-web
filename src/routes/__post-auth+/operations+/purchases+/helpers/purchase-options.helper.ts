@@ -30,7 +30,8 @@ export const loadProducts = loadPaginatedOptions(
   '/products?activePeriod=true',
   (row) => ({
     value: row.id,
-    label: `${row.sku} • ${row.name}`,
+    label: row.name,
+    subLabel: row.sku ? `SKU: ${row.sku}` : undefined,
   })
 );
 

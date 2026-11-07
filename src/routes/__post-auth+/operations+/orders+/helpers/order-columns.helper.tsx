@@ -1,22 +1,50 @@
 import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import { ReceiptText } from 'lucide-react';
+import { MessageCircle, ReceiptText } from 'lucide-react';
 import { money } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
 
 export function getOrderColumns() {
   return [
     {
-      key: 'orderNumber',
-      label: 'Order Number',
-      render: (row: any) => row.order_number || row.orderNumber,
-      exportValue: (row: any) => row.order_number || row.orderNumber || '-',
-    },
-    {
       key: 'customer',
       label: 'Customer',
-      render: (row: any) => row.customer?.full_name || row.customer?.fullName,
+      render: (row: any) => {
+        const customerName = row.customer?.full_name || row.customer?.fullName || '-';
+        const orderNumber = row.order_number || row.orderNumber;
+
+        return (
+          <div className="flex flex-col">
+            <span className="font-semibold text-brand-900">{customerName}</span>
+            {orderNumber && (
+              <span className="font-mono text-[11px] text-brand-400 font-medium">
+                {orderNumber}
+              </span>
+            )}
+          </div>
+        );
+      },
       exportValue: (row: any) => row.customer?.full_name || row.customer?.fullName || '-',
+    },
+    {
+      key: 'whatsapp_group',
+      label: 'WA Group',
+      render: (row: any) => {
+        const group = row.customer?.whatsapp_group || row.customer?.whatsappGroup;
+        if (!group) {
+          return <span className="text-brand-300 text-xs italic">Unassigned</span>;
+        }
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+            <MessageCircle size={12} className="text-emerald-500 shrink-0" />
+            <span className="max-w-[130px] truncate">{group.name}</span>
+          </span>
+        );
+      },
+      exportValue: (row: any) => {
+        const group = row.customer?.whatsapp_group || row.customer?.whatsappGroup;
+        return group?.name || 'Unassigned';
+      },
     },
     {
       key: 'period',
