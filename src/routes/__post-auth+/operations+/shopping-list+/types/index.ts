@@ -11,6 +11,8 @@ export interface ShoppingListItem {
   manualProductName?: string;
   variation?: string;
   size?: string;
+  bundleName?: string;
+  bundle_name?: string;
   product?: {
     name: string;
     brandName?: string;

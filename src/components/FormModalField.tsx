@@ -5,6 +5,8 @@ import { FileUploadInput } from './FileUploadInput';
 import { MultiImageUploadInput } from './MultiImageUploadInput';
 import { OrderVariantQuantitySelector } from './OrderVariantQuantitySelector';
 import { AdditionalFeesSelector } from './AdditionalFeesSelector';
+import { ProductVariantPriceSelector } from './ProductVariantPriceSelector';
+import { MultiProductOrderBasket } from './MultiProductOrderBasket';
 import { TagInput } from './TagInput';
 
 interface FormModalFieldProps {
@@ -38,7 +40,9 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
   if (field.type === 'select') {
     return (
       <SearchableSelect
+        name={field.name}
         value={form[field.name]}
+        selectedOption={form[`${field.name}_option`]}
         options={field.options}
         loadOptions={field.loadOptions}
         disabled={disabled}
@@ -174,6 +178,38 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
           set(field.name, items);
           if (field.onChange) {
             field.onChange(items, undefined, set, form);
+          }
+        }}
+        form={form}
+        disabled={disabled}
+      />
+    );
+  }
+
+  if (field.type === 'order-product-basket') {
+    return (
+      <MultiProductOrderBasket
+        value={form[field.name]}
+        onChange={(entries) => {
+          set(field.name, entries);
+          if (field.onChange) {
+            field.onChange(entries, undefined, set, form);
+          }
+        }}
+        form={form}
+        disabled={disabled}
+      />
+    );
+  }
+
+  if (field.type === 'variant-prices') {
+    return (
+      <ProductVariantPriceSelector
+        value={form[field.name]}
+        onChange={(rules) => {
+          set(field.name, rules);
+          if (field.onChange) {
+            field.onChange(rules, undefined, set, form);
           }
         }}
         form={form}

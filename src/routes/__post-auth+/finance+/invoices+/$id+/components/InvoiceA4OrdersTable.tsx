@@ -2,9 +2,174 @@ import React from 'react';
 import { MessageSquareText } from 'lucide-react';
 import { date, money, titleCase } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
+import { parseProductPriceRules } from '~/lib/pricing-rules';
 
 interface InvoiceA4OrdersTableProps {
   orders: any[];
+}
+
+interface GroupedInvoiceItem {
+  id: string;
+  isBundle: boolean;
+  bundleName?: string;
+  name: string;
+  brand: string;
+  photoUrl?: string;
+  totalQty: number;
+  totalSubtotal: number;
+  fulfillmentStatus?: string;
+  items: any[];
+}
+
+function groupOrderItems(items: any[]): GroupedInvoiceItem[] {
+  if (!items || !items.length) return [];
+
+  const grouped: GroupedInvoiceItem[] = [];
+
+  // Group items by product + bundle name first
+  const bundleBucketMap = new Map<string, any[]>();
+
+  for (const item of items) {
+    const bundleName = (item.bundle_name || item.bundleName || '').trim();
+    const productId = String(
+      item.product_id ??
+        item.productId ??
+        item.product?.id ??
+        item.manual_product_name ??
+        item.manualProductName ??
+        ''
+    );
+    const bundleKey = bundleName ? `${productId}___${bundleName}` : '';
+    const qty = Number(item.quantity || 1);
+    const unitPrice = Number(
+      item.unit_price_foreign ??
+        item.unitPriceForeign ??
+        item.target_price_idr ??
+        item.targetPriceIdr ??
+        0
+    );
+    const subtotal = unitPrice * qty;
+    const photo =
+      item.photo_url ||
+      item.photoUrl ||
+      item.product?.image_url ||
+      item.product?.imageUrl;
+    const brand =
+      item.product?.brand_name ||
+      item.product?.brandName ||
+      item.brand_name ||
+      item.brandName ||
+      '';
+
+    if (bundleKey) {
+      if (!bundleBucketMap.has(bundleKey)) {
+        bundleBucketMap.set(bundleKey, []);
+      }
+      bundleBucketMap.get(bundleKey)!.push({
+        ...item,
+        _qty: qty,
+        _unitPrice: unitPrice,
+        _subtotal: subtotal,
+        _photo: photo,
+        _brand: brand,
+        _bundleName: bundleName,
+      });
+    } else {
+      const prodName =
+        item.product?.name ||
+        item.manual_product_name ||
+        item.manualProductName ||
+        'Custom Item';
+      grouped.push({
+        id: item.id || Math.random().toString(),
+        isBundle: false,
+        name: prodName,
+        brand: brand || '-',
+        photoUrl: photo,
+        totalQty: qty,
+        totalSubtotal: subtotal,
+        fulfillmentStatus: item.fulfillment_status || item.fulfillmentStatus,
+        items: [item],
+      });
+    }
+  }
+
+  // Now split each bundle bucket into separate packs based on bundle's minQty
+  for (const [bundleKey, bucketItems] of bundleBucketMap.entries()) {
+    const firstItem = bucketItems[0];
+    const rawProduct = firstItem.product;
+    const priceRules = parseProductPriceRules(rawProduct?.variant_prices || rawProduct?.variantPrices);
+    const matchedRule = (priceRules.bundleRules || []).find(
+      (b) => (b.name || '').trim().toLowerCase() === firstItem._bundleName.toLowerCase()
+    );
+    // Bundle capacity per pack (e.g. 3)
+    const packCapacity = matchedRule && matchedRule.minQty > 0 ? matchedRule.minQty : 3;
+
+    // Expand items into single units or small chunks
+    let currentPackItems: any[] = [];
+    let currentPackPcs = 0;
+    let packIndex = 1;
+
+    for (const it of bucketItems) {
+      let remainingQty = it._qty;
+      while (remainingQty > 0) {
+        const spaceInPack = packCapacity - currentPackPcs;
+        const take = Math.min(remainingQty, spaceInPack);
+
+        currentPackItems.push({
+          ...it,
+          quantity: take,
+        });
+        currentPackPcs += take;
+        remainingQty -= take;
+
+        if (currentPackPcs >= packCapacity) {
+          // Finalize this pack
+          const packSubtotal = currentPackItems.reduce(
+            (sum, x) => sum + Number(x._unitPrice || 0) * Number(x.quantity || 1),
+            0
+          );
+          grouped.push({
+            id: `bundle-${bundleKey}-pack-${packIndex}-${firstItem.id}`,
+            isBundle: true,
+            bundleName: firstItem._bundleName,
+            name: firstItem._bundleName,
+            brand: firstItem._brand || '-',
+            photoUrl: firstItem._photo,
+            totalQty: currentPackPcs,
+            totalSubtotal: packSubtotal,
+            fulfillmentStatus: firstItem.fulfillment_status || firstItem.fulfillmentStatus,
+            items: currentPackItems,
+          });
+          currentPackItems = [];
+          currentPackPcs = 0;
+          packIndex++;
+        }
+      }
+    }
+
+    // Any leftover pieces in an incomplete pack
+    if (currentPackItems.length > 0) {
+      const packSubtotal = currentPackItems.reduce(
+        (sum, x) => sum + Number(x._unitPrice || 0) * Number(x.quantity || 1),
+        0
+      );
+      grouped.push({
+        id: `bundle-${bundleKey}-pack-${packIndex}-${firstItem.id}`,
+        isBundle: true,
+        bundleName: firstItem._bundleName,
+        name: firstItem._bundleName,
+        brand: firstItem._brand || '-',
+        photoUrl: firstItem._photo,
+        totalQty: currentPackPcs,
+        totalSubtotal: packSubtotal,
+        fulfillmentStatus: firstItem.fulfillment_status || firstItem.fulfillmentStatus,
+        items: currentPackItems,
+      });
+    }
+  }
+
+  return grouped;
 }
 
 export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
@@ -93,7 +258,88 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-100 bg-white">
-                  {order.items?.map((item: any) => {
+                  {groupOrderItems(order.items).map((row) => {
+                    if (row.isBundle) {
+                      return (
+                        <tr key={row.id} className="hover:bg-brand-50/50">
+                          <td className="px-3 py-2">
+                            <div className="flex items-start gap-2.5">
+                              {row.photoUrl && (
+                                <img
+                                  src={row.photoUrl}
+                                  className="h-8 w-8 rounded-lg object-cover ring-1 ring-brand-100 mt-0.5"
+                                  alt=""
+                                />
+                              )}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs font-black text-brand-950 uppercase tracking-wide">
+                                    {row.name}
+                                  </p>
+                                  <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider shrink-0">
+                                    Bundle Promo
+                                  </span>
+                                </div>
+                                <div className="rounded-md bg-brand-50/80 border border-brand-100/80 px-2 py-1 text-[10px] space-y-0.5 text-brand-700">
+                                  <p className="font-semibold text-brand-500 uppercase tracking-wider text-[9px]">
+                                    Bundle Details:
+                                  </p>
+                                  {row.items.map((it, idx) => {
+                                    const itQty = Number(it.quantity || 1);
+                                    const itName =
+                                      it.product?.name ||
+                                      it.manual_product_name ||
+                                      it.manualProductName ||
+                                      'Item';
+                                    const itSpecs = [
+                                      it.variation || it.variant,
+                                      it.size ? `Size: ${it.size}` : null,
+                                      it.color,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' • ');
+
+                                    return (
+                                      <div key={idx} className="flex items-center gap-1.5">
+                                        <span className="text-brand-400">•</span>
+                                        <span className="font-medium text-brand-900">
+                                          {itName}
+                                        </span>
+                                        {itSpecs && (
+                                          <span className="text-brand-500">
+                                            ({itSpecs})
+                                          </span>
+                                        )}
+                                        <span className="font-bold text-brand-800 ml-auto">
+                                          x{itQty}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-xs font-semibold text-brand-600">
+                            {row.brand || '-'}
+                          </td>
+                          <td className="px-3 py-2 text-center text-xs font-bold">
+                            1 pack
+                          </td>
+                          <td className="px-3 py-2">
+                            <StatusBadge value={row.fulfillmentStatus || 'UNFULFILLED'} />
+                          </td>
+                          <td className="px-3 py-2 text-right text-xs font-semibold text-brand-800">
+                            {money(row.totalSubtotal)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-xs font-black text-brand-900">
+                            {money(row.totalSubtotal)}
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    const item = row.items[0];
                     const unitPrice = Number(
                       item.unit_price_foreign ??
                         item.unitPriceForeign ??
@@ -101,35 +347,26 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
                         item.targetPriceIdr ??
                         0
                     );
-                    const qty = Number(item.quantity || 1);
-                    const subtotal = unitPrice * qty;
+                    const qty = row.totalQty;
+                    const subtotal = row.totalSubtotal;
 
                     return (
-                      <tr key={item.id} className="hover:bg-brand-50/50">
+                      <tr key={row.id} className="hover:bg-brand-50/50">
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2.5">
-                            {(item.photo_url ||
-                              item.photoUrl ||
-                              item.product?.image_url ||
-                              item.product?.imageUrl) && (
+                            {row.photoUrl && (
                               <img
-                                src={
-                                  item.photo_url ||
-                                  item.photoUrl ||
-                                  item.product?.image_url ||
-                                  item.product?.imageUrl
-                                }
+                                src={row.photoUrl}
                                 className="h-8 w-8 rounded-lg object-cover ring-1 ring-brand-100"
                                 alt=""
                               />
                             )}
                             <div>
-                              <p className="text-xs font-extrabold text-brand-900">
-                                {item.product?.name ||
-                                  item.manual_product_name ||
-                                  item.manualProductName ||
-                                  'Custom Item'}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-xs font-extrabold text-brand-900">
+                                  {row.name}
+                                </p>
+                              </div>
                               <p className="text-[10px] font-medium text-brand-400">
                                 {[
                                   item.variation || item.variant,
@@ -145,11 +382,7 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
                           </div>
                         </td>
                         <td className="px-3 py-2 text-xs font-semibold text-brand-600">
-                          {item.product?.brand_name ||
-                            item.product?.brandName ||
-                            item.brand_name ||
-                            item.brandName ||
-                            '-'}
+                          {row.brand}
                         </td>
                         <td className="px-3 py-2 text-center text-xs font-bold">
                           {qty}

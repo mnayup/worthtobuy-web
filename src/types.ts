@@ -14,7 +14,7 @@ export type User = {
   mfaEnabled?: boolean;
 };
 export type Paginated<T>={data:T[];total:number;page:number;limit:number};
-export type Option={label:string;subLabel?:string;value:string|number;[key:string]:any};
+export type Option={label:string;subLabel?:string;tag?:string;value:string|number;[key:string]:any};
 export type FieldConfig={
   name:string;
   label:string;
@@ -37,6 +37,8 @@ export type FieldConfig={
     | 'tel'
     | 'tags'
     | 'variant-quantities'
+    | 'order-product-basket'
+    | 'variant-prices'
     | 'additional-fees';
   fileType?:'image'|'document'|'all';
   entityType?:string;
@@ -47,7 +49,7 @@ export type FieldConfig={
   colSpan?:2;
   defaultValue?:unknown | (() => unknown);
   searchable?:boolean;
-  loadOptions?:(search:string, form?:Record<string,any>)=>Promise<Option[]>;
+  loadOptions?:(search:string, form?:Record<string,any>, page?:number)=>Promise<Option[]>;
   dependsOn?:(form:Record<string,any>)=>boolean;
   max?:number | string | ((form:Record<string,any>)=>number | string | undefined);
   disabled?: boolean | ((form: any) => boolean);

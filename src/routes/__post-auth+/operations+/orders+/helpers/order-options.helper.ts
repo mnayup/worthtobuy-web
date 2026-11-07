@@ -1,5 +1,6 @@
 import { api } from '~/lib/api';
 import type { Option } from '~/types';
+import { parseProductPriceRules } from '~/lib/pricing-rules';
 
 export const responseRows = (response: any): any[] => {
   if (Array.isArray(response?.data?.data)) return response.data.data;
@@ -52,9 +53,10 @@ export const loadCustomers = loadPaginatedOptions('/customers', (row) => {
 
 export const loadProducts = async (
   search: string,
-  form?: Record<string, any>
+  form?: Record<string, any>,
+  page: number = 1
 ): Promise<Option[]> => {
-  const query = new URLSearchParams({ limit: '25' });
+  const query = new URLSearchParams({ limit: '10', page: String(page) });
   if (search) query.set('search', search);
   if (form?.periodId) query.set('eventId', form.periodId);
   else query.set('activePeriod', 'true');
@@ -72,20 +74,31 @@ export const loadProducts = async (
       .filter(Boolean)
       .join(' • ');
 
+    // Check if this product has bundle promo rules defined
+    const priceRules = parseProductPriceRules(row.variant_prices || row.variantPrices);
+    const bundleCount = (priceRules.bundleRules || []).length;
+    const bundleTag = bundleCount > 0 ? (bundleCount === 1 ? 'Bundle Promo' : `${bundleCount} Bundle Promos`) : undefined;
+
     return {
       value: row.id,
       label: row.name,
       subLabel: subLabelParts,
+      tag: bundleTag,
       stock: isReady ? availStock : undefined,
       stockMode: row.stock_mode || row.stockMode,
       price: Number(row.selling_price ?? row.sellingPrice ?? 0),
       raw: row,
     };
   });
-  return [
-    { value: '__NEW_PRODUCT__', label: '+ Create / Add New Product', price: 0 },
-    ...items,
-  ];
+
+  // Only include "+ Create / Add New Product" option on page 1
+  if (page === 1) {
+    return [
+      { value: '__NEW_PRODUCT__', label: '+ Create / Add New Product', price: 0 },
+      ...items,
+    ];
+  }
+  return items;
 };
 
 export const getNowDateTimeLocal = () => {

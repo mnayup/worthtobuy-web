@@ -166,7 +166,7 @@ export function TrashTable({
                   <td className="table-cell font-extrabold text-brand-900">{row.code}</td>
                   <td className="table-cell text-brand-700">{row.name}</td>
                   <td className="table-cell whitespace-nowrap text-brand-600">
-                    {dateTime(row.deletedAt)}
+                    {dateTime(row.deletedAt || row.deleted_at)}
                   </td>
                   <td className="table-cell text-brand-500">{row.deletedByName || '-'}</td>
                   <td className="px-4 py-3 text-right">

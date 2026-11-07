@@ -88,23 +88,26 @@ export function getOrderFields(user: any): FieldConfig[] {
       onChange: (value, option, set) => {
         set('productId', '');
         set('productId_option', null);
+        set('orderBasket', []);
       },
     },
     {
+      name: 'orderBasket',
+      label: 'Products, Variants & Bundle Deals',
+      type: 'order-product-basket',
+      colSpan: 2,
+      dependsOn: (form) => Boolean(form.periodId) && form.productId !== '__NEW_PRODUCT__',
+    },
+    {
       name: 'productId',
-      label: 'Product',
+      label: 'Create Custom / New Product',
       type: 'select',
-      loadOptions: loadProducts,
-      searchable: true,
-      required: true,
-      disabled: (form) => !form.periodId,
-      onChange: (value, option, set) => {
-        if (value === '__NEW_PRODUCT__') {
-          set('unitPriceForeign', 0);
-        } else if (option?.price !== undefined) {
-          set('unitPriceForeign', option.price);
-        }
-      },
+      options: [
+        { value: '', label: 'Select from catalog above (standard)' },
+        { value: '__NEW_PRODUCT__', label: '+ Create / Register Brand New Product' },
+      ],
+      colSpan: 2,
+      dependsOn: (form) => Boolean(form.periodId) && form.productId === '__NEW_PRODUCT__',
     },
     {
       name: 'newProductName',
@@ -179,13 +182,14 @@ export function getOrderFields(user: any): FieldConfig[] {
       label: 'Customer Selling Price (IDR)',
       type: 'currency',
       placeholder: 'Price billed to customer (for invoice)',
+      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
     },
     {
       name: 'variantItems',
       label: 'Variant, Size & Quantities',
       type: 'variant-quantities',
       colSpan: 2,
-      dependsOn: (form) => Boolean(form.productId),
+      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
     },
     {
       name: 'adminId',

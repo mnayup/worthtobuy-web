@@ -51,7 +51,13 @@ export function getProductFields(): FieldConfig[] {
       dependsOn: (form) => form.stockMode === 'READY_STOCK',
     },
     { name: 'buyPrice', label: 'Buy price', type: 'currency', defaultValue: 0 },
-    { name: 'sellingPrice', label: 'Selling price', type: 'currency', defaultValue: 0 },
+    { name: 'sellingPrice', label: 'Selling price (Base Price)', type: 'currency', defaultValue: 0 },
+    {
+      name: 'variantPrices',
+      label: 'Special Prices & Bundles',
+      type: 'variant-prices',
+      colSpan: 2,
+    },
     {
       name: 'imageUrls',
       label: 'Product Photos (Variant / Color / Size)',
@@ -85,6 +91,8 @@ export function prepareProductSubmit(form: Record<string, any>) {
     buy_price: Number(form.buy_price ?? form.buyPrice ?? 0),
     sellingPrice: Number(form.selling_price ?? form.sellingPrice ?? 0),
     selling_price: Number(form.selling_price ?? form.sellingPrice ?? 0),
+    variantPrices: form.variantPrices ?? form.variant_prices ?? null,
+    variant_prices: form.variantPrices ?? form.variant_prices ?? null,
     stockQuantity:
       sMode === 'READY_STOCK'
         ? Number(form.stock_quantity ?? form.stockQuantity ?? 0)
@@ -128,5 +136,6 @@ export function prepareProductInitial(row: Record<string, any>) {
     stockQuantity: row.stock_quantity ?? row.stockQuantity ?? 0,
     buyPrice: row.buy_price ?? row.buyPrice ?? 0,
     sellingPrice: row.selling_price ?? row.sellingPrice ?? 0,
+    variantPrices: row.variant_prices ?? row.variantPrices ?? { variantRules: [], bundleRules: [] },
   };
 }

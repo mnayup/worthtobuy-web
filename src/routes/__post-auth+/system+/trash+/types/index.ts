@@ -3,7 +3,8 @@ export interface TrashItem {
   entityType: string;
   code: string;
   name: string;
-  deletedAt: string;
+  deletedAt?: string;
+  deleted_at?: string;
   deletedByName?: string;
 }
 

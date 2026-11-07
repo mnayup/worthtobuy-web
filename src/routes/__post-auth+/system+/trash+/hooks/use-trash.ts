@@ -108,8 +108,8 @@ export function useTrash() {
       let valB: any = b[sortCol] || '';
 
       if (sortCol === 'deletedAt') {
-        valA = new Date(valA).getTime();
-        valB = new Date(valB).getTime();
+        valA = new Date(valA || a.deleted_at || 0).getTime();
+        valB = new Date(valB || b.deleted_at || 0).getTime();
         return (valA - valB) * factor;
       }
 
@@ -248,7 +248,7 @@ export function useTrash() {
       typeLabels[row.entityType] || row.entityType,
       row.code,
       row.name,
-      dateTime(row.deletedAt),
+      dateTime(row.deletedAt || row.deleted_at),
       row.deletedByName || '-',
     ]);
     exportToExcel(

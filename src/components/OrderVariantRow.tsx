@@ -10,6 +10,8 @@ interface OrderVariantRowProps {
   availableVariants?: string[];
   availableSizes?: string[];
   disabled?: boolean;
+  canIncrease?: boolean;
+  isBundleActive?: boolean;
   canRemove: boolean;
   onUpdate: (patch: Partial<VariantQuantityItem>) => void;
   onRemove: () => void;
@@ -28,6 +30,8 @@ export function OrderVariantRow({
   availableVariants = [],
   availableSizes = [],
   disabled,
+  canIncrease = true,
+  isBundleActive = false,
   canRemove,
   onUpdate,
   onRemove,
@@ -202,7 +206,7 @@ export function OrderVariantRow({
           </button>
           <input
             type="number"
-            disabled={disabled}
+            disabled={disabled || isBundleActive}
             min="1"
             value={row.quantity}
             onChange={(e) =>
@@ -210,11 +214,11 @@ export function OrderVariantRow({
                 quantity: Math.max(1, parseInt(e.target.value, 10) || 1),
               })
             }
-            className="w-9 text-center text-xs font-bold text-brand-900 focus:outline-none"
+            className="w-9 text-center text-xs font-bold text-brand-900 focus:outline-none disabled:bg-brand-50/50"
           />
           <button
             type="button"
-            disabled={disabled}
+            disabled={disabled || !canIncrease}
             onClick={() => onUpdate({ quantity: row.quantity + 1 })}
             className={
               'px-2 py-1 text-xs font-bold text-brand-600 ' +
@@ -226,11 +230,18 @@ export function OrderVariantRow({
         </div>
 
         <div className="text-right min-w-[75px]">
-          <span className="text-[11px] font-bold text-brand-900 block">
-            {money(rowSubtotal)}
-          </span>
+          <div className="flex items-center justify-end gap-1">
+            <span className="text-[11px] font-bold text-brand-900 block">
+              {isBundleActive ? '-' : money(rowSubtotal)}
+            </span>
+            {row.bundleName && (
+              <span className="rounded bg-amber-100 text-amber-800 px-1 py-0.2 text-[8px] font-black uppercase tracking-wider shrink-0">
+                {row.bundleName}
+              </span>
+            )}
+          </div>
           <span className="text-[9px] text-brand-400">
-            {row.quantity} x {money(effectivePrice)}
+            {isBundleActive ? `${row.quantity} pc (In Bundle)` : `${row.quantity} x ${money(effectivePrice)}`}
           </span>
         </div>
 

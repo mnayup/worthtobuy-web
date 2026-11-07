@@ -1,9 +1,167 @@
 import React from 'react';
 import { MessageSquareText } from 'lucide-react';
 import { money } from '~/lib/format';
+import { parseProductPriceRules } from '~/lib/pricing-rules';
 
 interface PublicInvoiceOrdersTableProps {
   orders: any[];
+}
+
+interface GroupedPublicInvoiceItem {
+  id: string;
+  isBundle: boolean;
+  bundleName?: string;
+  name: string;
+  brand: string;
+  photoUrl?: string;
+  totalQty: number;
+  totalSubtotal: number;
+  items: any[];
+}
+
+function groupPublicOrderItems(items: any[]): GroupedPublicInvoiceItem[] {
+  if (!items || !items.length) return [];
+
+  const grouped: GroupedPublicInvoiceItem[] = [];
+
+  // Group items by product + bundle name first
+  const bundleBucketMap = new Map<string, any[]>();
+
+  for (const item of items) {
+    const bundleName = (item.bundle_name || item.bundleName || '').trim();
+    const productId = String(
+      item.product_id ??
+        item.productId ??
+        item.product?.id ??
+        item.manual_product_name ??
+        item.manualProductName ??
+        ''
+    );
+    const bundleKey = bundleName ? `${productId}___${bundleName}` : '';
+    const qty = Number(item.quantity || 1);
+    const unitPrice = Number(
+      item.unit_price_foreign ??
+        item.unitPriceForeign ??
+        item.target_price_idr ??
+        item.targetPriceIdr ??
+        0
+    );
+    const subtotal = unitPrice * qty;
+    const photo =
+      item.photo_url ||
+      item.photoUrl ||
+      item.product?.image_url ||
+      item.product?.imageUrl;
+    const brand =
+      item.product?.brand_name ||
+      item.product?.brandName ||
+      item.brand_name ||
+      item.brandName ||
+      '';
+
+    if (bundleKey) {
+      if (!bundleBucketMap.has(bundleKey)) {
+        bundleBucketMap.set(bundleKey, []);
+      }
+      bundleBucketMap.get(bundleKey)!.push({
+        ...item,
+        _qty: qty,
+        _unitPrice: unitPrice,
+        _subtotal: subtotal,
+        _photo: photo,
+        _brand: brand,
+        _bundleName: bundleName,
+      });
+    } else {
+      const prodName =
+        item.product?.name ||
+        item.manual_product_name ||
+        item.manualProductName ||
+        'Ordered Item';
+      grouped.push({
+        id: item.id || Math.random().toString(),
+        isBundle: false,
+        name: prodName,
+        brand,
+        photoUrl: photo,
+        totalQty: qty,
+        totalSubtotal: subtotal,
+        items: [item],
+      });
+    }
+  }
+
+  // Now split each bundle bucket into separate packs based on bundle's minQty
+  for (const [bundleKey, bucketItems] of bundleBucketMap.entries()) {
+    const firstItem = bucketItems[0];
+    const rawProduct = firstItem.product;
+    const priceRules = parseProductPriceRules(rawProduct?.variant_prices || rawProduct?.variantPrices);
+    const matchedRule = (priceRules.bundleRules || []).find(
+      (b) => (b.name || '').trim().toLowerCase() === firstItem._bundleName.toLowerCase()
+    );
+    // Bundle capacity per pack (e.g. 3)
+    const packCapacity = matchedRule && matchedRule.minQty > 0 ? matchedRule.minQty : 3;
+
+    let currentPackItems: any[] = [];
+    let currentPackPcs = 0;
+    let packIndex = 1;
+
+    for (const it of bucketItems) {
+      let remainingQty = it._qty;
+      while (remainingQty > 0) {
+        const spaceInPack = packCapacity - currentPackPcs;
+        const take = Math.min(remainingQty, spaceInPack);
+
+        currentPackItems.push({
+          ...it,
+          quantity: take,
+        });
+        currentPackPcs += take;
+        remainingQty -= take;
+
+        if (currentPackPcs >= packCapacity) {
+          const packSubtotal = currentPackItems.reduce(
+            (sum, x) => sum + Number(x._unitPrice || 0) * Number(x.quantity || 1),
+            0
+          );
+          grouped.push({
+            id: `bundle-${bundleKey}-pack-${packIndex}-${firstItem.id}`,
+            isBundle: true,
+            bundleName: firstItem._bundleName,
+            name: firstItem._bundleName,
+            brand: firstItem._brand || '-',
+            photoUrl: firstItem._photo,
+            totalQty: currentPackPcs,
+            totalSubtotal: packSubtotal,
+            items: currentPackItems,
+          });
+          currentPackItems = [];
+          currentPackPcs = 0;
+          packIndex++;
+        }
+      }
+    }
+
+    if (currentPackItems.length > 0) {
+      const packSubtotal = currentPackItems.reduce(
+        (sum, x) => sum + Number(x._unitPrice || 0) * Number(x.quantity || 1),
+        0
+      );
+      grouped.push({
+        id: `bundle-${bundleKey}-pack-${packIndex}-${firstItem.id}`,
+        isBundle: true,
+        bundleName: firstItem._bundleName,
+        name: firstItem._bundleName,
+        brand: firstItem._brand || '-',
+        photoUrl: firstItem._photo,
+        totalQty: currentPackPcs,
+        totalSubtotal: packSubtotal,
+        items: currentPackItems,
+      });
+    }
+  }
+
+  return grouped;
 }
 
 export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTableProps) {
@@ -74,7 +232,89 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
             })()}
 
             <div className="divide-y divide-brand-100">
-              {(order.items || []).map((item: any) => {
+              {groupPublicOrderItems(order.items || []).map((row) => {
+                if (row.isBundle) {
+                  return (
+                    <div
+                      key={row.id}
+                      className="flex items-start justify-between gap-3 p-3.5 text-xs hover:bg-brand-50/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        {row.photoUrl ? (
+                          <img
+                            src={row.photoUrl}
+                            alt=""
+                            className="h-11 w-11 rounded-xl object-cover ring-1 ring-brand-100 shrink-0 mt-0.5"
+                          />
+                        ) : (
+                          <div className="h-11 w-11 rounded-xl bg-brand-100/70 grid place-items-center text-brand-400 font-bold shrink-0 mt-0.5">
+                            WTB
+                          </div>
+                        )}
+                        <div className="min-w-0 space-y-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-black text-brand-950 uppercase tracking-wide">
+                              {row.name}
+                            </span>
+                            <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider shrink-0">
+                              Bundle Promo
+                            </span>
+                          </div>
+
+                          <div className="rounded-lg bg-brand-50/80 border border-brand-100/90 px-2.5 py-1.5 text-[11px] space-y-1 text-brand-700">
+                            <p className="font-semibold text-brand-500 uppercase tracking-wider text-[9px]">
+                              Bundle Items:
+                            </p>
+                            {row.items.map((it, idx) => {
+                              const itQty = Number(it.quantity || 1);
+                              const itName =
+                                it.product?.name ||
+                                it.manual_product_name ||
+                                it.manualProductName ||
+                                'Item';
+                              const itSpecs = [
+                                it.product?.brand_name || it.brand_name,
+                                it.variant || it.variation,
+                                it.size ? `Size: ${it.size}` : null,
+                                it.color,
+                              ]
+                                .filter(Boolean)
+                                .join(' • ');
+
+                              return (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <span className="text-brand-400">•</span>
+                                  <span className="font-semibold text-brand-900">
+                                    {itName}
+                                  </span>
+                                  {itSpecs && (
+                                    <span className="text-brand-500 text-[10px]">
+                                      ({itSpecs})
+                                    </span>
+                                  )}
+                                  <span className="font-bold text-brand-800 ml-auto pl-2">
+                                    x{itQty}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <p className="text-[10px] font-medium text-brand-500">
+                            1 pack (Total {row.totalQty} pcs) × {money(row.totalSubtotal)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-black text-brand-900 text-sm">
+                          {money(row.totalSubtotal)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const item = row.items[0];
                 const unitPrice = Number(
                   item.unit_price_foreign ??
                     item.unitPriceForeign ??
@@ -82,17 +322,13 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                     item.targetPriceIdr ??
                     0
                 );
-                const qty = Number(item.quantity || 1);
-                const subtotal = unitPrice * qty;
-                const photo =
-                  item.photo_url ||
-                  item.photoUrl ||
-                  item.product?.image_url ||
-                  item.product?.imageUrl;
+                const qty = row.totalQty;
+                const subtotal = row.totalSubtotal;
+                const photo = row.photoUrl;
 
                 return (
                   <div
-                    key={item.id}
+                    key={row.id}
                     className="flex items-center justify-between gap-3 p-3.5 text-xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -115,15 +351,12 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="font-extrabold text-brand-950 truncate">
-                          {item.product?.name ||
-                            item.manual_product_name ||
-                            item.manualProductName ||
-                            'Ordered Item'}
+                        <p className="font-extrabold text-brand-950 truncate flex items-center gap-1.5">
+                          <span>{row.name}</span>
                         </p>
                         <p className="text-[11px] text-brand-400 truncate mt-0.5">
                           {[
-                            item.product?.brand_name || item.brand_name,
+                            row.brand,
                             item.variant || item.variation,
                             item.size ? `Size: ${item.size}` : null,
                             item.color,

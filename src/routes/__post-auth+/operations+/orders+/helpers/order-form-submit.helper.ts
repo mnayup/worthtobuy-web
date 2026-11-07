@@ -17,14 +17,94 @@ export function prepareInitialOrder(row: any) {
         }))
       : [{ variant: '', size: '', quantity: 1, price: 0 }];
 
+  const prod = first?.product;
+  const cust = row.customer;
+  const period = row.period;
+
+  // Build orderBasket for multi-product editing if multiple products exist in row.items
+  const productGroups = new Map<number | string, any[]>();
+  for (const it of items) {
+    const key = it.product_id || it.productId || 'none';
+    if (!productGroups.has(key)) productGroups.set(key, []);
+    productGroups.get(key)!.push(it);
+  }
+
+  const orderBasket = Array.from(productGroups.entries()).map(([pid, pItems], idx) => {
+    const pFirst = pItems[0];
+    const pProd = pFirst?.product;
+    return {
+      id: `basket-${pid}-${idx}`,
+      productId: pid === 'none' ? '' : pid,
+      productOption: pProd
+        ? {
+            value: pProd.id,
+            label: pProd.name,
+            subLabel: [
+              pProd.sku ? `SKU: ${pProd.sku}` : '',
+              [pProd.variant || pProd.variation, pProd.size ? `Size: ${pProd.size}` : ''].filter(Boolean).join(' • '),
+            ]
+              .filter(Boolean)
+              .join(' • '),
+            price: Number(pProd.selling_price ?? pProd.sellingPrice ?? pFirst?.unit_price_foreign ?? 0),
+            raw: pProd,
+          }
+        : undefined,
+      unitPriceForeign: Number(pProd?.selling_price ?? pProd?.sellingPrice ?? pFirst?.unit_price_foreign ?? 0),
+      variantItems: pItems.map((it: any) => ({
+        variant: it.variation || it.variant || '',
+        size: it.size || '',
+        quantity: Math.max(1, Number(it.quantity || 1)),
+        price: Number(it.unit_price_foreign ?? it.unitPriceForeign ?? 0),
+        bundleName: it.bundle_name || it.bundleName || undefined,
+      })),
+    };
+  });
+
   return {
     ...row,
     orderDate: oDate ? dayjs(oDate).format('YYYY-MM-DDTHH:mm') : getNowDateTimeLocal(),
     dueDate: dDate ? String(dDate).slice(0, 10) : '',
     customerId: row.customer_id ?? row.customerId,
+    customerId_option: cust
+      ? {
+          value: cust.id,
+          label: `${cust.fullName || cust.full_name || cust.name || `Customer #${cust.id}`}${
+            cust.segment === 'PRIORITY' ? ' (VIP Priority)' : ''
+          }`,
+          subLabel: [
+            cust.customerCode || cust.customer_code ? `ID: ${cust.customerCode || cust.customer_code}` : `ID: #${cust.id}`,
+            cust.whatsapp || cust.phone || '',
+          ]
+            .filter(Boolean)
+            .join(' • '),
+          raw: cust,
+        }
+      : undefined,
     periodId: row.period_id ?? row.periodId,
+    periodId_option: period
+      ? {
+          value: period.id,
+          label: `${period.code} • ${period.name}`,
+          code: period.code,
+        }
+      : undefined,
     productId: first?.product_id || first?.productId || '',
+    productId_option: prod
+      ? {
+          value: prod.id,
+          label: prod.name,
+          subLabel: [
+            prod.sku ? `SKU: ${prod.sku}` : '',
+            [prod.variant || prod.variation, prod.size ? `Size: ${prod.size}` : ''].filter(Boolean).join(' • '),
+          ]
+            .filter(Boolean)
+            .join(' • '),
+          price: Number(prod.selling_price ?? prod.sellingPrice ?? first?.unit_price_foreign ?? 0),
+          raw: prod,
+        }
+      : undefined,
     fulfillmentStatus: first?.fulfillment_status || first?.fulfillmentStatus || 'PENDING',
+    orderBasket: orderBasket.length > 0 ? orderBasket : undefined,
     variantItems,
     unitPriceForeign: first?.unit_price_foreign ?? first?.unitPriceForeign ?? 0,
     serviceFeeMode: mode === 'AUTO' ? 'AUTO_CUSTOMER' : mode || 'AUTO_CUSTOMER',
@@ -116,36 +196,75 @@ export function prepareSubmitOrder(form: any) {
   const isPriority = form.customerId_option?.segment === 'PRIORITY';
   const defaultInitialStatus = isPriority ? 'WAITING_PURCHASE' : 'NEW';
 
-  const rows: Array<{
-    variant?: string;
-    size?: string;
-    quantity: number;
-    price?: number;
-  }> =
-    Array.isArray(variantItems) && variantItems.length > 0
-      ? variantItems.filter((v: any) => Number(v.quantity) > 0)
-      : [{ variant: '', size: '', quantity: 1, price: Number(unitPriceForeign || 0) }];
+  // Group items by product to build order items
+  let items: any[] = [];
 
-  const items = rows.map((vi) => {
-    const itemPrice =
-      vi.price !== undefined && vi.price !== null
-        ? Number(vi.price)
-        : Number(unitPriceForeign || 0);
+  const basket = form.orderBasket;
+  if (!isCreatingProduct && Array.isArray(basket) && basket.length > 0) {
+    for (const entry of basket) {
+      const entryPid = entry.productId;
+      if (!entryPid) continue;
+      const isEntryReadyStock = entry.productOption?.stockMode === 'READY_STOCK';
+      const entryVariantRows = Array.isArray(entry.variantItems) && entry.variantItems.length > 0
+        ? entry.variantItems.filter((v: any) => Number(v.quantity) > 0)
+        : [{ variant: '', size: '', quantity: 1, price: Number(entry.unitPriceForeign || 0) }];
 
-    return {
-      productId: isCreatingProduct ? undefined : productId || undefined,
-      newProduct: newProductPayload,
-      manualProductName: isCreatingProduct ? newProductName.trim() : undefined,
-      brandName: isCreatingProduct ? newProductBrand?.trim() || undefined : undefined,
-      variation: vi.variant?.trim() || undefined,
-      size: vi.size?.trim() || undefined,
-      sourceType: isReadyStock ? 'READY_STOCK' : 'CATALOG',
-      fulfillmentStatus: isReadyStock ? 'AVAILABLE' : 'PENDING',
-      quantity: Number(vi.quantity || 1),
-      unitPriceForeign: itemPrice,
-      targetPriceIdr: itemPrice,
-    };
-  });
+      for (const vi of entryVariantRows) {
+        const itemPrice =
+          vi.price !== undefined && vi.price !== null
+            ? Number(vi.price)
+            : Number(entry.unitPriceForeign || 0);
+
+        items.push({
+          productId: entryPid,
+          variation: vi.variant?.trim() || undefined,
+          size: vi.size?.trim() || undefined,
+          sourceType: isEntryReadyStock ? 'READY_STOCK' : 'CATALOG',
+          fulfillmentStatus: isEntryReadyStock ? 'AVAILABLE' : 'PENDING',
+          quantity: Number(vi.quantity || 1),
+          unitPriceForeign: itemPrice,
+          targetPriceIdr: itemPrice,
+          bundleName: vi.bundleName || undefined,
+        });
+      }
+    }
+  }
+
+  // Fallback to single product if basket is empty
+  if (items.length === 0) {
+    const rows: Array<{
+      variant?: string;
+      size?: string;
+      quantity: number;
+      price?: number;
+      bundleName?: string;
+    }> =
+      Array.isArray(variantItems) && variantItems.length > 0
+        ? variantItems.filter((v: any) => Number(v.quantity) > 0)
+        : [{ variant: '', size: '', quantity: 1, price: Number(unitPriceForeign || 0) }];
+
+    items = rows.map((vi) => {
+      const itemPrice =
+        vi.price !== undefined && vi.price !== null
+          ? Number(vi.price)
+          : Number(unitPriceForeign || 0);
+
+      return {
+        productId: isCreatingProduct ? undefined : productId || undefined,
+        newProduct: newProductPayload,
+        manualProductName: isCreatingProduct ? newProductName.trim() : undefined,
+        brandName: isCreatingProduct ? newProductBrand?.trim() || undefined : undefined,
+        variation: vi.variant?.trim() || undefined,
+        size: vi.size?.trim() || undefined,
+        sourceType: isReadyStock ? 'READY_STOCK' : 'CATALOG',
+        fulfillmentStatus: isReadyStock ? 'AVAILABLE' : 'PENDING',
+        quantity: Number(vi.quantity || 1),
+        unitPriceForeign: itemPrice,
+        targetPriceIdr: itemPrice,
+        bundleName: vi.bundleName || undefined,
+      };
+    });
+  }
 
     const validAdditionalFees = Array.isArray(order.additionalFees)
       ? order.additionalFees

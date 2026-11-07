@@ -48,6 +48,11 @@ export function ShoppingItemRow({ item, onSetStatus }: ShoppingItemRowProps) {
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-bold text-brand-900 text-sm">{productName}</p>
           <StatusBadge value={item.sourceType || 'CATALOG'} />
+          {(item.bundle_name || (item as any).bundleName) && (
+            <span className="rounded bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
+              {item.bundle_name || (item as any).bundleName}
+            </span>
+          )}
         </div>
         <p className="mt-1 text-xs font-semibold text-brand-500">
           {item.order?.orderNumber} • {item.order?.customer?.fullName} •{' '}

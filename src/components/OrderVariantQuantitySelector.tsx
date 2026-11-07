@@ -1,13 +1,20 @@
 import React from 'react';
-import { Copy, Plus, ShoppingBag } from 'lucide-react';
+import { Copy, Plus, ShoppingBag, Sparkles } from 'lucide-react';
 import { money } from '~/lib/format';
 import { OrderVariantRow } from './OrderVariantRow';
+import {
+  parseProductPriceRules,
+  findMatchingVariantPrice,
+  applyBundleToItems,
+  type BundlePriceRule,
+} from '~/lib/pricing-rules';
 
 export interface VariantQuantityItem {
   variant: string;
   size: string;
   quantity: number;
   price?: number;
+  bundleName?: string;
 }
 
 interface OrderVariantQuantitySelectorProps {
@@ -24,6 +31,19 @@ export function OrderVariantQuantitySelector({
   disabled = false,
 }: OrderVariantQuantitySelectorProps) {
   const defaultPrice = Number(form.unitPriceForeign || form.unit_price_foreign || 0);
+  const rawProduct = form.productId_option?.raw || form.selectedProduct;
+  const isNewProduct = form.productId === '__NEW_PRODUCT__';
+
+  const productPriceRules = React.useMemo(() => {
+    const raw = rawProduct?.variant_prices || rawProduct?.variantPrices;
+    return parseProductPriceRules(raw);
+  }, [rawProduct]);
+
+  const availableBundles = React.useMemo(() => {
+    return productPriceRules.bundleRules || [];
+  }, [productPriceRules]);
+
+  const [activeBundleId, setActiveBundleId] = React.useState<string | null>(null);
 
   const items: VariantQuantityItem[] = React.useMemo(() => {
     if (Array.isArray(value) && value.length > 0) {
@@ -37,13 +57,11 @@ export function OrderVariantQuantitySelector({
             : defaultPrice > 0
             ? defaultPrice
             : undefined,
+        bundleName: it.bundleName,
       }));
     }
     return [{ variant: '', size: '', quantity: 1, price: defaultPrice || undefined }];
   }, [value, defaultPrice]);
-
-  const rawProduct = form.productId_option?.raw || form.selectedProduct;
-  const isNewProduct = form.productId === '__NEW_PRODUCT__';
 
   const availableVariants = React.useMemo(() => {
     const raw = isNewProduct
@@ -65,33 +83,135 @@ export function OrderVariantQuantitySelector({
       .filter(Boolean);
   }, [rawProduct, isNewProduct, form.newProductSize]);
 
+  const activeBundle = React.useMemo(() => {
+    if (!activeBundleId) return null;
+    return availableBundles.find((b, idx) => (b.id || String(idx)) === activeBundleId) || null;
+  }, [activeBundleId, availableBundles]);
+
+  const maxBundleCapacity = activeBundle ? activeBundle.minQty : null;
+
   const totalQuantity = items.reduce((sum, it) => sum + Number(it.quantity || 1), 0);
-  const totalSubtotal = items.reduce((sum, it) => {
-    const p = it.price !== undefined && it.price !== null ? Number(it.price) : defaultPrice;
-    return sum + Number(it.quantity || 1) * p;
-  }, 0);
+  const totalSubtotal = activeBundle
+    ? activeBundle.bundlePrice
+    : items.reduce((sum, it) => {
+        const p = it.price !== undefined && it.price !== null ? Number(it.price) : defaultPrice;
+        return sum + Number(it.quantity || 1) * p;
+      }, 0);
 
   const handleUpdate = (index: number, patch: Partial<VariantQuantityItem>) => {
-    const next = items.map((it, idx) => (idx === index ? { ...it, ...patch } : it));
-    onChange(next);
+    // If bundle is active, prevent exceeding bundle package max capacity
+    if (activeBundle && patch.quantity !== undefined) {
+      const currentOtherQty = items.reduce(
+        (sum, it, idx) => (idx === index ? sum : sum + Number(it.quantity || 1)),
+        0
+      );
+      const requestedQty = Math.max(1, Number(patch.quantity));
+      if (currentOtherQty + requestedQty > activeBundle.minQty) {
+        return;
+      }
+    }
+
+    const rawUpdated = items.map((it, idx) => {
+      if (idx !== index) return it;
+      const updated = { ...it, ...patch };
+
+      // If variant or size changed and not in a locked bundle deal, recalculate matched variant price
+      if (
+        !activeBundleId &&
+        (patch.variant !== undefined || patch.size !== undefined) &&
+        patch.price === undefined
+      ) {
+        const matched = findMatchingVariantPrice(
+          productPriceRules,
+          updated.variant,
+          updated.size,
+          defaultPrice
+        );
+        updated.price = matched;
+      }
+      return updated;
+    });
+
+    if (activeBundleId) {
+      const recomputed = applyBundleToItems(rawUpdated, activeBundle, productPriceRules, defaultPrice);
+      onChange(recomputed);
+    } else {
+      onChange(rawUpdated);
+    }
   };
 
   const handleApplyAll = (priceToApply: number) => {
-    const next = items.map((it) => ({ ...it, price: priceToApply }));
+    setActiveBundleId(null);
+    const next = items.map((it) => ({ ...it, price: priceToApply, bundleName: undefined }));
     onChange(next);
   };
 
   const handleAddRow = (presetVariant = '', presetSize = '') => {
-    const lastPrice = items[items.length - 1]?.price ?? defaultPrice;
-    onChange([
-      ...items,
-      { variant: presetVariant, size: presetSize, quantity: 1, price: lastPrice },
-    ]);
+    if (activeBundle && totalQuantity >= activeBundle.minQty) {
+      return;
+    }
+
+    const newRow: VariantQuantityItem = {
+      variant: presetVariant,
+      size: presetSize,
+      quantity: 1,
+      price: findMatchingVariantPrice(productPriceRules, presetVariant, presetSize, defaultPrice),
+    };
+    const nextItems = [...items, newRow];
+
+    if (activeBundleId) {
+      const recomputed = applyBundleToItems(nextItems, activeBundle, productPriceRules, defaultPrice);
+      onChange(recomputed);
+    } else {
+      onChange(nextItems);
+    }
   };
 
   const handleRemoveRow = (index: number) => {
     if (items.length <= 1) return;
-    onChange(items.filter((_, idx) => idx !== index));
+    const remaining = items.filter((_, idx) => idx !== index);
+    if (activeBundleId) {
+      const recomputed = applyBundleToItems(remaining, activeBundle, productPriceRules, defaultPrice);
+      onChange(recomputed);
+    } else {
+      onChange(remaining);
+    }
+  };
+
+  const handleSelectBundle = (bundle: BundlePriceRule | null, bundleKey: string | null) => {
+    setActiveBundleId(bundleKey);
+    // When activating a bundle, trim or adjust items so total fits bundle.minQty
+    let baseItems = [...items];
+    if (bundle && bundle.minQty > 0) {
+      // If current count is less than minQty, pad with rows up to bundle.minQty
+      const currentQty = baseItems.reduce((sum, it) => sum + Number(it.quantity || 1), 0);
+      if (currentQty < bundle.minQty) {
+        const needed = bundle.minQty - currentQty;
+        const lastRow = baseItems[baseItems.length - 1];
+        for (let k = 0; k < needed; k++) {
+          baseItems.push({
+            variant: lastRow?.variant || availableVariants[0] || '',
+            size: lastRow?.size || availableSizes[0] || '',
+            quantity: 1,
+            price: 0,
+          });
+        }
+      } else if (currentQty > bundle.minQty) {
+        // Trim down to minQty
+        const trimmed: VariantQuantityItem[] = [];
+        let count = 0;
+        for (const it of baseItems) {
+          if (count >= bundle.minQty) break;
+          const q = Math.min(Number(it.quantity || 1), bundle.minQty - count);
+          trimmed.push({ ...it, quantity: q });
+          count += q;
+        }
+        baseItems = trimmed;
+      }
+    }
+
+    const updated = applyBundleToItems(baseItems, bundle, productPriceRules, defaultPrice);
+    onChange(updated);
   };
 
   if (!form.productId) {
@@ -186,6 +306,61 @@ export function OrderVariantQuantitySelector({
         )}
       </div>
 
+      {/* Bundle Selection Bar (if product has bundle rules) */}
+      {availableBundles.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-2.5 space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <Sparkles size={14} className="text-amber-600" />
+            <span className="text-xs font-black text-amber-900">
+              Promo Package / Bundle Deal Available:
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => handleSelectBundle(null, null)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                !activeBundleId
+                  ? 'bg-brand-900 text-white border-brand-900 shadow-2xs'
+                  : 'bg-white text-brand-700 border-brand-200 hover:bg-brand-50'
+              }`}
+            >
+              Standard (Per Piece)
+            </button>
+            {availableBundles.map((b, idx) => {
+              const bKey = b.id || String(idx);
+              const isSelected = activeBundleId === bKey;
+              const unitEquivalent =
+                b.minQty > 0 ? Math.round(b.bundlePrice / b.minQty) : b.bundlePrice;
+
+              return (
+                <button
+                  key={bKey}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => handleSelectBundle(b, bKey)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border flex items-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                      : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100/60'
+                  }`}
+                >
+                  <span>{b.name || `Bundle ${b.minQty} pcs`}</span>
+                  <span
+                    className={`text-[10px] px-1 py-0.2 rounded font-black ${
+                      isSelected ? 'bg-amber-700 text-amber-100' : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {money(b.bundlePrice)} ({money(unitEquivalent)}/pc)
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Quick Variant & Size Suggestion Chips */}
       {(availableVariants.length > 0 || availableSizes.length > 0) && (
         <div className="space-y-1.5 rounded-xl bg-brand-50/60 p-2 text-xs">
@@ -241,21 +416,26 @@ export function OrderVariantQuantitySelector({
 
       {/* Rows Table */}
       <div className="space-y-2">
-        {items.map((row, index) => (
-          <OrderVariantRow
-            key={index}
-            index={index}
-            row={row}
-            defaultPrice={defaultPrice}
-            availableVariants={availableVariants}
-            availableSizes={availableSizes}
-            disabled={disabled}
-            canRemove={items.length > 1}
-            onUpdate={(patch) => handleUpdate(index, patch)}
-            onRemove={() => handleRemoveRow(index)}
-            onApplyToAll={items.length > 1 ? handleApplyAll : undefined}
-          />
-        ))}
+        {items.map((row, index) => {
+          const isAtBundleLimit = activeBundle ? totalQuantity >= activeBundle.minQty : false;
+          return (
+            <OrderVariantRow
+              key={index}
+              index={index}
+              row={row}
+              defaultPrice={defaultPrice}
+              availableVariants={availableVariants}
+              availableSizes={availableSizes}
+              disabled={disabled}
+              isBundleActive={Boolean(activeBundle)}
+              canIncrease={!isAtBundleLimit}
+              canRemove={items.length > 1}
+              onUpdate={(patch) => handleUpdate(index, patch)}
+              onRemove={() => handleRemoveRow(index)}
+              onApplyToAll={items.length > 1 && !activeBundle ? handleApplyAll : undefined}
+            />
+          );
+        })}
       </div>
 
       {/* Add Row Button & Bottom Summary Bar */}
@@ -265,19 +445,25 @@ export function OrderVariantQuantitySelector({
           'border-t border-brand-100'
         }
       >
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => handleAddRow()}
-          className={
-            'inline-flex items-center gap-1.5 rounded-xl border border-dashed ' +
-            'border-brand-300 bg-white px-3 py-1.5 text-xs font-bold text-brand-700 ' +
-            'hover:border-brand-400 hover:bg-brand-50 transition cursor-pointer'
-          }
-        >
-          <Plus size={14} className="text-brand-500" />
-          <span>+ Add Another Variant / Size</span>
-        </button>
+        {activeBundle && totalQuantity >= activeBundle.minQty ? (
+          <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl">
+            ✓ Bundle Package Full ({activeBundle.minQty} pcs max). Add next item as another product below.
+          </span>
+        ) : (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => handleAddRow()}
+            className={
+              'inline-flex items-center gap-1.5 rounded-xl border border-dashed ' +
+              'border-brand-300 bg-white px-3 py-1.5 text-xs font-bold text-brand-700 ' +
+              'hover:border-brand-400 hover:bg-brand-50 transition cursor-pointer'
+            }
+          >
+            <Plus size={14} className="text-brand-500" />
+            <span>+ Add Another Variant / Size</span>
+          </button>
+        )}
 
         <div className="flex items-center gap-2 text-xs">
           <span className="rounded-md bg-brand-100 px-2 py-0.5 font-bold text-brand-700">
