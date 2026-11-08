@@ -194,29 +194,40 @@ export function getShipmentOrderNumbers(shipment?: Shipment | null): string[] {
 export function isSingleOrderFullyPaid(order?: Shipment['order'] | null): boolean {
   if (!order) return false;
 
-  const invoiceLinks = order.invoice_links || order.invoiceLinks;
-  if (invoiceLinks && invoiceLinks.length > 0) {
-    const hasUnpaidInvoice = invoiceLinks.some((link) => {
-      const inv = link.invoice;
-      if (!inv) return false;
-      const outstanding = Number(inv.outstanding_amount ?? inv.outstandingAmount ?? 0);
-      return !['PAID', 'OVERPAID', 'REFUND_DUE'].includes(inv.status) || outstanding > 0;
-    });
-    if (hasUnpaidInvoice) return false;
-  }
-
-  const outstanding = Number(order.outstanding_amount ?? order.outstandingAmount ?? 0);
-  if (outstanding > 0) return false;
-
-  const totalBill = Number(order.total_bill ?? order.totalBill ?? 0);
-  const paid = Number(order.paid_amount ?? order.paidAmount ?? 0);
-  if (totalBill > 0 && paid < totalBill) return false;
-
-  if (['NEW', 'WAITING_DP', 'DP_RECEIVED', 'WAITING_SETTLEMENT'].includes(order.status || '')) {
+  if (['NEW', 'WAITING_DP', 'DP_RECEIVED', 'CANCELLED'].includes(order.status || '')) {
     return false;
   }
 
-  return true;
+  const totalBill = Number(order.total_bill ?? order.totalBill ?? 0);
+  const paid = Number(order.paid_amount ?? order.paidAmount ?? 0);
+  const outstanding = Number(order.outstanding_amount ?? order.outstandingAmount ?? 0);
+  const customerShipping = Number(order.customer_shipping ?? order.customerShipping ?? 0);
+  const nonShippingBill = Math.max(0, totalBill - customerShipping);
+
+  if (outstanding <= 0 && (totalBill <= 0 || paid >= totalBill)) {
+    return true;
+  }
+
+  if (
+    ['READY_TO_SHIP', 'WAITING_SETTLEMENT', 'SHIPPED', 'COMPLETED'].includes(order.status || '') &&
+    paid > 0 &&
+    paid >= nonShippingBill
+  ) {
+    return true;
+  }
+
+  const invoiceLinks = order.invoice_links || order.invoiceLinks;
+  if (invoiceLinks && invoiceLinks.length > 0) {
+    const allInvoicesPaid = invoiceLinks.every((link) => {
+      const inv = link.invoice;
+      if (!inv) return false;
+      const invOutstanding = Number(inv.outstanding_amount ?? inv.outstandingAmount ?? 0);
+      return ['PAID', 'OVERPAID', 'REFUND_DUE'].includes(inv.status) && invOutstanding <= 0;
+    });
+    if (allInvoicesPaid) return true;
+  }
+
+  return false;
 }
 
 export function isShipmentFullyPaid(shipment?: Shipment | null): boolean {

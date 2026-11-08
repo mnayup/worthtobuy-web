@@ -1,18 +1,25 @@
-import { Crown, Check, X, AlertCircle, Archive } from 'lucide-react';
+import { useMemo } from 'react';
+import { Crown, Check, X, AlertCircle, Archive, ArrowRightLeft } from 'lucide-react';
 import { money } from '~/lib/format';
-import type { PurchaseItem, ItemChecklistState } from '../types';
+import type { PurchaseItem, ItemChecklistState, BulkSortingLine } from '../types';
 
 export type { ItemChecklistState };
 
 interface PurchaseItemChecklistRowProps {
   item: PurchaseItem;
   state: ItemChecklistState;
+  allItems?: PurchaseItem[];
+  allItemsState?: Record<number, ItemChecklistState>;
+  sortingLines?: BulkSortingLine[];
   onChange: (patch: Partial<ItemChecklistState>) => void;
 }
 
 export function PurchaseItemChecklistRow({
   item,
   state,
+  allItems = [],
+  allItemsState = {},
+  sortingLines = [],
   onChange,
 }: PurchaseItemChecklistRowProps) {
   const isEligible = Boolean(item.is_eligible_to_buy);
@@ -20,6 +27,80 @@ export function PurchaseItemChecklistRow({
   const isUnavailable = state.status === 'UNAVAILABLE';
   const isVip = Boolean(item.is_priority_customer);
   const isKept = Boolean(state.kept_until);
+
+  const currentVar = state.variation !== undefined ? (state.variation || '') : (item.variation || item.color || '');
+  const currentSize = state.size !== undefined ? (state.size || '') : (item.size || '');
+  const originalVar = item.variation || item.color || '';
+  const originalSize = item.size || '';
+  const isSpecChanged =
+    (currentVar.trim().toLowerCase() !== originalVar.trim().toLowerCase()) ||
+    (currentSize.trim().toLowerCase() !== originalSize.trim().toLowerCase());
+
+  // Compute available sorting pools for this product
+  const productSortingPools = useMemo(() => {
+    const normProd = (item.product_name || 'Unnamed Product').trim().toLowerCase();
+    const productLines = sortingLines.filter(
+      (l) => (l.productName || 'Unnamed Product').trim().toLowerCase() === normProd
+    );
+    if (productLines.length === 0) return [];
+
+    return productLines.map((line) => {
+      const lVar = (line.variant || 'Default').trim();
+      const lSize = (line.size || '-').trim();
+      // Sum allocated_qty of OTHER customer items using this same (product, variant, size)
+      let usedByOthers = 0;
+      for (const other of allItems) {
+        if (other.id === item.id) continue;
+        if ((other.product_name || 'Unnamed Product').trim().toLowerCase() !== normProd) continue;
+        const st = allItemsState[other.id];
+        if (!st || st.status !== 'PURCHASED') continue;
+        const oVar = (st.variation?.trim() || other.variation?.trim() || other.color?.trim() || 'Default');
+        const oSize = (st.size?.trim() || other.size?.trim() || '-');
+        if (
+          oVar.toLowerCase() === lVar.toLowerCase() &&
+          oSize.toLowerCase() === lSize.toLowerCase()
+        ) {
+          usedByOthers += Number(st.allocated_qty || 0);
+        }
+      }
+      const remaining = Math.max(0, Number(line.actualQty || 0) - usedByOthers);
+      return {
+        ...line,
+        remainingForThisItem: remaining,
+      };
+    });
+  }, [item, allItems, allItemsState, sortingLines]);
+
+  const variantOptions = useMemo(() => {
+    const set = new Set<string>();
+    if (originalVar) set.add(originalVar);
+    if (currentVar) set.add(currentVar);
+    (item.product_variants || []).forEach((v) => {
+      if (v) set.add(v);
+    });
+    productSortingPools.forEach((p) => {
+      if (p.variant && p.variant !== 'Default') set.add(p.variant);
+    });
+    return Array.from(set);
+  }, [originalVar, currentVar, item.product_variants, productSortingPools]);
+
+  const sizeOptions = useMemo(() => {
+    const set = new Set<string>();
+    if (originalSize) set.add(originalSize);
+    if (currentSize) set.add(currentSize);
+    (item.product_sizes || []).forEach((s) => {
+      if (s) set.add(s);
+    });
+    productSortingPools.forEach((p) => {
+      if (p.size && p.size !== '-') set.add(p.size);
+    });
+    return Array.from(set);
+  }, [originalSize, currentSize, item.product_sizes, productSortingPools]);
+
+  // Available surplus options from bulk sorting where remainingForThisItem > 0
+  const availableSurplusPools = useMemo(() => {
+    return productSortingPools.filter((p) => p.remainingForThisItem > 0);
+  }, [productSortingPools]);
 
   return (
     <div
@@ -106,24 +187,38 @@ export function PurchaseItemChecklistRow({
                 {item.brand_name}
               </span>
             )}
-            {item.variation && (
+            {(currentVar || item.variation) && (
               <span
                 className={
-                  'rounded bg-indigo-50 px-1.5 py-0.5 ' +
-                  'text-[11px] font-semibold text-indigo-700'
+                  'rounded px-1.5 py-0.5 text-[11px] font-semibold ' +
+                  (isSpecChanged
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : 'bg-indigo-50 text-indigo-700')
                 }
               >
-                Var: {item.variation}
+                Var: {currentVar || item.variation}
+                {isSpecChanged && originalVar && originalVar !== currentVar && (
+                  <span className="ml-1 text-[10px] line-through opacity-70">
+                    ({originalVar})
+                  </span>
+                )}
               </span>
             )}
-            {item.size && (
+            {(currentSize || item.size) && (
               <span
                 className={
-                  'rounded bg-indigo-50 px-1.5 py-0.5 ' +
-                  'text-[11px] font-semibold text-indigo-700'
+                  'rounded px-1.5 py-0.5 text-[11px] font-semibold ' +
+                  (isSpecChanged
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : 'bg-indigo-50 text-indigo-700')
                 }
               >
-                Size: {item.size}
+                Size: {currentSize || item.size}
+                {isSpecChanged && originalSize && originalSize !== currentSize && (
+                  <span className="ml-1 text-[10px] line-through opacity-70">
+                    ({originalSize})
+                  </span>
+                )}
               </span>
             )}
             {item.color && (
@@ -145,6 +240,76 @@ export function PurchaseItemChecklistRow({
                 })}
               </span>
             )}
+          </div>
+
+          {/* Variant & Size Switcher / Replacement Option */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 bg-slate-50/90 border border-brand-100/80 rounded-xl p-2">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-brand-600 uppercase tracking-wide">
+              <ArrowRightLeft size={12} className="text-indigo-600" />
+              <span>Variant / Size:</span>
+            </div>
+
+            {availableSurplusPools.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => {
+                  const selectedKey = e.target.value;
+                  if (!selectedKey) return;
+                  const pool = availableSurplusPools.find((p) => p.key === selectedKey);
+                  if (!pool) return;
+                  const nextV = pool.variant === 'Default' ? '' : pool.variant;
+                  const nextS = pool.size === '-' ? '' : pool.size;
+                  const alloc = Math.min(item.quantity, pool.remainingForThisItem);
+                  onChange({
+                    variation: nextV,
+                    size: nextS,
+                    allocated_qty: alloc,
+                    status: alloc > 0 ? 'PURCHASED' : state.status,
+                    actual_unit_price: pool.unitPrice > 0 ? pool.unitPrice : state.actual_unit_price,
+                  });
+                }}
+                className="text-[11px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+              >
+                <option value="">
+                  ⚡ Switch to Sorted Stock ({availableSurplusPools.length} available)
+                </option>
+                {availableSurplusPools.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.variant} / Size: {p.size} — Available: {p.remainingForThisItem} pcs
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                list={`var-list-${item.id}`}
+                value={currentVar}
+                onChange={(e) => onChange({ variation: e.target.value })}
+                placeholder="Variant..."
+                className="input !py-1 !px-2 text-[11px] w-28 font-semibold bg-white"
+              />
+              <datalist id={`var-list-${item.id}`}>
+                {variantOptions.map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
+
+              <input
+                type="text"
+                list={`size-list-${item.id}`}
+                value={currentSize}
+                onChange={(e) => onChange({ size: e.target.value })}
+                placeholder="Size..."
+                className="input !py-1 !px-2 text-[11px] w-20 font-semibold bg-white"
+              />
+              <datalist id={`size-list-${item.id}`}>
+                {sizeOptions.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
           </div>
         </div>
 
@@ -309,8 +474,9 @@ export function PurchaseItemChecklistRow({
         >
           <AlertCircle size={13} className="shrink-0" />
           <span>
-            Item unavailable at store. Customer's paid DP will automatically
-            be queued for refund.
+            {item.has_paid_dp
+              ? "Item unavailable at store. Customer's paid DP on invoice will automatically be queued for refund."
+              : 'Item unavailable at store. Customer has not paid DP yet — no refund data will be created.'}
           </span>
         </div>
       )}
@@ -323,8 +489,9 @@ export function PurchaseItemChecklistRow({
         >
           <AlertCircle size={13} className="shrink-0" />
           <span>
-            Shortage: {item.quantity - state.allocated_qty} pcs will be
-            recorded as unavailable and refunded to customer.
+            {item.has_paid_dp
+              ? `Shortage: ${item.quantity - state.allocated_qty} pcs will be recorded as unavailable and refunded to customer.`
+              : `Shortage: ${item.quantity - state.allocated_qty} pcs will be recorded as unavailable (no refund needed as DP is not paid yet).`}
           </span>
         </div>
       )}

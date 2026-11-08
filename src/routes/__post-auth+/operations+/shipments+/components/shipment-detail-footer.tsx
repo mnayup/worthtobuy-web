@@ -44,7 +44,7 @@ export function ShipmentDetailFooter({
 
       <div className="flex items-center gap-2">
         {/* Split shipment option for merged multi-order shipments */}
-        {currentStatus === 'WAITING_PACKING' && isMultiOrder && onOpenSplit && (
+        {!['DELIVERED', 'COMPLETED'].includes(currentStatus) && isMultiOrder && onOpenSplit && (
           <button
             type="button"
             onClick={() => {

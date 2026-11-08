@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PurchaseItem } from '../types';
+import type { PurchaseItem, BulkSortingLine } from '../types';
 import {
   PurchaseItemChecklistRow,
   type ItemChecklistState,
@@ -10,6 +10,7 @@ export type { ItemChecklistState };
 interface PurchaseItemsChecklistProps {
   items: PurchaseItem[];
   itemsState: Record<number, ItemChecklistState>;
+  sortingLines?: BulkSortingLine[];
   onChangeItemState: (
     itemId: number,
     patch: Partial<ItemChecklistState>
@@ -19,6 +20,7 @@ interface PurchaseItemsChecklistProps {
 export function PurchaseItemsChecklist({
   items,
   itemsState,
+  sortingLines = [],
   onChangeItemState,
 }: PurchaseItemsChecklistProps) {
   return (
@@ -45,6 +47,8 @@ export function PurchaseItemsChecklist({
               (item.quantity || 1),
             estimated_unit_price:
               Number(item.estimated_price || 0) / (item.quantity || 1),
+            variation: item.variation || null,
+            size: item.size || null,
           };
 
           return (
@@ -52,6 +56,9 @@ export function PurchaseItemsChecklist({
               key={item.id}
               item={item}
               state={state}
+              allItems={items}
+              allItemsState={itemsState}
+              sortingLines={sortingLines}
               onChange={(patch) => onChangeItemState(item.id, patch)}
             />
           );

@@ -248,8 +248,12 @@ export function SearchableSelect({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="truncate">{option.label}</span>
                         {option.tag && (
-                          <span className="rounded bg-amber-100 text-amber-800 border border-amber-300/80 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
-                            <span className="text-amber-500">✨</span> {option.tag}
+                          <span
+                            className={`rounded px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1 border ${
+                              option.tagColor || 'bg-amber-100 text-amber-800 border-amber-300/80'
+                            }`}
+                          >
+                            {option.tagIcon || (!option.tagColor && <span className="text-amber-500">✨</span>)} {option.tag}
                           </span>
                         )}
                       </div>

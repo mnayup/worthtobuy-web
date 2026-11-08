@@ -137,8 +137,8 @@ export function SetTrackingModal({
       return;
     }
 
-    if (!isShopee && (!actualShippingCost || isNaN(Number(actualShippingCost)))) {
-      setError('Aktual ongkir wajib diisi angka valid.');
+    if (!isShopee && actualShippingCost !== '' && isNaN(Number(actualShippingCost))) {
+      setError('Aktual ongkir harus berupa angka valid.');
       return;
     }
 
@@ -154,7 +154,11 @@ export function SetTrackingModal({
         serviceType: serviceType.trim() || (isShopee ? 'Checkout Shopee' : null),
         address: address.trim(),
         weightKg: weightKg ? Number(weightKg) : null,
-        actualShippingCost: isShopee ? 0 : Number(actualShippingCost),
+        actualShippingCost: isShopee
+          ? 0
+          : actualShippingCost !== ''
+            ? Number(actualShippingCost)
+            : null,
         shopeeRefundAmount: isShopee ? Number(shopeeRefundAmount || 0) : null,
         shippingMethod: isShopee ? 'SHOPEE' : 'MANUAL',
         shopeeUsername: isShopee

@@ -31,6 +31,7 @@ export async function loader() {
 export default function PurchasesRoute() {
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
   const [selectedPurchaseForSummary, setSelectedPurchaseForSummary] = useState<Purchase | null>(null);
+  const [bulkSortingLines, setBulkSortingLines] = useState<import('./types').BulkSortingLine[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export default function PurchasesRoute() {
   const fetchFilterOptions = async () => {
     try {
       const [periodsRes, activeProductsRes, allProductsRes] = await Promise.allSettled([
-        api.get('/periods?status=OPEN&limit=100'),
+        api.get('/periods?limit=250'),
         api.get('/products?activePeriod=true&limit=250'),
         api.get('/products?limit=250'),
       ]);
@@ -333,6 +334,7 @@ export default function PurchasesRoute() {
             placeholder: 'All Status',
             options: [
               { label: 'Waiting Purchase', value: 'WAITING_PURCHASE' },
+              { label: 'Sorting', value: 'SORTING' },
               { label: 'Purchased', value: 'PURCHASED' },
               { label: 'Unavailable', value: 'UNAVAILABLE' },
             ],
@@ -450,28 +452,48 @@ export default function PurchasesRoute() {
           },
         ]}
         selectable={false}
-        renderActions={(row) => (
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setSelectedPurchaseForSummary(row)}
-              className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-indigo-200 bg-white text-indigo-600 shadow-2xs hover:bg-indigo-50 hover:text-indigo-900 hover:border-indigo-300 transition cursor-pointer"
-              title="Summary Variant & Color List"
-              aria-label="Summary Variant & Color List"
-            >
-              <Layers size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedPurchase(row)}
-              className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
-              title="Details & Update Status"
-              aria-label="Details & Update Status"
-            >
-              <Eye size={15} />
-            </button>
-          </div>
-        )}
+        renderActions={(row) => {
+          const isAwaitingPurchase = row.status === 'WAITING_PURCHASE';
+
+          return (
+            <div className="flex items-center gap-1.5">
+              {isAwaitingPurchase ? (
+                /* In Awaiting Purchase, single button action opens the Sorting & Summary List first */
+                <button
+                  type="button"
+                  onClick={() => setSelectedPurchaseForSummary(row)}
+                  className="inline-flex items-center justify-center h-8 w-8 min-w-[32px] rounded-xl border border-indigo-200 bg-white text-indigo-700 shadow-2xs hover:bg-indigo-50 hover:text-indigo-900 hover:border-indigo-300 transition cursor-pointer"
+                  title="Purchase Sorting & Summary List"
+                  aria-label="Purchase Sorting & Summary List"
+                >
+                  <Layers size={15} />
+                </button>
+              ) : (
+                /* Once sorted or updated, allows direct Details & Assignment inspection */
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPurchaseForSummary(row)}
+                    className="inline-flex items-center justify-center h-8 w-8 min-w-[32px] rounded-xl border border-slate-200 bg-white text-brand-600 shadow-2xs hover:bg-slate-50 hover:text-brand-900 transition cursor-pointer"
+                    title="View Sorting & Summary"
+                    aria-label="View Sorting & Summary"
+                  >
+                    <Layers size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPurchase(row)}
+                    className="inline-flex items-center justify-center h-8 w-8 min-w-[32px] rounded-xl border border-brand-200 bg-white text-brand-700 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
+                    title="Customer Allocation & Status"
+                    aria-label="Customer Allocation & Status"
+                  >
+                    <Eye size={15} />
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        }}
         canDelete={false}
         canEdit={false}
         prepareInitial={(row) => {
@@ -510,7 +532,11 @@ export default function PurchasesRoute() {
       <PurchaseDetailModal
         open={Boolean(selectedPurchase)}
         purchase={selectedPurchase}
-        onClose={() => setSelectedPurchase(null)}
+        initialSortingLines={bulkSortingLines}
+        onClose={() => {
+          setSelectedPurchase(null);
+          setBulkSortingLines([]);
+        }}
         onSaved={() => {
           setRefreshKey((k) => k + 1);
           fetchSummary();
@@ -521,6 +547,45 @@ export default function PurchasesRoute() {
         open={Boolean(selectedPurchaseForSummary)}
         purchase={selectedPurchaseForSummary}
         onClose={() => setSelectedPurchaseForSummary(null)}
+        onProceedToAssignment={async (lines) => {
+          setBulkSortingLines(lines);
+          if (selectedPurchaseForSummary) {
+            try {
+              const newProductSpecs = lines
+                .filter((l) => l.productId)
+                .map((l) => ({
+                  productId: l.productId,
+                  variant: l.variant,
+                  size: l.size,
+                  buyPrice: l.unitPrice,
+                }));
+
+              await api.put(`/purchases/${selectedPurchaseForSummary.id}`, {
+                status: 'SORTING',
+                sortingLines: lines,
+                newProductSpecs,
+              });
+              setRefreshKey((k) => k + 1);
+              fetchSummary();
+            } catch (err) {
+              console.warn('Could not update status to SORTING:', err);
+            }
+          }
+          const updatedPurchase = selectedPurchaseForSummary
+            ? {
+                ...selectedPurchaseForSummary,
+                status: 'SORTING',
+                sortingLines: lines,
+                sorting_lines: lines,
+                items: (selectedPurchaseForSummary.items || []).map((it) => ({
+                  ...it,
+                  status: 'SORTING',
+                })),
+              }
+            : null;
+          setSelectedPurchase(updatedPurchase);
+          setSelectedPurchaseForSummary(null);
+        }}
       />
     </>
   );

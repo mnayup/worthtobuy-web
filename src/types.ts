@@ -14,7 +14,7 @@ export type User = {
   mfaEnabled?: boolean;
 };
 export type Paginated<T>={data:T[];total:number;page:number;limit:number};
-export type Option={label:string;subLabel?:string;tag?:string;value:string|number;[key:string]:any};
+export type Option={label:string;subLabel?:string;tag?:string;tagColor?:string;value:string|number;[key:string]:any};
 export type FieldConfig={
   name:string;
   label:string;

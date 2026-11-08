@@ -84,8 +84,28 @@ export function prepareInitialOrder(row: any) {
     periodId_option: period
       ? {
           value: period.id,
-          label: `${period.code} • ${period.name}`,
+          label: period.name,
+          tag:
+            period.type === 'LIVE_SHOPPING'
+              ? 'Live Shopping'
+              : period.code === 'READY-STOCK'
+              ? 'Ready Stock'
+              : undefined,
+          tagColor:
+            period.type === 'LIVE_SHOPPING'
+              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              : period.code === 'READY-STOCK'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : undefined,
+          subLabel: [
+            period.code ? `Code: ${period.code}` : '',
+            [period.city, period.country].filter(Boolean).join(', '),
+          ]
+            .filter(Boolean)
+            .join(' • ') || undefined,
           code: period.code,
+          type: period.type,
+          raw: period,
         }
       : undefined,
     productId: first?.product_id || first?.productId || '',
@@ -187,8 +207,12 @@ export function prepareSubmitOrder(form: any) {
     ? isLiveOrReadyPeriod
     : isLiveOrReadyPeriod || form.productId_option?.stockMode === 'READY_STOCK';
 
-  if (periodOption && periodOption.code !== 'READY-STOCK') {
-    if (periodOption.orderCloseAt && orderDateObj > new Date(periodOption.orderCloseAt)) {
+  if (periodOption) {
+    const rawStatus = (periodOption.raw?.status || periodOption.status || '').toUpperCase();
+    if (rawStatus && rawStatus !== 'OPEN') {
+      throw new Error(`Event "${periodOption.label || periodOption.code}" is not open (status: ${rawStatus}).`);
+    }
+    if (periodOption.code !== 'READY-STOCK' && periodOption.orderCloseAt && orderDateObj > new Date(periodOption.orderCloseAt)) {
       throw new Error('Order date cannot be later than event order closing date.');
     }
   }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle2, AlertCircle, Layers } from 'lucide-react';
 
 export const STATUS_CARDS = [
   {
@@ -22,6 +22,17 @@ export const STATUS_CARDS = [
       hover: 'hover:border-indigo-300 hover:bg-indigo-50',
       iconDefault: 'bg-slate-50 text-slate-400',
       iconHover: 'group-hover:bg-indigo-100 group-hover:text-indigo-600',
+    },
+  },
+  {
+    key: 'SORTING',
+    label: 'Sorting',
+    icon: Layers,
+    theme: {
+      active: 'bg-purple-600 border-transparent shadow-purple-500/30',
+      hover: 'hover:border-purple-300 hover:bg-purple-50',
+      iconDefault: 'bg-slate-50 text-slate-400',
+      iconHover: 'group-hover:bg-purple-100 group-hover:text-purple-600',
     },
   },
   {

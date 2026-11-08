@@ -92,10 +92,12 @@ export function OrderVariantRow({
               </option>
               {availableVariants.map((v) => {
                 const count = variantStockCounts?.[v];
+                const isOutOfStock = lockToAvailableStock && variantStockCounts !== undefined && (count === undefined || count <= 0);
                 return (
-                  <option key={v} value={v}>
+                  <option key={v} value={v} disabled={isOutOfStock}>
                     {v}
                     {count !== undefined ? ` (${count} pcs)` : ''}
+                    {isOutOfStock ? ' - Habis' : ''}
                   </option>
                 );
               })}
@@ -134,10 +136,12 @@ export function OrderVariantRow({
               </option>
               {availableSizes.map((s) => {
                 const count = sizeStockCounts?.[s];
+                const isOutOfStock = lockToAvailableStock && sizeStockCounts !== undefined && (count === undefined || count <= 0);
                 return (
-                  <option key={s} value={s}>
+                  <option key={s} value={s} disabled={isOutOfStock}>
                     {s}
                     {count !== undefined ? ` (${count} pcs)` : ''}
+                    {isOutOfStock ? ' - Habis' : ''}
                   </option>
                 );
               })}
@@ -273,6 +277,15 @@ export function OrderVariantRow({
           <span className="text-[9px] text-brand-400">
             {isBundleActive ? `${row.quantity} pc (In Bundle)` : `${row.quantity} x ${money(effectivePrice)}`}
           </span>
+          {lockToAvailableStock && maxQuantity !== undefined && (
+            <span
+              className={`block text-[9px] font-bold ${
+                maxQuantity <= 0 ? 'text-rose-600' : 'text-emerald-600'
+              }`}
+            >
+              Max: {maxQuantity} ready
+            </span>
+          )}
         </div>
 
         {canRemove && (

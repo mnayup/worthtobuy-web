@@ -84,12 +84,7 @@ export function OrderVariantQuantitySelector({
     return Array.isArray(list) ? list.filter((x: any) => Number(x.available || 0) > 0) : [];
   }, [isReadyOrLiveStock, rawProduct]);
 
-  const availableVariants = React.useMemo(() => {
-    if (isReadyOrLiveStock && Array.isArray(rawProduct?.available_variant_stocks)) {
-      return Array.from(
-        new Set(availableVariantStocks.map((x) => x.variant).filter(Boolean))
-      );
-    }
+  const allVariants = React.useMemo(() => {
     const raw = isNewProduct
       ? form.newProductVariant
       : rawProduct?.variant || rawProduct?.variation;
@@ -98,7 +93,25 @@ export function OrderVariantQuantitySelector({
       .split(/[,;\n]/)
       .map((s) => s.trim())
       .filter(Boolean);
-  }, [rawProduct, isNewProduct, form.newProductVariant, isReadyOrLiveStock, availableVariantStocks]);
+  }, [rawProduct, isNewProduct, form.newProductVariant]);
+
+  const allSizes = React.useMemo(() => {
+    const raw = isNewProduct ? form.newProductSize : rawProduct?.size;
+    if (!raw || typeof raw !== 'string') return [];
+    return raw
+      .split(/[,;\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [rawProduct, isNewProduct, form.newProductSize]);
+
+  const availableVariants = React.useMemo(() => {
+    if (isReadyOrLiveStock && Array.isArray(rawProduct?.available_variant_stocks)) {
+      return Array.from(
+        new Set(availableVariantStocks.map((x) => x.variant).filter(Boolean))
+      );
+    }
+    return allVariants;
+  }, [allVariants, isReadyOrLiveStock, rawProduct, availableVariantStocks]);
 
   const availableSizes = React.useMemo(() => {
     if (isReadyOrLiveStock && Array.isArray(rawProduct?.available_variant_stocks)) {
@@ -106,13 +119,8 @@ export function OrderVariantQuantitySelector({
         new Set(availableVariantStocks.map((x) => x.size).filter(Boolean))
       );
     }
-    const raw = isNewProduct ? form.newProductSize : rawProduct?.size;
-    if (!raw || typeof raw !== 'string') return [];
-    return raw
-      .split(/[,;\n]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }, [rawProduct, isNewProduct, form.newProductSize, isReadyOrLiveStock, availableVariantStocks]);
+    return allSizes;
+  }, [allSizes, isReadyOrLiveStock, rawProduct, availableVariantStocks]);
 
   const variantStockCounts = React.useMemo(() => {
     if (!isReadyOrLiveStock || availableVariantStocks.length === 0) return undefined;
@@ -137,6 +145,16 @@ export function OrderVariantQuantitySelector({
     },
     [isReadyOrLiveStock, rawProduct, availableVariantStocks, availableSizes]
   );
+
+  const allSizeStockCounts = React.useMemo(() => {
+    if (!isReadyOrLiveStock || availableVariantStocks.length === 0) return undefined;
+    const map: Record<string, number> = {};
+    for (const entry of availableVariantStocks) {
+      if (!entry.size) continue;
+      map[entry.size] = (map[entry.size] || 0) + entry.available;
+    }
+    return map;
+  }, [isReadyOrLiveStock, availableVariantStocks]);
 
   const getSizeStockCountsForVariant = React.useCallback(
     (selectedVariant: string) => {
@@ -164,7 +182,7 @@ export function OrderVariantQuantitySelector({
           Number(rawProduct?.reserved_quantity ?? rawProduct?.reservedQuantity ?? 0)
       );
       if (availableVariantStocks.length === 0) {
-        return totalProdStock > 0 ? totalProdStock : undefined;
+        return totalProdStock;
       }
       const normVar = (rowVariant || '').trim().toLowerCase();
       const normSize = (rowSize || '').trim().toLowerCase();
@@ -183,7 +201,7 @@ export function OrderVariantQuantitySelector({
         }
         return sum;
       }, 0);
-      return Math.max(1, bucketAvail - usedInOtherRows);
+      return Math.max(0, bucketAvail - usedInOtherRows);
     },
     [isReadyOrLiveStock, rawProduct, availableVariantStocks, items]
   );
@@ -202,6 +220,27 @@ export function OrderVariantQuantitySelector({
         const p = it.price !== undefined && it.price !== null ? Number(it.price) : defaultPrice;
         return sum + Number(it.quantity || 1) * p;
       }, 0);
+
+  const totalReadyStockAvailable = React.useMemo(() => {
+    if (!isReadyOrLiveStock) return undefined;
+    if (availableVariantStocks.length > 0) {
+      return availableVariantStocks.reduce((sum, s) => sum + Number(s.available || 0), 0);
+    }
+    return Math.max(
+      0,
+      Number(rawProduct?.stock_quantity ?? rawProduct?.stockQuantity ?? 0) -
+        Number(rawProduct?.reserved_quantity ?? rawProduct?.reservedQuantity ?? 0)
+    );
+  }, [isReadyOrLiveStock, availableVariantStocks, rawProduct]);
+
+  const canAddMoreRows = React.useMemo(() => {
+    if (disabled) return false;
+    if (activeBundle && totalQuantity >= activeBundle.minQty) return false;
+    if (totalReadyStockAvailable !== undefined && totalQuantity >= totalReadyStockAvailable) {
+      return false;
+    }
+    return true;
+  }, [disabled, activeBundle, totalQuantity, totalReadyStockAvailable]);
 
   const handleUpdate = (index: number, patch: Partial<VariantQuantityItem>) => {
     // If bundle is active, prevent exceeding bundle package max capacity
@@ -226,6 +265,18 @@ export function OrderVariantQuantitySelector({
           updated.size = validSizes[0];
         } else if (validSizes.length === 0) {
           updated.size = '';
+        }
+      }
+
+      // Enforce max quantity limit for this row based on actual ready stock
+      if (isReadyOrLiveStock) {
+        const rowMax = getMaxQuantityForRow(
+          updated.variant || '',
+          updated.size || '',
+          idx
+        );
+        if (rowMax !== undefined && updated.quantity > rowMax) {
+          updated.quantity = Math.max(1, rowMax);
         }
       }
 
@@ -261,7 +312,7 @@ export function OrderVariantQuantitySelector({
   };
 
   const handleAddRow = (presetVariant = '', presetSize = '') => {
-    if (activeBundle && totalQuantity >= activeBundle.minQty) {
+    if (!canAddMoreRows) {
       return;
     }
 
@@ -483,22 +534,26 @@ export function OrderVariantQuantitySelector({
               <span className="text-[10px] font-bold text-brand-500 uppercase tracking-wider">
                 Variant Options:
               </span>
-              {availableVariants.map((v) => (
-                <button
-                  type="button"
-                  key={v}
-                  disabled={disabled}
-                  onClick={() => handleAddRow(v, '')}
-                  className={
-                    'rounded-lg bg-white border border-brand-200 px-2 py-0.5 ' +
-                    'text-[10px] font-bold text-brand-700 hover:bg-brand-100 transition ' +
-                    'cursor-pointer active:scale-95'
-                  }
-                  title={`Click to add row with variant: ${v}`}
-                >
-                  + {v}
-                </button>
-              ))}
+              {availableVariants.map((v) => {
+                const count = variantStockCounts?.[v];
+                const isOutOfStock = isReadyOrLiveStock && variantStockCounts !== undefined && (count === undefined || count <= 0);
+                return (
+                  <button
+                    type="button"
+                    key={v}
+                    disabled={disabled || isOutOfStock || !canAddMoreRows}
+                    onClick={() => handleAddRow(v, '')}
+                    className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold transition ${
+                      isOutOfStock
+                        ? 'bg-slate-100 border-slate-200 text-slate-400 line-through cursor-not-allowed opacity-60'
+                        : 'bg-white border-brand-200 text-brand-700 hover:bg-brand-100 cursor-pointer active:scale-95'
+                    }`}
+                    title={isOutOfStock ? `${v} (Out of Stock)` : `Click to add row with variant: ${v}`}
+                  >
+                    + {v}{count !== undefined ? ` (${count})` : ''}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -507,22 +562,26 @@ export function OrderVariantQuantitySelector({
               <span className="text-[10px] font-bold text-brand-500 uppercase tracking-wider">
                 Size Options:
               </span>
-              {availableSizes.map((s) => (
-                <button
-                  type="button"
-                  key={s}
-                  disabled={disabled}
-                  onClick={() => handleAddRow('', s)}
-                  className={
-                    'rounded-lg bg-white border border-brand-200 px-2 py-0.5 ' +
-                    'text-[10px] font-bold text-brand-700 hover:bg-brand-100 transition ' +
-                    'cursor-pointer active:scale-95'
-                  }
-                  title={`Click to add row with size: ${s}`}
-                >
-                  + {s}
-                </button>
-              ))}
+              {availableSizes.map((s) => {
+                const count = allSizeStockCounts?.[s];
+                const isOutOfStock = isReadyOrLiveStock && allSizeStockCounts !== undefined && (count === undefined || count <= 0);
+                return (
+                  <button
+                    type="button"
+                    key={s}
+                    disabled={disabled || isOutOfStock || !canAddMoreRows}
+                    onClick={() => handleAddRow('', s)}
+                    className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold transition ${
+                      isOutOfStock
+                        ? 'bg-slate-100 border-slate-200 text-slate-400 line-through cursor-not-allowed opacity-60'
+                        : 'bg-white border-brand-200 text-brand-700 hover:bg-brand-100 cursor-pointer active:scale-95'
+                    }`}
+                    title={isOutOfStock ? `${s} (Out of Stock)` : `Click to add row with size: ${s}`}
+                  >
+                    + {s}{count !== undefined ? ` (${count})` : ''}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -570,15 +629,19 @@ export function OrderVariantQuantitySelector({
           <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl">
             ✓ Bundle Package Full ({activeBundle.minQty} pcs max). Add next item as another product below.
           </span>
+        ) : totalReadyStockAvailable !== undefined && totalQuantity >= totalReadyStockAvailable ? (
+          <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200/80 px-2.5 py-1 rounded-xl">
+            ✓ Semua stok siap kirim telah dipilih ({totalReadyStockAvailable} pcs max).
+          </span>
         ) : (
           <button
             type="button"
-            disabled={disabled}
+            disabled={!canAddMoreRows}
             onClick={() => handleAddRow()}
             className={
               'inline-flex items-center gap-1.5 rounded-xl border border-dashed ' +
               'border-brand-300 bg-white px-3 py-1.5 text-xs font-bold text-brand-700 ' +
-              'hover:border-brand-400 hover:bg-brand-50 transition cursor-pointer'
+              'hover:border-brand-400 hover:bg-brand-50 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
             }
           >
             <Plus size={14} className="text-brand-500" />

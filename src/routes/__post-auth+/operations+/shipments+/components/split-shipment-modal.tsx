@@ -191,7 +191,13 @@ export function SplitShipmentModal({
           </div>
 
           <p className="text-[11px] text-brand-500 bg-amber-50/70 border border-amber-200/60 p-3 rounded-xl leading-relaxed">
-            <strong>Note:</strong> Selected order(s) will be removed from shipment #{shipment.id} and created as a new shipment in <strong>Waiting Packing</strong> status.
+            <strong>Note:</strong> Selected order(s) will be separated from shipment #{shipment.id} into a new shipment (status{' '}
+            <strong>
+              {shipment.packed_at || shipment.packedAt || shipment.status !== 'WAITING_PACKING'
+                ? 'Packed - Ready for Resi Input'
+                : 'Waiting Packing'}
+            </strong>
+            ) so you can input its tracking number (resi) separately.
           </p>
         </div>
 

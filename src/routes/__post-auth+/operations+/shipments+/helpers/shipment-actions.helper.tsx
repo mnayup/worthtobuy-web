@@ -14,7 +14,7 @@ export function renderShipmentRowActions({
   onOpenSplit,
 }: RenderShipmentRowActionsProps) {
   const isMultiOrder = getShipmentOrders(row).length > 1;
-  const canSplit = isMultiOrder && row.status === 'WAITING_PACKING' && !row.packed_at;
+  const canSplit = isMultiOrder && !['DELIVERED', 'COMPLETED'].includes(row.status);
 
   return (
     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>

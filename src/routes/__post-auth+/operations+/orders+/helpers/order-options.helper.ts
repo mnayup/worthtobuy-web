@@ -24,17 +24,45 @@ export const loadPeriods = async (search: string): Promise<Option[]> => {
   if (search) query.set('search', search);
   const response = await api.get(`/periods?${query}`);
   const rows = responseRows(response);
+  const now = new Date();
   return rows
-    .filter((row: any) => (row.status || '').toUpperCase() === 'OPEN')
-    .map((row: any) => ({
-      value: row.id,
-      label: `${row.code} • ${row.name}${row.type === 'LIVE_SHOPPING' ? ' (Live Shopping)' : ''}`,
-      code: row.code,
-      type: row.type,
-      orderOpenAt: row.orderOpenAt || row.order_open_at,
-      orderCloseAt: row.orderCloseAt || row.order_close_at,
-      raw: row,
-    }));
+    .filter((row: any) => {
+      const isOpen = (row.status || '').toUpperCase() === 'OPEN';
+      if (!isOpen) return false;
+      if (row.code === 'READY-STOCK') return true;
+      const closeAt = row.orderCloseAt || row.order_close_at;
+      return !closeAt || new Date(closeAt) >= now;
+    })
+    .map((row: any) => {
+      const isLive = row.type === 'LIVE_SHOPPING';
+      const isReady = row.code === 'READY-STOCK';
+      const codePart = row.code ? `Code: ${row.code}` : '';
+      const destPart = [row.city, row.country].filter(Boolean).join(', ');
+      const subLabelParts = [codePart, destPart].filter(Boolean).join(' • ');
+
+      let tag: string | undefined;
+      let tagColor: string | undefined;
+      if (isLive) {
+        tag = 'Live Shopping';
+        tagColor = 'bg-rose-50 text-rose-700 border-rose-200';
+      } else if (isReady) {
+        tag = 'Ready Stock';
+        tagColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      }
+
+      return {
+        value: row.id,
+        label: row.name,
+        tag,
+        tagColor,
+        subLabel: subLabelParts || undefined,
+        code: row.code,
+        type: row.type,
+        orderOpenAt: row.orderOpenAt || row.order_open_at,
+        orderCloseAt: row.orderCloseAt || row.order_close_at,
+        raw: row,
+      };
+    });
 };
 
 export const loadCustomers = loadPaginatedOptions('/customers', (row) => {

@@ -126,18 +126,20 @@ export function SetTrackingAdditionalFields({
           </div>
         ) : (
           <div className="space-y-1.5">
-            <label className="text-xs font-black text-brand-900 flex items-center gap-1">
-              <DollarSign size={12} className="text-indigo-600" />
-              Aktual Ongkir (Resi / Kurir)
+            <label className="text-xs font-black text-brand-900 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <DollarSign size={12} className="text-indigo-600" />
+                Aktual Ongkir (Resi / Kurir)
+              </span>
+              <span className="text-[10px] font-semibold text-brand-500">Opsional saat input resi</span>
             </label>
             <input
               type="number"
               min="0"
               className="input !h-9 text-xs font-bold border-indigo-300 focus:border-indigo-600"
-              placeholder="e.g. 25000"
+              placeholder="e.g. 25000 (bisa diisi nanti)"
               value={actualShippingCost}
               onChange={(e) => setActualShippingCost(e.target.value)}
-              required
             />
           </div>
         )}
@@ -212,7 +214,7 @@ export function SetTrackingAdditionalFields({
           )}
         </div>
       ) : (
-        diff !== null && (
+        diff !== null ? (
           <div>
             {diff > 0 ? (
               <div
@@ -267,6 +269,19 @@ export function SetTrackingAdditionalFields({
               </div>
             )}
           </div>
+        ) : (
+          <div
+            className={
+              'rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 ' +
+              'text-xs text-indigo-900 flex items-center gap-2'
+            }
+          >
+            <Truck size={16} className="text-indigo-600 shrink-0" />
+            <span>
+              Anda dapat menyimpan <strong>Nomor Resi</strong> terlebih dahulu tanpa mengisi Aktual
+              Ongkir, lalu memperbarui Aktual Ongkir / Settlement setelah semua resi diinput.
+            </span>
+          </div>
         )
       )}
 
@@ -309,22 +324,21 @@ export function SetTrackingAdditionalFields({
         </button>
         <button
           type="submit"
-          disabled={
-            saving ||
-            !trackingNumber.trim() ||
-            !fullyPaid ||
-            (!isShopee && actualShippingCost === '')
-          }
+          disabled={saving || !trackingNumber.trim() || !fullyPaid}
           className={
             'btn-primary !py-2.5 !px-6 text-xs font-bold flex items-center gap-2 ' +
-            (!fullyPaid || !trackingNumber.trim() || (!isShopee && actualShippingCost === '')
+            (!fullyPaid || !trackingNumber.trim()
               ? '!bg-slate-200 !text-slate-400 !border-transparent opacity-60 ' +
                 'cursor-not-allowed shadow-none'
               : '!bg-indigo-600 hover:!bg-indigo-700 shadow-md shadow-indigo-600/30 cursor-pointer')
           }
         >
           <Truck size={16} />
-          {saving ? 'Menyimpan...' : 'Simpan Resi & Proses Pengiriman'}
+          {saving
+            ? 'Menyimpan...'
+            : !isShopee && actualShippingCost === ''
+              ? 'Simpan Resi Terlebih Dahulu'
+              : 'Simpan Resi & Proses Pengiriman'}
         </button>
       </div>
     </>

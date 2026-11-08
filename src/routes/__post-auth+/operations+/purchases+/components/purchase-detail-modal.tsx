@@ -14,11 +14,13 @@ import {
 import {
   buildInitialItemsState,
   computePurchaseMetrics,
+  applySortingToCustomerItems,
 } from '../helpers/purchase-modal.helper';
 
 interface PurchaseDetailModalProps {
   open: boolean;
   purchase: Purchase | null;
+  initialSortingLines?: import('../types').BulkSortingLine[];
   onClose: () => void;
   onSaved: () => void;
 }
@@ -26,11 +28,13 @@ interface PurchaseDetailModalProps {
 export function PurchaseDetailModal({
   open,
   purchase,
+  initialSortingLines = [],
   onClose,
   onSaved,
 }: PurchaseDetailModalProps) {
   const [data, setData] = useState<Purchase | null>(null);
   const [itemsState, setItemsState] = useState<Record<number, ItemChecklistState>>({});
+  const [sortingLines, setSortingLines] = useState<import('../types').BulkSortingLine[]>(initialSortingLines);
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [receiptUrl, setReceiptUrl] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -42,8 +46,32 @@ export function PurchaseDetailModal({
     setPaymentMethod(p.paymentMethod || p.payment_method || '');
     setReceiptUrl(p.receiptUrl || p.receipt_url || '');
     setNotes(p.notes || '');
-    setItemsState(buildInitialItemsState(p.items));
+
+    const savedLines = p.sortingLines || p.sorting_lines || [];
+    const effectiveSortingLines =
+      initialSortingLines && initialSortingLines.length > 0
+        ? initialSortingLines
+        : savedLines;
+    if (effectiveSortingLines.length > 0) {
+      setSortingLines(effectiveSortingLines);
+    }
+
+    const baseState = buildInitialItemsState(p.items);
+    const hasAssignedCustomerItems = (p.items || []).some(
+      (it) => it.status === 'PURCHASED' || it.status === 'UNAVAILABLE'
+    );
+    if (effectiveSortingLines.length > 0 && !hasAssignedCustomerItems) {
+      setItemsState(applySortingToCustomerItems(p.items || [], effectiveSortingLines, baseState));
+    } else {
+      setItemsState(baseState);
+    }
   };
+
+  useEffect(() => {
+    if (initialSortingLines && initialSortingLines.length > 0) {
+      setSortingLines(initialSortingLines);
+    }
+  }, [initialSortingLines]);
 
   useEffect(() => {
     if (!open || !purchase) return;
@@ -72,7 +100,7 @@ export function PurchaseDetailModal({
     data.totalQuantity ??
     items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const { actualBought, rejectedCount, computedActualPrice, computedEstimatedPrice } =
+  const { actualBought, rejectedCount, refundedCount, computedActualPrice, computedEstimatedPrice } =
     computePurchaseMetrics(items, itemsState);
 
   const priceDiff = computedActualPrice - computedEstimatedPrice;
@@ -104,10 +132,24 @@ export function PurchaseDetailModal({
         allocated_qty: st.allocated_qty,
         actual_price: st.actual_unit_price,
         kept_until: st.kept_until,
+        variation: st.variation,
+        size: st.size,
       }));
+
+      // Gather any additional/new product specs from sorting lines to update product details
+      const newProductSpecs = sortingLines
+        .filter((l) => l.productId)
+        .map((l) => ({
+          productId: l.productId,
+          variant: l.variant,
+          size: l.size,
+          buyPrice: l.unitPrice,
+        }));
 
       await api.put(`/purchases/${data!.id}`, {
         items: payloadItems,
+        sortingLines,
+        newProductSpecs,
         paymentMethod: paymentMethod || null,
         receiptUrl: receiptUrl || null,
         notes: notes || null,
@@ -216,6 +258,7 @@ export function PurchaseDetailModal({
           <PurchaseItemsChecklist
             items={items}
             itemsState={itemsState}
+            sortingLines={sortingLines}
             onChangeItemState={handleChangeItemState}
           />
 
@@ -252,8 +295,11 @@ export function PurchaseDetailModal({
         >
           <div className="text-xs text-brand-500 font-medium">
             Bought: <strong className="text-brand-900">{actualBought} pcs</strong>{' '}
-            | Refunded:{' '}
-            <strong className="text-rose-700">{rejectedCount} pcs</strong>
+            | Rejected:{' '}
+            <strong className="text-rose-700">{rejectedCount} pcs</strong>{' '}
+            <span className="text-brand-400">
+              (Refund DP: <strong className="text-rose-600">{refundedCount} pcs</strong>)
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <button

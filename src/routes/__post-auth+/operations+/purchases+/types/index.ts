@@ -17,6 +17,8 @@ export interface PurchaseItem {
   is_eligible_to_buy?: boolean;
   product_id?: number | null;
   product_name?: string;
+  product_variants?: string[];
+  product_sizes?: string[];
   brand_name?: string;
   variation?: string | null;
   size?: string | null;
@@ -68,6 +70,8 @@ export interface Purchase {
   product?: { name: string };
   period?: { id?: number; name?: string; code?: string };
   items?: PurchaseItem[];
+  sortingLines?: BulkSortingLine[];
+  sorting_lines?: BulkSortingLine[];
   orderItem?: any;
   order_item?: any;
   shopper?: { name: string };
@@ -75,12 +79,14 @@ export interface Purchase {
 
 export const purchaseStatuses = [
   'WAITING_PURCHASE',
+  'SORTING',
   'PURCHASED',
   'UNAVAILABLE',
 ];
 
 export const purchaseStatusOptions: { value: string; label: string }[] = [
   { value: 'WAITING_PURCHASE', label: 'Waiting to Purchase' },
+  { value: 'SORTING', label: 'Sorting / In Warehouse' },
   { value: 'PURCHASED', label: 'Already Purchased' },
   { value: 'UNAVAILABLE', label: 'Item Unavailable' },
 ];
@@ -88,10 +94,25 @@ export const purchaseStatusOptions: { value: string; label: string }[] = [
 export interface ItemChecklistState {
   id: number;
   order_item_id: number;
-  status: 'PURCHASED' | 'UNAVAILABLE' | 'WAITING_PURCHASE';
+  status: 'PURCHASED' | 'UNAVAILABLE' | 'WAITING_PURCHASE' | 'SORTING';
   allocated_qty: number;
   max_qty: number;
   actual_unit_price: number;
   estimated_unit_price: number;
   kept_until?: string | null;
+  variation?: string | null;
+  size?: string | null;
+}
+
+export interface BulkSortingLine {
+  key: string;
+  productId?: number | null;
+  productName: string;
+  brandName?: string;
+  variant: string;
+  size: string;
+  plannedQty: number;
+  actualQty: number;
+  unitPrice: number;
+  isAdditional?: boolean;
 }
