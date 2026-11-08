@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowUpRight, CheckCircle2, Building2, CreditCard, User, FileText, Wallet, X, UploadCloud, AlertCircle } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Building2, CreditCard, User, FileText, Wallet, X, UploadCloud, AlertCircle, XCircle } from 'lucide-react';
 import { api, errorMessage } from '~/lib/api';
 import { money } from '~/lib/format';
 import { FileUploadInput } from '~/components/FileUploadInput';
@@ -15,13 +15,14 @@ interface ProcessRefundModalProps {
 }
 
 export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, onSuccess }: ProcessRefundModalProps) {
-  const [refundType, setRefundType] = useState<'CUSTOMER_DEPOSIT' | 'DIRECT_TRANSFER'>('CUSTOMER_DEPOSIT');
+  const [refundType, setRefundType] = useState<'CUSTOMER_DEPOSIT' | 'DIRECT_TRANSFER' | 'REJECT'>('CUSTOMER_DEPOSIT');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [transferNotes, setTransferNotes] = useState('');
   const [notes, setNotes] = useState('');
+  const [rejectReason, setRejectReason] = useState('Dibatalkan / tidak perlu pengembalian dana');
   const [refundedAt, setRefundedAt] = useState(new Date().toISOString().slice(0, 16));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +37,7 @@ export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, on
       setProofUrl(refund.proofUrl || refund.proof_url || '');
       setTransferNotes(refund.transferNotes || refund.transfer_notes || '');
       setNotes(refund.notes || '');
+      setRejectReason('Dibatalkan / tidak perlu pengembalian dana');
       setRefundedAt(new Date().toISOString().slice(0, 16));
       setError('');
     }
@@ -85,8 +87,12 @@ export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, on
     setError('');
     try {
       if (isMethodOnly) {
-        // Step 1: Save refund method & bank account details
-        if (refundType === 'CUSTOMER_DEPOSIT') {
+        // Step 1: Save refund method & bank account details or Reject directly
+        if (refundType === 'REJECT') {
+          await api.put(`/refunds/${refund.id}/reject`, {
+            reason: rejectReason.trim() || 'Ditolak oleh admin/owner',
+          });
+        } else if (refundType === 'CUSTOMER_DEPOSIT') {
           // If customer deposit is chosen, finalize directly to customer's deposit balance
           await api.put(`/refunds/${refund.id}`, {
             refundType: 'CUSTOMER_DEPOSIT',
@@ -142,6 +148,28 @@ export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, on
         status: 'REQUESTED',
         notes: notes.trim() ? `[Dikembalikan ke Request] ${notes.trim()}` : undefined,
       });
+      onSuccess();
+      onClose();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRejectRefund() {
+    if (!refund) return;
+    const refundNo = refund.refund_number || refund.refundNumber || `#${refund.id}`;
+    const reason = window.prompt(
+      `Tolak pengajuan refund (${refundNo})?\nKelebihan pembayaran / refund pada invoice akan dibatalkan/dihapus sehingga status invoice kembali menjadi normal (Rp 0).\n\nMasukkan alasan penolakan:`,
+      notes.trim() || 'Ditolak oleh admin/owner'
+    );
+    if (reason === null) return;
+
+    setSaving(true);
+    setError('');
+    try {
+      await api.put(`/refunds/${refund.id}/reject`, { reason });
       onSuccess();
       onClose();
     } catch (caught) {
@@ -285,7 +313,68 @@ export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, on
                     </div>
                   </div>
                 </div>
+
+                {/* Option 3: Reject Refund (Tolak Pengajuan Refund) */}
+                <div
+                  onClick={() => setRefundType('REJECT')}
+                  className={`cursor-pointer rounded-2xl border-2 p-4 transition-all duration-150 ${
+                    refundType === 'REJECT'
+                      ? 'border-rose-600 bg-rose-50/40 shadow-sm ring-2 ring-rose-600/10'
+                      : 'border-brand-200 bg-white hover:border-brand-300'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${
+                        refundType === 'REJECT'
+                          ? 'border-rose-300 bg-rose-600 text-white'
+                          : 'border-brand-200 bg-brand-100 text-brand-600'
+                      }`}
+                    >
+                      <XCircle size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-black text-brand-950">
+                          3. Tolak Refund (Batalkan Kelebihan / Selisih Tagihan)
+                        </span>
+                        <span className="rounded-md bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-800">
+                          Kembali ke Rp 0
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-brand-600 leading-relaxed">
+                        Tolak klaim/pengembalian dana ini. Kelebihan pembayaran pada invoice akan dinolkan (menjadi 0) sehingga invoice tidak lagi berstatus Refund Due dan kembali berstatus lunas tanpa kendala.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Option 3 Reject Form: Reason input */}
+              {refundType === 'REJECT' && (
+                <div className="rounded-2xl border-2 border-rose-300 bg-rose-50/50 p-4 space-y-3 animate-in fade-in-50 duration-200">
+                  <div className="flex items-center gap-2">
+                    <XCircle size={16} className="text-rose-700" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-rose-950">
+                      Konfirmasi Alasan Penolakan Refund
+                    </h3>
+                  </div>
+                  <div>
+                    <label className="label">Alasan Penolakan</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="e.g. Dibatalkan customer / tidak perlu pengembalian dana"
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      required
+                    />
+                    <p className="mt-1 text-[11px] text-rose-800 font-medium">
+                      Setelah ditolak, tagihan kelebihan dana pada invoice akan dianggap selesai (0) dan status invoice akan menjadi PAID.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Direct Transfer Bank Details Form */}
               {refundType === 'DIRECT_TRANSFER' && (
@@ -447,17 +536,30 @@ export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, on
 
           {/* Action Buttons */}
           <div className="flex items-center justify-between border-t border-brand-100 pt-4">
-            <div>
+            <div className="flex items-center gap-2">
               {!isMethodOnly && (
-                <button
-                  type="button"
-                  onClick={handleReturnToRequested}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition cursor-pointer"
-                  disabled={saving}
-                  title="Kembalikan status refund ke REQUESTED untuk mengubah metode atau nomor rekening"
-                >
-                  <span>↩ Kembalikan ke Request (Ubah Metode / Rekening)</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={handleRejectRefund}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-xl transition cursor-pointer"
+                    disabled={saving}
+                    title="Tolak pengajuan refund ini dan kembalikan invoice ke Rp 0"
+                  >
+                    <XCircle size={14} />
+                    <span>Tolak Refund</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleReturnToRequested}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition cursor-pointer"
+                    disabled={saving}
+                    title="Kembalikan status refund ke REQUESTED untuk mengubah metode atau nomor rekening"
+                  >
+                    <span>↩ Kembalikan ke Request</span>
+                  </button>
+                </>
               )}
             </div>
 
@@ -469,7 +571,9 @@ export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, on
                 type="submit"
                 className={`btn text-white font-black cursor-pointer ${
                   isMethodOnly
-                    ? refundType === 'CUSTOMER_DEPOSIT'
+                    ? refundType === 'REJECT'
+                      ? 'bg-rose-600 hover:bg-rose-700'
+                      : refundType === 'CUSTOMER_DEPOSIT'
                       ? 'bg-purple-600 hover:bg-purple-700'
                       : 'bg-sky-600 hover:bg-sky-700'
                     : 'bg-emerald-600 hover:bg-emerald-700'
@@ -479,7 +583,12 @@ export function ProcessRefundModal({ open, refund, mode = 'execute', onClose, on
                 {saving ? (
                   'Memproses...'
                 ) : isMethodOnly ? (
-                  refundType === 'CUSTOMER_DEPOSIT' ? (
+                  refundType === 'REJECT' ? (
+                    <>
+                      <XCircle size={16} />
+                      <span>Konfirmasi Tolak Refund</span>
+                    </>
+                  ) : refundType === 'CUSTOMER_DEPOSIT' ? (
                     <>
                       <CheckCircle2 size={16} />
                       <span>Selesaikan via Saldo Deposit</span>

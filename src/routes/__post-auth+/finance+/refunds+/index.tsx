@@ -327,7 +327,7 @@ export default function RefundsRoute() {
           const status = row.status;
 
           // Sequential Rigid Flow:
-          // 1. Status 'REQUESTED': Staff selects method (Deposit or Direct Transfer) & inputs bank details.
+          // 1. Status 'REQUESTED': Staff selects method (Deposit, Direct Transfer, or Reject).
           //    Visible only if user has permission 'refunds:request' (canRequest).
           if (status === 'REQUESTED') {
             if (!canRequest) return null;

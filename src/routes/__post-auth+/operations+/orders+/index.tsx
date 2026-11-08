@@ -201,8 +201,14 @@ export default function OrdersRoute() {
         canBulkDelete={false}
         selectable={true}
         canSelectRow={(row) => row.status === 'NEW'}
-        canEditRow={(row) => Number(row.paid_amount ?? row.paidAmount ?? 0) === 0}
-        canDeleteRow={(row) => Number(row.paid_amount ?? row.paidAmount ?? 0) === 0}
+        canEditRow={(row) => {
+          const directPaid = Number(row.paid_amount ?? row.paidAmount ?? 0);
+          return directPaid === 0 && ['NEW', 'WAITING_DP'].includes(row.status);
+        }}
+        canDeleteRow={(row) => {
+          const directPaid = Number(row.paid_amount ?? row.paidAmount ?? 0);
+          return directPaid === 0 && ['NEW', 'WAITING_DP'].includes(row.status);
+        }}
         renderActions={(row) => renderOrderActions(row, navigate, setInvoiceModal)}
         renderBulkActions={({ selectedIds, selectedRows, clearSelection, reload }) => (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-honey-200 bg-honey-50/80 p-4 shadow-sm">
