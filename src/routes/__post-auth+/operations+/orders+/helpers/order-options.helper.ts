@@ -28,10 +28,12 @@ export const loadPeriods = async (search: string): Promise<Option[]> => {
     .filter((row: any) => (row.status || '').toUpperCase() === 'OPEN')
     .map((row: any) => ({
       value: row.id,
-      label: `${row.code} • ${row.name}`,
+      label: `${row.code} • ${row.name}${row.type === 'LIVE_SHOPPING' ? ' (Live Shopping)' : ''}`,
       code: row.code,
+      type: row.type,
       orderOpenAt: row.orderOpenAt || row.order_open_at,
       orderCloseAt: row.orderCloseAt || row.order_close_at,
+      raw: row,
     }));
 };
 
@@ -61,13 +63,43 @@ export const loadProducts = async (
   if (form?.periodId) query.set('eventId', form.periodId);
   else query.set('activePeriod', 'true');
   const response = await api.get(`/products?${query}`);
-  const items = responseRows(response).map((row: any) => {
-    const isReady = ['READY_STOCK', 'BOTH'].includes(row.stock_mode || row.stockMode);
+  const isLiveOrReadyForm =
+    form?.periodId_option?.type === 'LIVE_SHOPPING' ||
+    form?.periodId_option?.raw?.type === 'LIVE_SHOPPING' ||
+    form?.periodId_option?.code === 'READY-STOCK';
+
+  const rawRows = responseRows(response).filter((row: any) => {
+    const isReady =
+      ['READY_STOCK', 'BOTH'].includes(row.stock_mode || row.stockMode) ||
+      row.period?.type === 'LIVE_SHOPPING' ||
+      isLiveOrReadyForm;
+    if (!isReady) return true;
     const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
     const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
     const availStock = Math.max(0, qty - reserved);
-    const variant = row.variant || row.variation;
-    const size = row.size;
+    return availStock > 0;
+  });
+
+  const items = rawRows.map((row: any) => {
+    const isReady =
+      ['READY_STOCK', 'BOTH'].includes(row.stock_mode || row.stockMode) ||
+      row.period?.type === 'LIVE_SHOPPING' ||
+      isLiveOrReadyForm;
+    const qty = row.stock_quantity ?? row.stockQuantity ?? 0;
+    const reserved = row.reserved_quantity ?? row.reservedQuantity ?? 0;
+    const availStock = Math.max(0, qty - reserved);
+    const availVarStocks: Array<{ variant: string; size: string; available: number }> =
+      Array.isArray(row.available_variant_stocks) ? row.available_variant_stocks : [];
+
+    const availVariants = Array.from(
+      new Set(availVarStocks.map((x) => x.variant).filter(Boolean))
+    ).join(', ');
+    const availSizes = Array.from(
+      new Set(availVarStocks.map((x) => x.size).filter(Boolean))
+    ).join(', ');
+
+    const variant = isReady && availVarStocks.length > 0 ? availVariants : row.variant || row.variation;
+    const size = isReady && availVarStocks.length > 0 ? availSizes : row.size;
     const details = [variant, size ? `Size: ${size}` : ''].filter(Boolean).join(' • ');
     const stockSuffix = isReady ? `stock: ${availStock}` : '';
     const subLabelParts = [row.sku ? `SKU: ${row.sku}` : '', details, stockSuffix]
@@ -85,14 +117,14 @@ export const loadProducts = async (
       subLabel: subLabelParts,
       tag: bundleTag,
       stock: isReady ? availStock : undefined,
-      stockMode: row.stock_mode || row.stockMode,
+      stockMode: isReady ? 'READY_STOCK' : row.stock_mode || row.stockMode,
       price: Number(row.selling_price ?? row.sellingPrice ?? 0),
       raw: row,
     };
   });
 
-  // Only include "+ Create / Add New Product" option on page 1
-  if (page === 1) {
+  // Only include "+ Create / Add New Product" option on page 1 when not Ready Stock / Live Shopping
+  if (page === 1 && !isLiveOrReadyForm) {
     return [
       { value: '__NEW_PRODUCT__', label: '+ Create / Add New Product', price: 0 },
       ...items,

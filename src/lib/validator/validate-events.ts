@@ -43,12 +43,14 @@ export function validateEventRow(
     payload.type = 'LOCAL';
   } else if (rawType.includes('INTER')) {
     payload.type = 'INTERNATIONAL';
+  } else if (rawType.includes('LIVE')) {
+    payload.type = 'LIVE_SHOPPING';
   } else {
     issues.push({
       field: 'type',
       fieldLabel: 'Type Event',
       error: `Type event '${raw.type}' tidak valid.`,
-      fixHint: "Pilih: 'LOCAL' atau 'INTERNATIONAL'.",
+      fixHint: "Pilih: 'LOCAL', 'INTERNATIONAL', atau 'LIVE_SHOPPING'.",
       enteredValue: raw.type,
     });
   }

@@ -64,49 +64,50 @@ export function printShippingLabels(
         <style>
           ${pageCss}
           * { box-sizing: border-box; }
-          .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 4px;
+          .header { border-bottom: 2.5px solid #000; padding-bottom: 3px; margin-bottom: 5px;
             display: flex; justify-content: space-between; align-items: flex-end; }
-          .brand { font-size: 14px; font-weight: 900; letter-spacing: -0.5px; }
-          .badge { font-size: 9.5px; font-weight: bold; background: #000; color: #fff;
-            padding: 1.5px 5px; border-radius: 3px; }
-          .meta-row { display: flex; justify-content: space-between; font-size: 9px;
-            margin-bottom: 4px; color: #333; }
+          .brand { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: #000; }
+          .badge { font-size: 11px; font-weight: 900; background: #000; color: #fff;
+            padding: 2px 6px; border-radius: 3px; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;
+            margin-bottom: 5px; color: #000; }
           
           .courier-box {
-            border: 1.5px solid #000; border-radius: 4px; padding: 2.5px 6px; margin-bottom: 4px;
+            border: 2px solid #000; border-radius: 4px; padding: 3.5px 7px; margin-bottom: 5px;
             background: #f8fafc; display: flex; justify-content: space-between; align-items: center;
           }
-          .courier-label { font-size: 8px; font-weight: 800; text-transform: uppercase; color: #475569; }
-          .courier-name { font-size: 11px; font-weight: 900; color: #000; letter-spacing: 0.3px; }
+          .courier-label { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #000; }
+          .courier-name { font-size: 13.5px; font-weight: 900; color: #000; letter-spacing: 0.3px; }
 
-          .box { border: 1.5px solid #000; border-radius: 4px; padding: 3.5px 5px; margin-bottom: 4px; }
-          .box-title { font-size: 8px; font-weight: bold; text-transform: uppercase;
-            color: #666; margin-bottom: 1px; }
-          .recipient-name { font-size: 11px; font-weight: 800; }
-          .recipient-phone { font-size: 10px; font-weight: 700; color: #222; }
-          .recipient-address { font-size: 9px; line-height: 1.2; margin-top: 2px; }
-          .sender-info { font-size: 8px; line-height: 1.2; color: #444; }
-          .items-title { font-size: 9px; font-weight: bold; margin-bottom: 2px;
-            border-bottom: 1px solid #ccc; padding-bottom: 1px; }
-          table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
-          th { text-align: left; border-bottom: 1px solid #000; padding: 1.5px 0;
-            font-size: 7.5px; text-transform: uppercase; }
-          td { padding: 2px 0; border-bottom: 1px dotted #ccc; vertical-align: top; }
-          .qty-col { text-align: center; width: 28px; font-weight: bold; }
+          .box { border: 2px solid #000; border-radius: 4px; padding: 4px 6px; margin-bottom: 5px; }
+          .box-title { font-size: 9.5px; font-weight: 900; text-transform: uppercase;
+            color: #000; margin-bottom: 2px; }
+          .recipient-name { font-size: 14px; font-weight: 900; color: #000; }
+          .recipient-phone { font-size: 12.5px; font-weight: 900; color: #000; }
+          .recipient-address { font-size: 11px; font-weight: 800; line-height: 1.25; margin-top: 2px; color: #000; }
+          .sender-info { font-size: 10.5px; font-weight: 800; line-height: 1.25; color: #000; }
+          .items-title { font-size: 11px; font-weight: 900; margin-bottom: 3px;
+            border-bottom: 1.5px solid #000; padding-bottom: 2px; color: #000; }
+          table { width: 100%; border-collapse: collapse; font-size: 10.5px; font-weight: 800; color: #000; }
+          th { text-align: left; border-bottom: 1.5px solid #000; padding: 2px 0;
+            font-size: 9.5px; font-weight: 900; text-transform: uppercase; color: #000; }
+          td { padding: 2.5px 0; border-bottom: 1px dotted #666; vertical-align: top; font-weight: 800; color: #000; }
+          .qty-col { text-align: center; width: 32px; font-size: 12px; font-weight: 900; color: #000; }
 
           .unboxing-warning {
-            border: 1.5px solid #000; border-radius: 4px; padding: 3.5px 4px;
-            text-align: center; background: #fff; margin-top: auto; margin-bottom: 3px;
+            border: 2.5px solid #000; border-radius: 5px; padding: 6px 6px;
+            text-align: center; background: #fff; margin-top: auto; margin-bottom: 4px;
           }
           .unboxing-title {
-            font-size: 7.5px; font-weight: 900; color: #000; margin-bottom: 1.5px; line-height: 1.2;
+            font-size: 12px; font-weight: 900; color: #000; margin-bottom: 3px; line-height: 1.25;
+            letter-spacing: 0.2px;
           }
           .unboxing-desc {
-            font-size: 6.8px; font-weight: 600; color: #111; line-height: 1.25;
+            font-size: 9.8px; font-weight: 800; color: #000; line-height: 1.3;
           }
 
-          .footer { border-top: 1px solid #000; padding-top: 2px;
-            display: flex; justify-content: space-between; font-size: 7.5px; font-weight: bold; }
+          .footer { border-top: 1.5px solid #000; padding-top: 2.5px;
+            display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 900; color: #000; }
         </style>
       </head>
       <body>

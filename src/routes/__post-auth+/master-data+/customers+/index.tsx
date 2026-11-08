@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, MessageCircle, ExternalLink } from 'lucide-react';
+import { Eye, MessageCircle, ExternalLink, Link2 } from 'lucide-react';
 import { CrudPage } from '~/components/CrudPage';
 import { StatusBadge } from '~/components/StatusBadge';
 import { api } from '~/lib/api';
 import { titleCase } from '~/lib/format';
 import { useAuth } from '~/context/AuthContext';
+import { useNotification } from '~/context/NotificationContext';
 import type { FieldConfig, Option } from '~/types';
 
 const opts = (values: string[]): Option[] =>
@@ -18,6 +19,7 @@ export async function loader() {
 
 export default function CustomersRoute() {
   const { hasPermission } = useAuth();
+  const { showSuccess } = useNotification();
   const navigate = useNavigate();
   const [waGroupOptions, setWaGroupOptions] = useState<Option[]>([]);
 
@@ -249,16 +251,36 @@ export default function CustomersRoute() {
         entityType: 'customers',
         sampleFileName: 'customers-template.xlsx',
       }}
-      renderActions={(row) => (
-        <button
-          onClick={() => navigate(`/customers/${row.id}`)}
-          className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
-          title="Customer 360°"
-          aria-label="Customer 360°"
-        >
-          <Eye size={15} />
-        </button>
-      )}
+      renderActions={(row) => {
+        const code = row.customer_code || row.customerCode || '';
+        return (
+          <div className="flex items-center gap-1.5">
+            {code && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `${window.location.origin}/track?q=${encodeURIComponent(code)}`;
+                  navigator.clipboard.writeText(url);
+                  showSuccess(`Public tracking link for ${code} copied to clipboard!`);
+                }}
+                className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
+                title={`Copy Public Customer Tracking Link (${code})`}
+                aria-label="Copy Public Tracking Link"
+              >
+                <Link2 size={15} />
+              </button>
+            )}
+            <button
+              onClick={() => navigate(`/customers/${row.id}`)}
+              className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-brand-200 bg-white text-brand-600 shadow-2xs hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 transition cursor-pointer"
+              title="Customer 360°"
+              aria-label="Customer 360°"
+            >
+              <Eye size={15} />
+            </button>
+          </div>
+        );
+      }}
     />
   );
 }

@@ -70,6 +70,14 @@ export const router = createBrowserRouter([
         element: <PublicTrackingRoute />,
       },
       {
+        path: '/track-customer',
+        element: <PublicTrackingRoute />,
+      },
+      {
+        path: '/track-customer/:customerCode',
+        element: <PublicTrackingRoute />,
+      },
+      {
         path: '/invoice/:invoiceNumber',
         element: <PublicInvoiceViewRoute />,
       },

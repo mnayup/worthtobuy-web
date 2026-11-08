@@ -7,6 +7,7 @@ import {
   Calendar,
   Boxes,
   Truck,
+  UserCheck,
   Instagram,
   MessageCircle,
   Menu,

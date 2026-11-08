@@ -2,7 +2,7 @@ import React from 'react';
 import { MessageSquareText } from 'lucide-react';
 import { date, money, titleCase } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
-import { parseProductPriceRules } from '~/lib/pricing-rules';
+import { parseProductPriceRules, findMatchingVariantPrice } from '~/lib/pricing-rules';
 
 interface InvoiceA4OrdersTableProps {
   orders: any[];
@@ -41,13 +41,26 @@ function groupOrderItems(items: any[]): GroupedInvoiceItem[] {
     );
     const bundleKey = bundleName ? `${productId}___${bundleName}` : '';
     const qty = Number(item.quantity || 1);
-    const unitPrice = Number(
+    const rawUnitPrice = Number(
       item.unit_price_foreign ??
         item.unitPriceForeign ??
         item.target_price_idr ??
         item.targetPriceIdr ??
         0
     );
+    const prodSellingPrice = Number(
+      item.product?.selling_price ?? item.product?.sellingPrice ?? 0
+    );
+    const prodRules = parseProductPriceRules(
+      item.product?.variant_prices || item.product?.variantPrices
+    );
+    const resolvedSellPrice = findMatchingVariantPrice(
+      prodRules,
+      item.variation || item.variant || '',
+      item.size || '',
+      prodSellingPrice
+    );
+    const unitPrice = rawUnitPrice > 0 ? rawUnitPrice : resolvedSellPrice;
     const subtotal = unitPrice * qty;
     const photo =
       item.photo_url ||
@@ -340,15 +353,9 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
                     }
 
                     const item = row.items[0];
-                    const unitPrice = Number(
-                      item.unit_price_foreign ??
-                        item.unitPriceForeign ??
-                        item.target_price_idr ??
-                        item.targetPriceIdr ??
-                        0
-                    );
                     const qty = row.totalQty;
                     const subtotal = row.totalSubtotal;
+                    const unitPrice = qty > 0 ? Math.round(subtotal / qty) : 0;
 
                     return (
                       <tr key={row.id} className="hover:bg-brand-50/50">

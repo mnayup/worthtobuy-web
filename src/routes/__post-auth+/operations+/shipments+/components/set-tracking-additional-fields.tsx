@@ -297,24 +297,6 @@ export function SetTrackingAdditionalFields({
         </div>
       </div>
 
-      {/* Evidence After Packing Photo (Foto Paket Tersegel & Resi) */}
-      <div className="rounded-2xl border border-brand-200 bg-brand-50/30 p-3.5 space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-brand-900 flex items-center gap-1">
-            <Image size={13} className="text-indigo-600" />
-            Foto Bukti Setelah Packing & Resi (Evidence After Packing)
-          </label>
-          <span className="text-[10px] text-brand-500 font-medium">Foto paket siap kirim</span>
-        </div>
-        <FileUploadInput
-          value={proofUrl}
-          onChange={setProofUrl}
-          entityType="shipments"
-          allowedType="image"
-          placeholder="Upload foto paket tersegel dengan resi..."
-        />
-      </div>
-
       {/* Action Footer */}
       <div className="flex items-center justify-end gap-3 border-t border-brand-100 pt-4">
         <button

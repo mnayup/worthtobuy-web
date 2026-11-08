@@ -9,6 +9,10 @@ interface OrderVariantRowProps {
   defaultPrice: number;
   availableVariants?: string[];
   availableSizes?: string[];
+  variantStockCounts?: Record<string, number>;
+  sizeStockCounts?: Record<string, number>;
+  maxQuantity?: number;
+  lockToAvailableStock?: boolean;
   disabled?: boolean;
   canIncrease?: boolean;
   isBundleActive?: boolean;
@@ -29,6 +33,10 @@ export function OrderVariantRow({
   defaultPrice,
   availableVariants = [],
   availableSizes = [],
+  variantStockCounts,
+  sizeStockCounts,
+  maxQuantity,
+  lockToAvailableStock = false,
   disabled,
   canIncrease = true,
   isBundleActive = false,
@@ -44,8 +52,9 @@ export function OrderVariantRow({
   );
   const rowSubtotal = Number(row.quantity || 1) * effectivePrice;
 
-  const hasVariantOptions = availableVariants.length > 0;
-  const hasSizeOptions = availableSizes.length > 0;
+  const hasVariantOptions = availableVariants.length > 0 || lockToAvailableStock;
+  const hasSizeOptions = availableSizes.length > 0 || lockToAvailableStock;
+  const isAtMaxStock = maxQuantity !== undefined ? row.quantity >= maxQuantity : false;
 
   return (
     <div
@@ -78,12 +87,18 @@ export function OrderVariantRow({
                 'focus:outline-none cursor-pointer'
               }
             >
-              <option value="">Select Variant...</option>
-              {availableVariants.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
+              <option value="">
+                {availableVariants.length > 0 ? 'Select Variant...' : 'No Variant / Default'}
+              </option>
+              {availableVariants.map((v) => {
+                const count = variantStockCounts?.[v];
+                return (
+                  <option key={v} value={v}>
+                    {v}
+                    {count !== undefined ? ` (${count} pcs)` : ''}
+                  </option>
+                );
+              })}
             </select>
           ) : (
             <input
@@ -102,7 +117,7 @@ export function OrderVariantRow({
         </div>
 
         {/* Size selection: dropdown if options available, else text input */}
-        <div className="w-28 shrink-0">
+        <div className="w-32 shrink-0">
           {hasSizeOptions ? (
             <select
               disabled={disabled}
@@ -114,12 +129,18 @@ export function OrderVariantRow({
                 'focus:outline-none cursor-pointer'
               }
             >
-              <option value="">Select Size...</option>
-              {availableSizes.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
+              <option value="">
+                {availableSizes.length > 0 ? 'Select Size...' : 'No Size / Default'}
+              </option>
+              {availableSizes.map((s) => {
+                const count = sizeStockCounts?.[s];
+                return (
+                  <option key={s} value={s}>
+                    {s}
+                    {count !== undefined ? ` (${count} pcs)` : ''}
+                  </option>
+                );
+              })}
             </select>
           ) : (
             <input
@@ -208,18 +229,27 @@ export function OrderVariantRow({
             type="number"
             disabled={disabled || isBundleActive}
             min="1"
+            max={maxQuantity}
             value={row.quantity}
-            onChange={(e) =>
+            onChange={(e) => {
+              const rawQty = Math.max(1, parseInt(e.target.value, 10) || 1);
               onUpdate({
-                quantity: Math.max(1, parseInt(e.target.value, 10) || 1),
-              })
-            }
+                quantity: maxQuantity !== undefined ? Math.min(maxQuantity, rawQty) : rawQty,
+              });
+            }}
             className="w-9 text-center text-xs font-bold text-brand-900 focus:outline-none disabled:bg-brand-50/50"
           />
           <button
             type="button"
-            disabled={disabled || !canIncrease}
-            onClick={() => onUpdate({ quantity: row.quantity + 1 })}
+            disabled={disabled || !canIncrease || isAtMaxStock}
+            onClick={() =>
+              onUpdate({
+                quantity:
+                  maxQuantity !== undefined
+                    ? Math.min(maxQuantity, row.quantity + 1)
+                    : row.quantity + 1,
+              })
+            }
             className={
               'px-2 py-1 text-xs font-bold text-brand-600 ' +
               'hover:bg-brand-50 disabled:opacity-40'

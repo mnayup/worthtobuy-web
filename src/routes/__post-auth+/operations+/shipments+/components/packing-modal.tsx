@@ -32,13 +32,17 @@ export function PackingModal({
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [proofBeforeUrl, setProofBeforeUrl] = useState('');
+  const [proofUrl, setProofUrl] = useState('');
   const [courier, setCourier] = useState('JNE');
   const [customCourier, setCustomCourier] = useState('');
   const [serviceType, setServiceType] = useState('Regular (REG)');
+  const [trackingNumber, setTrackingNumber] = useState('');
   const [shopeeRefundAmount, setShopeeRefundAmount] = useState('');
   const [shippingCounters, setShippingCounters] = useState<ShippingCounter[]>([]);
   const [shippingCounterId, setShippingCounterId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingShopee, setSavingShopee] = useState(false);
+  const [shopeeSavedMsg, setShopeeSavedMsg] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -58,14 +62,17 @@ export function PackingModal({
       setAddress(shipment.address || shipment.customer?.address || '');
       setNotes(shipment.notes || '');
       setProofBeforeUrl(shipment.proof_before_url || shipment.proofBeforeUrl || '');
+      setProofUrl(shipment.proof_url || shipment.proofUrl || '');
       setCourier(shipment.courier || 'JNE');
       setServiceType(shipment.service_type || shipment.serviceType || 'Regular (REG)');
+      setTrackingNumber(shipment.tracking_number || shipment.trackingNumber || '');
       const rawShopeeRefund = shipment.shopee_refund_amount ?? shipment.shopeeRefundAmount;
       setShopeeRefundAmount(
         rawShopeeRefund !== null && rawShopeeRefund !== undefined ? String(rawShopeeRefund) : ''
       );
       const rawCounterId = shipment.shipping_counter_id ?? shipment.shippingCounterId;
       setShippingCounterId(rawCounterId ? Number(rawCounterId) : null);
+      setShopeeSavedMsg('');
       setError('');
     }
   }, [open, shipment]);
@@ -119,6 +126,34 @@ export function PackingModal({
     { label: 'Other / Custom...', value: 'Other' },
   ];
 
+  const handleSaveShopeeData = async () => {
+    if (!shipment) return;
+    setSavingShopee(true);
+    setError('');
+    setShopeeSavedMsg('');
+    try {
+      await api.put(`/shipments/${shipment.id}`, {
+        courier: effectiveCourier,
+        shippingMethod: 'SHOPEE',
+        shipping_method: 'SHOPEE',
+        trackingNumber: trackingNumber.trim() || null,
+        tracking_number: trackingNumber.trim() || null,
+        shopeeRefundAmount: Number(shopeeRefundAmount || 0),
+        shopee_refund_amount: Number(shopeeRefundAmount || 0),
+        shippingCounterId: shippingCounterId || null,
+        shipping_counter_id: shippingCounterId || null,
+        serviceType: serviceType.trim() || 'Checkout Shopee',
+        notes: notes.trim() || null,
+      });
+      setShopeeSavedMsg('✓ No. Pesanan Shopee & Nominal Refund berhasil disimpan!');
+      onSaved();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setSavingShopee(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!shipment) return;
@@ -128,7 +163,7 @@ export function PackingModal({
       return;
     }
 
-    if (!address.trim() || address.trim() === '-') {
+    if (!isShopee && (!address.trim() || address.trim() === '-')) {
       setError('Alamat pengiriman wajib diisi lengkap sebelum memproses packing.');
       return;
     }
@@ -148,10 +183,16 @@ export function PackingModal({
 
     try {
       await api.put(`/shipments/${shipment.id}`, {
-        address: address.trim(),
+        address: isShopee ? (address.trim() || '-') : address.trim(),
         courier: effectiveCourier,
         shippingMethod: isShopee ? 'SHOPEE' : 'MANUAL',
         shipping_method: isShopee ? 'SHOPEE' : 'MANUAL',
+        ...(isShopee && trackingNumber.trim()
+          ? {
+              trackingNumber: trackingNumber.trim(),
+              tracking_number: trackingNumber.trim(),
+            }
+          : {}),
         shopeeRefundAmount: isShopee ? Number(shopeeRefundAmount || 0) : null,
         shopee_refund_amount: isShopee ? Number(shopeeRefundAmount || 0) : null,
         shippingCounterId: shippingCounterId || null,
@@ -159,6 +200,7 @@ export function PackingModal({
         serviceType: serviceType.trim() || null,
         notes: notes.trim() || null,
         proofBeforeUrl: proofBeforeUrl.trim(),
+        proofUrl: proofUrl.trim() || null,
         status: 'PACKED',
         packedAt: new Date().toISOString(),
       });
@@ -307,13 +349,13 @@ export function PackingModal({
               </div>
             </div>
 
-            {/* Shopee Refund Nominal Input (Before Packing) */}
+            {/* Shopee Order Number (Resi) & Refund Nominal Input (Can Save Before Packing) */}
             {isShopee && (
-              <div className="rounded-xl border border-orange-300 bg-gradient-to-r from-orange-50 via-amber-50/50 to-orange-50 p-3.5 space-y-2 shadow-2xs">
+              <div className="rounded-xl border border-orange-300 bg-gradient-to-r from-orange-50 via-amber-50/50 to-orange-50 p-3.5 space-y-3 shadow-2xs">
                 <div className="flex items-center justify-between flex-wrap gap-1">
                   <label className="text-xs font-black text-orange-950 flex items-center gap-1.5">
                     <RotateCcw size={13} className="text-orange-600" />
-                    Nominal Refund Shopee (Input Sebelum Packing)
+                    No. Pesanan Shopee (Resi) &amp; Nominal Refund (Bisa Disimpan Sebelum Packing)
                   </label>
                   <span className="text-[10px] font-extrabold text-orange-800 bg-orange-200/80 px-2 py-0.5 rounded-md flex items-center gap-1">
                     <ShoppingBag size={10} /> Kirim via Shopee
@@ -321,53 +363,109 @@ export function PackingModal({
                 </div>
 
                 <p className="text-[11px] text-orange-900 leading-relaxed font-medium">
-                  Karena pengiriman dialihkan melalui checkout Shopee, masukkan nominal dana yang harus di-refund ke customer. Sistem akan otomatis membuat data tiket refund di menu Finance Refunds saat packing disimpan.
+                  Masukkan Nomor Pesanan / Resi Shopee dan nominal dana yang harus di-refund ke customer. Anda dapat langsung menyimpan data ini meskipun belum klik tombol Selesai Packing.
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-orange-800">
-                      Rp
-                    </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-orange-900 block mb-1">
+                      No. Pesanan Shopee / Resi
+                    </label>
                     <input
-                      type="number"
-                      min="0"
-                      className="input !h-9 !pl-8 text-xs font-bold !border-orange-300 focus:!border-orange-500 bg-white"
-                      placeholder="0"
-                      value={shopeeRefundAmount}
-                      onChange={(e) => setShopeeRefundAmount(e.target.value)}
+                      type="text"
+                      className="input !h-9 text-xs font-bold !border-orange-300 focus:!border-orange-500 bg-white"
+                      placeholder="Contoh: 241025ABCDEF / SPXID012345"
+                      value={trackingNumber}
+                      onChange={(e) => {
+                        setTrackingNumber(e.target.value);
+                        setShopeeSavedMsg('');
+                      }}
                     />
                   </div>
 
-                  {totalBill > 0 && (
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-orange-900 block mb-1">
+                      Total Refund Shopee (IDR)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-orange-800">
+                        Rp
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        className="input !h-9 !pl-8 text-xs font-bold !border-orange-300 focus:!border-orange-500 bg-white"
+                        placeholder="0"
+                        value={shopeeRefundAmount}
+                        onChange={(e) => {
+                          setShopeeRefundAmount(e.target.value);
+                          setShopeeSavedMsg('');
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {totalBill > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShopeeRefundAmount(String(totalBill));
+                          setShopeeSavedMsg('');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg border border-orange-300 bg-white hover:bg-orange-100/70 text-[11px] font-bold text-orange-900 transition shrink-0 cursor-pointer"
+                        title="Isi nominal sebesar total tagihan pesanan"
+                      >
+                        Total Pesanan (Rp{totalBill.toLocaleString('id-ID')})
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setShopeeRefundAmount(String(totalBill))}
-                      className="px-2.5 py-1.5 rounded-lg border border-orange-300 bg-white hover:bg-orange-100/70 text-[11px] font-bold text-orange-900 transition shrink-0 cursor-pointer"
-                      title="Isi nominal sebesar total tagihan pesanan"
+                      onClick={() => {
+                        setShopeeRefundAmount('0');
+                        setShopeeSavedMsg('');
+                      }}
+                      className="px-2 py-1.5 rounded-lg border border-orange-300 bg-white hover:bg-orange-100/70 text-[11px] font-bold text-orange-800 transition shrink-0 cursor-pointer"
                     >
-                      Total Pesanan (Rp{totalBill.toLocaleString('id-ID')})
+                      Rp 0
                     </button>
-                  )}
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setShopeeRefundAmount('0')}
-                    className="px-2 py-1.5 rounded-lg border border-orange-300 bg-white hover:bg-orange-100/70 text-[11px] font-bold text-orange-800 transition shrink-0 cursor-pointer"
+                    disabled={savingShopee}
+                    onClick={handleSaveShopeeData}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition cursor-pointer disabled:opacity-50"
                   >
-                    Rp 0
+                    <CheckCircle size={13} />
+                    <span>
+                      {savingShopee
+                        ? 'Menyimpan...'
+                        : 'Simpan No. Pesanan & Refund Shopee'}
+                    </span>
                   </button>
                 </div>
+
+                {shopeeSavedMsg && (
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                    {shopeeSavedMsg}
+                  </div>
+                )}
               </div>
             )}
 
-            <textarea
-              rows={2}
-              className="input !h-auto py-2 text-xs leading-relaxed"
-              placeholder="Alamat lengkap tujuan pengiriman (Nama Jalan, No. Rumah, RT/RW, Kota, Kode Pos)..."
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-            />
+            {!isShopee && (
+              <textarea
+                rows={2}
+                className="input !h-auto py-2 text-xs leading-relaxed"
+                placeholder="Alamat lengkap tujuan pengiriman (Nama Jalan, No. Rumah, RT/RW, Kota, Kode Pos)..."
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+              />
+            )}
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -416,37 +514,66 @@ export function PackingModal({
             />
           </div>
 
-          {/* Section 3: Evidence Before Packing Upload */}
-          <div className="rounded-2xl border border-brand-200 bg-brand-50/30 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <label
-                className={
-                  'text-xs font-black text-brand-900 flex items-center ' +
-                  'gap-1.5 uppercase tracking-wider'
-                }
-              >
-                <Image size={14} className="text-emerald-600" />
-                3. Foto Bukti Sebelum Packing (Evidence Before Packing)
-              </label>
-              <span
-                className={
-                  'text-[11px] font-bold text-amber-700 bg-amber-100/70 ' +
-                  'px-2 py-0.5 rounded'
-                }
-              >
-                Wajib Upload
-              </span>
+          {/* Section 3: Evidence Before & After Packing Upload */}
+          <div className="rounded-2xl border border-brand-200 bg-brand-50/30 p-4 space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label
+                  className={
+                    'text-xs font-black text-brand-900 flex items-center ' +
+                    'gap-1.5 uppercase tracking-wider'
+                  }
+                >
+                  <Image size={14} className="text-emerald-600" />
+                  3. Foto Bukti Sebelum Packing (Evidence Before Packing)
+                </label>
+                <span
+                  className={
+                    'text-[11px] font-bold text-amber-700 bg-amber-100/70 ' +
+                    'px-2 py-0.5 rounded'
+                  }
+                >
+                  Wajib Upload
+                </span>
+              </div>
+              <FileUploadInput
+                allowedType="image"
+                entityType="shipments"
+                value={proofBeforeUrl}
+                onChange={(url) => setProofBeforeUrl(url || '')}
+                placeholder="Upload foto kondisi barang pesanan sebelum dipacking..."
+              />
+              <p className="text-[11px] text-brand-500 font-medium">
+                Upload foto kondisi barang pesanan sebelum dimasukkan ke dalam paket / kardus.
+              </p>
             </div>
-            <FileUploadInput
-              allowedType="image"
-              entityType="shipments"
-              value={proofBeforeUrl}
-              onChange={(url) => setProofBeforeUrl(url || '')}
-              placeholder="Upload foto kondisi barang pesanan sebelum dipacking..."
-            />
-            <p className="text-[11px] text-brand-500 font-medium">
-              Upload foto kondisi barang pesanan sebelum dimasukkan ke dalam paket / kardus.
-            </p>
+
+            <div className="space-y-3 pt-3 border-t border-brand-200/70">
+              <div className="flex items-center justify-between">
+                <label
+                  className={
+                    'text-xs font-black text-brand-900 flex items-center ' +
+                    'gap-1.5 uppercase tracking-wider'
+                  }
+                >
+                  <Image size={14} className="text-indigo-600" />
+                  4. Foto Bukti Setelah Packing &amp; Resi (Evidence After Packing)
+                </label>
+                <span className="text-[11px] font-semibold text-brand-500">
+                  Foto paket siap kirim
+                </span>
+              </div>
+              <FileUploadInput
+                allowedType="image"
+                entityType="shipments"
+                value={proofUrl}
+                onChange={(url) => setProofUrl(url || '')}
+                placeholder="Upload foto paket tersegel setelah dipacking / dengan label..."
+              />
+              <p className="text-[11px] text-brand-500 font-medium">
+                Upload foto paket setelah selesai dipacking dan ditempel label pengiriman.
+              </p>
+            </div>
           </div>
 
           {/* Modal Action Buttons */}

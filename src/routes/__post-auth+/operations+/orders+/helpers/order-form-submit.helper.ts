@@ -176,12 +176,16 @@ export function prepareSubmitOrder(form: any) {
     throw new Error('Please enter a name for the new product.');
   }
 
-  const isReadyStock = isCreatingProduct
-    ? false
-    : form.productId_option?.stockMode === 'READY_STOCK';
-
   const orderDateObj = order.orderDate ? new Date(order.orderDate) : new Date();
   const periodOption = form.periodId_option;
+  const isLiveOrReadyPeriod =
+    periodOption?.type === 'LIVE_SHOPPING' ||
+    periodOption?.raw?.type === 'LIVE_SHOPPING' ||
+    periodOption?.code === 'READY-STOCK';
+
+  const isReadyStock = isCreatingProduct
+    ? isLiveOrReadyPeriod
+    : isLiveOrReadyPeriod || form.productId_option?.stockMode === 'READY_STOCK';
 
   if (periodOption && periodOption.code !== 'READY-STOCK') {
     if (periodOption.orderCloseAt && orderDateObj > new Date(periodOption.orderCloseAt)) {
@@ -194,7 +198,13 @@ export function prepareSubmitOrder(form: any) {
     : undefined;
 
   const isPriority = form.customerId_option?.segment === 'PRIORITY';
-  const defaultInitialStatus = isPriority ? 'WAITING_PURCHASE' : 'NEW';
+  const hasInitialDp = Number(order.initialPaymentAmount || 0) > 0;
+  const defaultInitialStatus =
+    isPriority || hasInitialDp
+      ? isLiveOrReadyPeriod
+        ? 'WAITING_SETTLEMENT'
+        : 'WAITING_PURCHASE'
+      : 'NEW';
 
   // Group items by product to build order items
   let items: any[] = [];
@@ -204,7 +214,8 @@ export function prepareSubmitOrder(form: any) {
     for (const entry of basket) {
       const entryPid = entry.productId;
       if (!entryPid) continue;
-      const isEntryReadyStock = entry.productOption?.stockMode === 'READY_STOCK';
+      const isEntryReadyStock =
+        isLiveOrReadyPeriod || entry.productOption?.stockMode === 'READY_STOCK';
       const entryVariantRows = Array.isArray(entry.variantItems) && entry.variantItems.length > 0
         ? entry.variantItems.filter((v: any) => Number(v.quantity) > 0)
         : [{ variant: '', size: '', quantity: 1, price: Number(entry.unitPriceForeign || 0) }];
@@ -295,6 +306,9 @@ export function prepareSubmitOrder(form: any) {
       additionalFee: totalAdditionalFee,
       additionalFees: validAdditionalFees,
       discount: Number(order.discount || 0),
+      initialPaymentAmount: Number(order.initialPaymentAmount || 0),
+      initialPaymentMethod: order.initialPaymentMethod || 'BANK_TRANSFER',
+      initialPaymentProofUrl: order.initialPaymentProofUrl || undefined,
       targetInvoiceId:
         order.targetInvoiceMode === 'EXISTING' && order.targetInvoiceId
           ? Number(order.targetInvoiceId)

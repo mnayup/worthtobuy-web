@@ -207,95 +207,95 @@ export function ShippingLabelPreview({
       {/* Thermal Label Mock Preview (10x15 cm aspect ratio) */}
       <div className="flex justify-center p-2 bg-slate-100/70 rounded-2xl border border-slate-200">
         <div
-          className="w-full max-w-[340px] bg-white rounded-xl border-2 border-slate-900 p-4
-            shadow-md text-[11px] font-sans flex flex-col space-y-2.5"
+          className="w-full max-w-[360px] bg-white rounded-xl border-2 border-slate-900 p-4
+            shadow-md text-xs font-sans flex flex-col space-y-2.5"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1.5">
-            <span className="font-black tracking-tight text-slate-900 text-base">
+            <span className="font-black tracking-tight text-slate-950 text-lg">
               WORTHTOBUY
             </span>
-            <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-white">
+            <span className="rounded bg-slate-900 px-2 py-0.5 text-[11px] font-black text-white">
               LABEL {currentSheet.sheetIndex} / {currentSheet.totalSheets}
             </span>
           </div>
 
-          <div className="flex justify-between text-[10px] text-slate-600">
+          <div className="flex justify-between text-xs font-extrabold text-slate-900">
             <span>
-              Order: <strong className="text-slate-900">{orderNumber}</strong>
+              Order: <strong className="font-black text-slate-950">{orderNumber}</strong>
             </span>
             <span>
-              Shipment: <strong className="text-slate-900">#{shipmentId}</strong>
+              Shipment: <strong className="font-black text-slate-950">#{shipmentId}</strong>
             </span>
           </div>
 
           {/* Courier Box on Label (Omitted on Shopee) */}
           {isShopee ? (
-            <div className="rounded border-2 border-amber-600 bg-amber-50 px-2 py-1.5 flex items-center justify-between">
-              <span className="text-[9px] font-black uppercase text-amber-700 tracking-wider">
+            <div className="rounded border-2 border-amber-600 bg-amber-50 px-2.5 py-2 flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">
                 Metode Pengiriman
               </span>
-              <span className="text-xs font-black text-amber-800 tracking-wide">
+              <span className="text-xs font-black text-amber-900 tracking-wide">
                 Checkout Shopee (Packing List)
               </span>
             </div>
           ) : (
             <>
-              <div className="rounded border-2 border-slate-900 bg-slate-50 px-2 py-1.5 flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-slate-600 tracking-wider">
+              <div className="rounded border-2 border-slate-900 bg-slate-50 px-2.5 py-2 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-slate-900 tracking-wider">
                   Ekspedisi / Kurir
                 </span>
-                <span className="text-xs font-black text-slate-900 tracking-wide">
+                <span className="text-sm font-black text-slate-950 tracking-wide">
                   {courier || 'JNE'}{serviceType ? ` • ${serviceType}` : ''}
                 </span>
               </div>
 
               {/* Recipient Box */}
-              <div className="rounded border border-slate-800 p-2 space-y-0.5">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="rounded border-2 border-slate-900 p-2.5 space-y-0.5">
+                <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block">
                   Penerima / Recipient
                 </span>
-                <div className="font-black text-slate-900 text-xs">{recipientName}</div>
-                <div className="font-bold text-slate-700 text-[10px]">{recipientPhone}</div>
-                <div className="text-[10px] text-slate-800 leading-tight pt-1">
+                <div className="font-black text-slate-950 text-sm">{recipientName}</div>
+                <div className="font-black text-slate-900 text-xs">{recipientPhone}</div>
+                <div className="text-xs font-bold text-slate-900 leading-snug pt-1">
                   {recipientAddress || '-'}
                 </div>
               </div>
 
               {/* Sender Box */}
-              <div className="rounded border border-slate-300 bg-slate-50 p-1.5 text-[9px]">
-                <span className="font-bold text-slate-500 uppercase tracking-wider block text-[8px]">
+              <div className="rounded border-2 border-slate-900 bg-slate-50 p-2 text-[11px] font-extrabold text-slate-900">
+                <span className="font-black text-slate-800 uppercase tracking-wider block text-[10px]">
                   Pengirim / Sender
                 </span>
-                <span className="font-bold text-slate-800">{senderInfo.name}</span> •{' '}
+                <span className="font-black text-slate-950">{senderInfo.name}</span> •{' '}
                 {senderInfo.phone} (Jakarta)
               </div>
             </>
           )}
 
           {/* Items Preview Table */}
-          <div className="border-t border-slate-300 pt-1.5 space-y-1">
-            <div className="flex justify-between font-bold text-[10px] text-slate-700">
+          <div className="border-t-2 border-slate-900 pt-2 space-y-1.5">
+            <div className="flex justify-between font-black text-xs text-slate-950">
               <span>Detail Barang ({currentSheet.items.length} items)</span>
               <span>
                 Qty:{' '}
                 {currentSheet.items.reduce((s, i) => s + i.quantity, 0)}
               </span>
             </div>
-            <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
               {currentSheet.items.map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-start justify-between text-[10px] border-b
-                    border-dashed border-slate-200 pb-1"
+                  className="flex items-start justify-between text-xs border-b
+                    border-dashed border-slate-400 pb-1"
                 >
                   <div className="pr-2">
-                    <span className="font-bold text-slate-900 block">{item.name}</span>
-                    <span className="text-[9px] text-slate-500">
+                    <span className="font-black text-slate-950 block">{item.name}</span>
+                    <span className="text-[11px] font-extrabold text-slate-800">
                       {[item.variant, item.size, item.color].filter(Boolean).join(' • ') || '-'}
                     </span>
                   </div>
-                  <span className="font-black text-slate-900 shrink-0">{item.quantity}x</span>
+                  <span className="font-black text-sm text-slate-950 shrink-0">{item.quantity}x</span>
                 </div>
               ))}
             </div>
@@ -304,20 +304,20 @@ export function ShippingLabelPreview({
           {notes && (
             <div
               className={
-                'text-[9px] text-slate-500 bg-amber-50/50 p-1 rounded ' +
-                'border border-amber-200/50'
+                'text-[11px] font-bold text-slate-900 bg-amber-50 p-1.5 rounded ' +
+                'border border-amber-300'
               }
             >
-              <strong className="text-amber-800">Catatan:</strong> {notes}
+              <strong className="font-black text-amber-950">Catatan:</strong> {notes}
             </div>
           )}
 
           {/* Wajib Video Unboxing Warning Box */}
-          <div className="rounded border-2 border-slate-900 p-2 text-center bg-white space-y-1 shadow-2xs mt-auto">
-            <div className="text-[9px] font-black tracking-tight text-slate-950 uppercase leading-tight">
+          <div className="rounded-md border-[2.5px] border-slate-950 p-2.5 text-center bg-white space-y-1.5 shadow-xs mt-auto">
+            <div className="text-xs font-black tracking-tight text-slate-950 uppercase leading-snug">
               <u>WAJIB VIDEO UNBOXING. TIDAK TERIMA COMPLAIN TANPA VIDEO UNBOXING.</u>
             </div>
-            <div className="text-[8px] font-semibold text-slate-800 leading-snug">
+            <div className="text-[10.5px] font-extrabold text-slate-950 leading-snug space-y-0.5">
               <div>Rekam jelas proses sebelum membuka paket hingga kelihatan barang yang diterima. Video tidak putus-putus (no edit).</div>
               <div>Max complain 1x24 jam setelah barang diterima.</div>
               <div className="pt-0.5">Terimakasih atas ordernya. Ditunggu next ordernya yaa ❤️</div>
@@ -327,8 +327,8 @@ export function ShippingLabelPreview({
           {/* Footer Barcode look */}
           <div
             className={
-              'pt-1.5 border-t border-slate-900 flex items-center justify-between ' +
-              'text-[8px] font-bold text-slate-600'
+              'pt-1.5 border-t-2 border-slate-900 flex items-center justify-between ' +
+              'text-[10px] font-black text-slate-950'
             }
           >
             <span>WORTH TO BUY JASTIP</span>

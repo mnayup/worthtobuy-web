@@ -12,10 +12,9 @@ import { PurchaseSummaryModal } from './components/purchase-summary-modal';
 
 import {
   responseRows,
-  loadPeriods,
-  loadProducts,
+  loadLiveShoppingPeriods,
+  loadLiveShoppingProducts,
   loadUsers,
-  loadOrderItems,
 } from './helpers/purchase-options.helper';
 
 export async function loader() {
@@ -116,13 +115,163 @@ export default function PurchasesRoute() {
 
   const fields = useMemo<FieldConfig[]>(
     () => [
-      { name: 'purchaseNumber', label: 'Purchase Number' },
+      {
+        name: 'periodId',
+        label: 'Live Shopping Event',
+        type: 'select',
+        loadOptions: loadLiveShoppingPeriods,
+        searchable: true,
+        required: true,
+        disabled: (form) => Boolean(form.id),
+        onChange: (_val, _opt, set) => {
+          set('productId', '');
+          set('productId_option', null);
+          set('newProductVariant', '');
+          set('newProductSize', '');
+          set('variantItems', []);
+          set('unitBuyPrice', 0);
+          set('estimatedPrice', 0);
+          set('actualPrice', 0);
+        },
+      },
+      {
+        name: 'productId',
+        label: 'Product (Live Shopping Stock)',
+        type: 'select',
+        loadOptions: loadLiveShoppingProducts,
+        searchable: true,
+        required: true,
+        dependsOn: (form) => Boolean(form.periodId),
+        disabled: (form) => Boolean(form.id),
+        onChange: (val, opt, set) => {
+          if (val === '__NEW_PRODUCT__') {
+            set('newProductVariant', '');
+            set('newProductSize', '');
+            set('newProductImageUrls', []);
+            set('variantItems', [
+              {
+                variant: '',
+                size: '',
+                quantity: 1,
+                buyPrice: 0,
+                sellingPrice: 0,
+              },
+            ]);
+            set('quantity', 1);
+            set('unitBuyPrice', 0);
+            set('estimatedPrice', 0);
+            set('actualPrice', 0);
+            return;
+          }
+          const raw = opt?.raw || {};
+          const unitCost = Number(opt?.price ?? raw.buy_price ?? raw.buyPrice ?? 0);
+          const sellPrice = Number(raw.selling_price ?? raw.sellingPrice ?? 0);
+          const existingVariants = raw.variant || '';
+          const existingSizes = raw.size || '';
+          const firstVar = String(existingVariants).split(/[,;\n]/).map((s) => s.trim()).filter(Boolean)[0] || '';
+          const firstSize = String(existingSizes).split(/[,;\n]/).map((s) => s.trim()).filter(Boolean)[0] || '';
+
+          set('newProductVariant', existingVariants);
+          set('newProductSize', existingSizes);
+          set('newProductImageUrls', Array.isArray(raw.image_urls) ? raw.image_urls : raw.image_url ? [raw.image_url] : []);
+          set('variantItems', [
+            {
+              variant: firstVar,
+              size: firstSize,
+              quantity: 1,
+              buyPrice: unitCost,
+              sellingPrice: sellPrice,
+            },
+          ]);
+          set('quantity', 1);
+          set('unitBuyPrice', unitCost);
+          set('brandName', raw.brand_name || raw.brandName || '');
+          set('estimatedPrice', unitCost);
+          set('actualPrice', unitCost);
+        },
+      },
+      {
+        name: 'newProductName',
+        label: 'New Product Name',
+        placeholder: 'e.g. Pop Mart Labubu, Gentle Monster, etc.',
+        type: 'text',
+        required: true,
+        dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
+      },
+      {
+        name: 'newProductBrand',
+        label: 'Brand Name',
+        placeholder: 'e.g. Pop Mart, Nike, Coach',
+        type: 'text',
+        dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
+      },
+      {
+        name: 'newProductVariant',
+        label: 'Available Variants (Quick-Pick Options)',
+        placeholder: 'Type variant & press Enter',
+        type: 'tags',
+        dependsOn: (form) => Boolean(form.productId),
+      },
+      {
+        name: 'newProductSize',
+        label: 'Available Sizes (Quick-Pick Options)',
+        placeholder: 'Type size & press Enter',
+        type: 'tags',
+        dependsOn: (form) => Boolean(form.productId),
+      },
+      {
+        name: 'variantItems',
+        label: 'Custom Price & Qty per Variant & Size',
+        type: 'manual-purchase-items',
+        colSpan: 2,
+        dependsOn: (form) => Boolean(form.productId),
+        onChange: (items, _opt, set) => {
+          const rows = Array.isArray(items) ? items : [];
+          const totalQty = rows.reduce(
+            (sum, it) => sum + Math.max(1, Number(it.quantity || 1)),
+            0
+          );
+          const totalCost = rows.reduce(
+            (sum, it) =>
+              sum +
+              Math.max(1, Number(it.quantity || 1)) *
+                Math.max(0, Number(it.buyPrice || 0)),
+            0
+          );
+          set('quantity', Math.max(1, totalQty));
+          set('estimatedPrice', totalCost);
+          set('actualPrice', totalCost);
+        },
+      },
+      {
+        name: 'newProductImageUrls',
+        label: 'Product Photos (Optional)',
+        type: 'images',
+        entityType: 'products',
+        colSpan: 2,
+        required: false,
+        dependsOn: (form) => Boolean(form.productId),
+      },
       {
         name: 'status',
         label: 'Status',
         type: 'select',
         options: purchaseStatusOptions,
-        defaultValue: 'WAITING_PURCHASE',
+        defaultValue: 'PURCHASED',
+      },
+      {
+        name: 'estimatedPrice',
+        label: 'Estimated Total Cost (IDR)',
+        type: 'currency',
+        defaultValue: 0,
+        required: true,
+      },
+      {
+        name: 'actualPrice',
+        label: 'Actual Total Cost (IDR)',
+        type: 'currency',
+        defaultValue: 0,
+        required: true,
       },
       { name: 'purchaseDate', label: 'Purchase Date', type: 'datetime-local' },
       {
@@ -131,37 +280,6 @@ export default function PurchasesRoute() {
         type: 'select',
         loadOptions: loadUsers,
         searchable: true,
-      },
-      {
-        name: 'periodId',
-        label: 'Event',
-        type: 'select',
-        loadOptions: loadPeriods,
-        searchable: true,
-        required: true,
-        disabled: (form) => Boolean(form.id),
-      },
-      {
-        name: 'orderItemId',
-        label: 'Ordered Item',
-        type: 'select',
-        loadOptions: loadOrderItems,
-        searchable: true,
-        required: true,
-        disabled: (form) => Boolean(form.id),
-      },
-      { name: 'quantity', label: 'Quantity', type: 'number', required: true },
-      {
-        name: 'estimatedPrice',
-        label: 'Estimated Cost (IDR)',
-        type: 'currency',
-        required: true,
-      },
-      {
-        name: 'actualPrice',
-        label: 'Actual Cost (IDR)',
-        type: 'currency',
-        required: true,
       },
       { name: 'paymentMethod', label: 'Payment Method' },
       {
@@ -366,18 +484,27 @@ export default function PurchasesRoute() {
             estimatedPrice: row.estimated_price ?? row.estimatedPrice,
           };
         }}
-        prepareSubmit={(form) => ({
-          ...form,
-          purchaseDate: form.purchaseDate
-            ? new Date(form.purchaseDate).toISOString()
-            : undefined,
-          periodId: form.periodId ? Number(form.periodId) : undefined,
-          orderItemId: form.orderItemId ? Number(form.orderItemId) : undefined,
-          shopperId: form.shopperId ? Number(form.shopperId) : undefined,
-          quantity: form.quantity ? Number(form.quantity) : undefined,
-          estimatedPrice: form.estimatedPrice ? Number(form.estimatedPrice) : undefined,
-          actualPrice: form.actualPrice ? Number(form.actualPrice) : undefined,
-        })}
+        prepareSubmit={(form) => {
+          setTimeout(() => fetchSummary(), 400);
+          return {
+            ...form,
+            purchaseDate: form.purchaseDate
+              ? new Date(form.purchaseDate).toISOString()
+              : undefined,
+            periodId: form.periodId ? Number(form.periodId) : undefined,
+            productId:
+              form.productId && form.productId !== '__NEW_PRODUCT__'
+                ? Number(form.productId)
+                : form.productId || undefined,
+            orderItemId: form.orderItemId ? Number(form.orderItemId) : undefined,
+            shopperId: form.shopperId ? Number(form.shopperId) : undefined,
+            quantity: form.quantity ? Number(form.quantity) : 1,
+            estimatedPrice:
+              form.estimatedPrice !== undefined ? Number(form.estimatedPrice) : 0,
+            actualPrice:
+              form.actualPrice !== undefined ? Number(form.actualPrice) : 0,
+          };
+        }}
       />
 
       <PurchaseDetailModal

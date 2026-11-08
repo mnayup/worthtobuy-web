@@ -48,6 +48,7 @@ export default function PeriodsRoute() {
       options: [
         { label: 'Local', value: 'LOCAL' },
         { label: 'International', value: 'INTERNATIONAL' },
+        { label: 'Live Shopping', value: 'LIVE_SHOPPING' },
       ],
       required: true,
     },
@@ -128,6 +129,7 @@ export default function PeriodsRoute() {
           options: [
             { label: 'Local (Domestic)', value: 'LOCAL' },
             { label: 'International', value: 'INTERNATIONAL' },
+            { label: 'Live Shopping', value: 'LIVE_SHOPPING' },
           ],
         },
       ]}
@@ -157,12 +159,21 @@ export default function PeriodsRoute() {
         {
           key: 'type',
           label: 'Type',
-          exportValue: (row) => (row.type === 'LOCAL' ? 'Local' : row.type === 'INTERNATIONAL' ? 'International' : row.type || '-'),
+          exportValue: (row) =>
+            row.type === 'LOCAL'
+              ? 'Local'
+              : row.type === 'INTERNATIONAL'
+              ? 'International'
+              : row.type === 'LIVE_SHOPPING'
+              ? 'Live Shopping'
+              : row.type || '-',
           render: (row) =>
             row.type === 'LOCAL'
               ? 'Local'
               : row.type === 'INTERNATIONAL'
               ? 'International'
+              : row.type === 'LIVE_SHOPPING'
+              ? 'Live Shopping'
               : row.type,
         },
         {

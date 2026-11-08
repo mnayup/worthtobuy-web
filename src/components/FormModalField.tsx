@@ -6,6 +6,7 @@ import { MultiImageUploadInput } from './MultiImageUploadInput';
 import { OrderVariantQuantitySelector } from './OrderVariantQuantitySelector';
 import { AdditionalFeesSelector } from './AdditionalFeesSelector';
 import { ProductVariantPriceSelector } from './ProductVariantPriceSelector';
+import { ManualPurchaseVariantItemsSelector } from './ManualPurchaseVariantItemsSelector';
 import { MultiProductOrderBasket } from './MultiProductOrderBasket';
 import { TagInput } from './TagInput';
 
@@ -210,6 +211,22 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
           set(field.name, rules);
           if (field.onChange) {
             field.onChange(rules, undefined, set, form);
+          }
+        }}
+        form={form}
+        disabled={disabled}
+      />
+    );
+  }
+
+  if (field.type === 'manual-purchase-items') {
+    return (
+      <ManualPurchaseVariantItemsSelector
+        value={form[field.name]}
+        onChange={(items) => {
+          set(field.name, items);
+          if (field.onChange) {
+            field.onChange(items, undefined, set, form);
           }
         }}
         form={form}

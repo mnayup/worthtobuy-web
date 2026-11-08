@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, Truck } from 'lucide-react';
 import { usePublicInvoice } from './hooks/use-public-invoice';
 import { PublicInvoiceHeader } from './components/PublicInvoiceHeader';
 import { PublicInvoiceOrdersTable } from './components/PublicInvoiceOrdersTable';
@@ -13,6 +13,8 @@ import { PublicInvoiceRefundsList } from './components/PublicInvoiceRefundsList'
 
 export default function PublicInvoiceViewRoute() {
   const d = usePublicInvoice();
+  const [searchParams] = useSearchParams();
+  const fromCustomer = searchParams.get('fromCustomer') || '';
 
   if (d.loading) {
     return (
@@ -55,19 +57,42 @@ export default function PublicInvoiceViewRoute() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10 space-y-6">
-      <div className="flex items-center justify-between">
-        <Link
-          to="/"
-          className={
-            'inline-flex items-center gap-1.5 text-xs font-bold text-brand-500 ' +
-            'hover:text-brand-900 transition'
-          }
-        >
-          <ArrowLeft size={14} /> Back to WORTHTOBUY
-        </Link>
-        <span className="text-[11px] font-bold text-brand-400">
-          Customer Invoice Portal
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {fromCustomer ? (
+          <Link
+            to={`/track?q=${encodeURIComponent(fromCustomer)}`}
+            className={
+              'inline-flex items-center gap-1.5 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-extrabold text-rose-700 ' +
+              'border border-rose-200 hover:bg-rose-100 transition'
+            }
+          >
+            <ArrowLeft size={14} /> Kembali ke Daftar Invoice ({fromCustomer})
+          </Link>
+        ) : (
+          <Link
+            to="/"
+            className={
+              'inline-flex items-center gap-1.5 text-xs font-bold text-brand-500 ' +
+              'hover:text-brand-900 transition'
+            }
+          >
+            <ArrowLeft size={14} /> Back to WORTHTOBUY
+          </Link>
+        )}
+        <div className="flex items-center gap-3">
+          {d.invoice?.invoice_number && (
+            <Link
+              to={`/track?q=${encodeURIComponent(d.invoice.invoice_number)}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+            >
+              <Truck size={13} className="text-rose-500" />
+              <span>Lacak Status Pengiriman</span>
+            </Link>
+          )}
+          <span className="text-[11px] font-bold text-brand-400">
+            Customer Invoice Portal
+          </span>
+        </div>
       </div>
 
       {d.successMsg && (

@@ -50,7 +50,8 @@ export function findMatchingVariantPrice(
       ruleSizes.length === 0 || (cleanSize && ruleSizes.includes(cleanSize));
 
     if (varMatches && sizeMatches) {
-      return Number(rule.sellingPrice || 0);
+      const rulePrice = Number(rule.sellingPrice || 0);
+      return rulePrice > 0 ? rulePrice : fallbackBasePrice;
     }
   }
 

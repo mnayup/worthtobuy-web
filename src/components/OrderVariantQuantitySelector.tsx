@@ -63,7 +63,33 @@ export function OrderVariantQuantitySelector({
     return [{ variant: '', size: '', quantity: 1, price: defaultPrice || undefined }];
   }, [value, defaultPrice]);
 
+  const isReadyOrLiveStock = React.useMemo(() => {
+    if (isNewProduct) return false;
+    return (
+      form.periodId_option?.type === 'LIVE_SHOPPING' ||
+      form.periodId_option?.raw?.type === 'LIVE_SHOPPING' ||
+      form.periodId_option?.code === 'READY-STOCK' ||
+      rawProduct?.period?.type === 'LIVE_SHOPPING' ||
+      ['READY_STOCK', 'BOTH'].includes(rawProduct?.stock_mode || rawProduct?.stockMode)
+    );
+  }, [isNewProduct, form.periodId_option, rawProduct]);
+
+  const availableVariantStocks: Array<{
+    variant: string;
+    size: string;
+    available: number;
+  }> = React.useMemo(() => {
+    if (!isReadyOrLiveStock) return [];
+    const list = rawProduct?.available_variant_stocks;
+    return Array.isArray(list) ? list.filter((x: any) => Number(x.available || 0) > 0) : [];
+  }, [isReadyOrLiveStock, rawProduct]);
+
   const availableVariants = React.useMemo(() => {
+    if (isReadyOrLiveStock && Array.isArray(rawProduct?.available_variant_stocks)) {
+      return Array.from(
+        new Set(availableVariantStocks.map((x) => x.variant).filter(Boolean))
+      );
+    }
     const raw = isNewProduct
       ? form.newProductVariant
       : rawProduct?.variant || rawProduct?.variation;
@@ -72,16 +98,95 @@ export function OrderVariantQuantitySelector({
       .split(/[,;\n]/)
       .map((s) => s.trim())
       .filter(Boolean);
-  }, [rawProduct, isNewProduct, form.newProductVariant]);
+  }, [rawProduct, isNewProduct, form.newProductVariant, isReadyOrLiveStock, availableVariantStocks]);
 
   const availableSizes = React.useMemo(() => {
+    if (isReadyOrLiveStock && Array.isArray(rawProduct?.available_variant_stocks)) {
+      return Array.from(
+        new Set(availableVariantStocks.map((x) => x.size).filter(Boolean))
+      );
+    }
     const raw = isNewProduct ? form.newProductSize : rawProduct?.size;
     if (!raw || typeof raw !== 'string') return [];
     return raw
       .split(/[,;\n]/)
       .map((s) => s.trim())
       .filter(Boolean);
-  }, [rawProduct, isNewProduct, form.newProductSize]);
+  }, [rawProduct, isNewProduct, form.newProductSize, isReadyOrLiveStock, availableVariantStocks]);
+
+  const variantStockCounts = React.useMemo(() => {
+    if (!isReadyOrLiveStock || availableVariantStocks.length === 0) return undefined;
+    const map: Record<string, number> = {};
+    for (const entry of availableVariantStocks) {
+      if (!entry.variant) continue;
+      map[entry.variant] = (map[entry.variant] || 0) + entry.available;
+    }
+    return map;
+  }, [isReadyOrLiveStock, availableVariantStocks]);
+
+  const getSizesForVariant = React.useCallback(
+    (selectedVariant: string) => {
+      if (!isReadyOrLiveStock || !Array.isArray(rawProduct?.available_variant_stocks)) {
+        return availableSizes;
+      }
+      const normVar = (selectedVariant || '').trim().toLowerCase();
+      const matching = normVar
+        ? availableVariantStocks.filter((x) => x.variant.trim().toLowerCase() === normVar)
+        : availableVariantStocks;
+      return Array.from(new Set(matching.map((x) => x.size).filter(Boolean)));
+    },
+    [isReadyOrLiveStock, rawProduct, availableVariantStocks, availableSizes]
+  );
+
+  const getSizeStockCountsForVariant = React.useCallback(
+    (selectedVariant: string) => {
+      if (!isReadyOrLiveStock || availableVariantStocks.length === 0) return undefined;
+      const normVar = (selectedVariant || '').trim().toLowerCase();
+      const matching = normVar
+        ? availableVariantStocks.filter((x) => x.variant.trim().toLowerCase() === normVar)
+        : availableVariantStocks;
+      const map: Record<string, number> = {};
+      for (const entry of matching) {
+        if (!entry.size) continue;
+        map[entry.size] = (map[entry.size] || 0) + entry.available;
+      }
+      return map;
+    },
+    [isReadyOrLiveStock, availableVariantStocks]
+  );
+
+  const getMaxQuantityForRow = React.useCallback(
+    (rowVariant: string, rowSize: string, rowIdx: number) => {
+      if (!isReadyOrLiveStock) return undefined;
+      const totalProdStock = Math.max(
+        0,
+        Number(rawProduct?.stock_quantity ?? rawProduct?.stockQuantity ?? 0) -
+          Number(rawProduct?.reserved_quantity ?? rawProduct?.reservedQuantity ?? 0)
+      );
+      if (availableVariantStocks.length === 0) {
+        return totalProdStock > 0 ? totalProdStock : undefined;
+      }
+      const normVar = (rowVariant || '').trim().toLowerCase();
+      const normSize = (rowSize || '').trim().toLowerCase();
+      const matched = availableVariantStocks.filter(
+        (x) =>
+          (!normVar || x.variant.trim().toLowerCase() === normVar) &&
+          (!normSize || x.size.trim().toLowerCase() === normSize)
+      );
+      const bucketAvail = matched.reduce((sum, x) => sum + x.available, 0);
+      const usedInOtherRows = items.reduce((sum, it, idx) => {
+        if (idx === rowIdx) return sum;
+        const itVar = (it.variant || '').trim().toLowerCase();
+        const itSize = (it.size || '').trim().toLowerCase();
+        if (itVar === normVar && itSize === normSize) {
+          return sum + Number(it.quantity || 1);
+        }
+        return sum;
+      }, 0);
+      return Math.max(1, bucketAvail - usedInOtherRows);
+    },
+    [isReadyOrLiveStock, rawProduct, availableVariantStocks, items]
+  );
 
   const activeBundle = React.useMemo(() => {
     if (!activeBundleId) return null;
@@ -114,6 +219,15 @@ export function OrderVariantQuantitySelector({
     const rawUpdated = items.map((it, idx) => {
       if (idx !== index) return it;
       const updated = { ...it, ...patch };
+
+      if (isReadyOrLiveStock && patch.variant !== undefined) {
+        const validSizes = getSizesForVariant(updated.variant);
+        if (validSizes.length > 0 && !validSizes.includes(updated.size)) {
+          updated.size = validSizes[0];
+        } else if (validSizes.length === 0) {
+          updated.size = '';
+        }
+      }
 
       // If variant or size changed and not in a locked bundle deal, recalculate matched variant price
       if (
@@ -418,6 +532,9 @@ export function OrderVariantQuantitySelector({
       <div className="space-y-2">
         {items.map((row, index) => {
           const isAtBundleLimit = activeBundle ? totalQuantity >= activeBundle.minQty : false;
+          const rowSizes = getSizesForVariant(row.variant);
+          const rowSizeCounts = getSizeStockCountsForVariant(row.variant);
+          const rowMaxQty = getMaxQuantityForRow(row.variant, row.size, index);
           return (
             <OrderVariantRow
               key={index}
@@ -425,7 +542,11 @@ export function OrderVariantQuantitySelector({
               row={row}
               defaultPrice={defaultPrice}
               availableVariants={availableVariants}
-              availableSizes={availableSizes}
+              availableSizes={rowSizes}
+              variantStockCounts={variantStockCounts}
+              sizeStockCounts={rowSizeCounts}
+              maxQuantity={rowMaxQty}
+              lockToAvailableStock={isReadyOrLiveStock}
               disabled={disabled}
               isBundleActive={Boolean(activeBundle)}
               canIncrease={!isAtBundleLimit}

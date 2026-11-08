@@ -39,6 +39,7 @@ export type FieldConfig={
     | 'variant-quantities'
     | 'order-product-basket'
     | 'variant-prices'
+    | 'manual-purchase-items'
     | 'additional-fees';
   fileType?:'image'|'document'|'all';
   entityType?:string;

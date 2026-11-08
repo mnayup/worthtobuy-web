@@ -1,3 +1,5 @@
+import { CustomerPinModal } from './components/customer-pin-modal';
+import { CustomerTrackingInvoiceList } from './components/customer-tracking-invoice-list';
 import { TrackingBanner } from './components/tracking-banner';
 import { TrackingOrderDetails } from './components/tracking-order-details';
 import { TrackingOrderHeader } from './components/tracking-order-header';
@@ -16,6 +18,18 @@ export default function PublicTrackingRoute() {
     handleSearch,
     handleSubmit,
     handleCopyResi,
+    pinModalOpen,
+    setPinModalOpen,
+    pendingCustomerCode,
+    phoneLast5,
+    setPhoneLast5,
+    pinLoading,
+    pinError,
+    handlePinSubmit,
+    customerResult,
+    selectedCustomerInvoice,
+    setSelectedCustomerInvoice,
+    handleResetCustomerSession,
   } = usePublicTracking();
 
   return (
@@ -34,7 +48,32 @@ export default function PublicTrackingRoute() {
         }}
       />
 
-      {data && (
+      {/* Pop-up modal for Customer ID (CUST-...) 5-digit Phone Verification */}
+      <CustomerPinModal
+        open={pinModalOpen}
+        customerCode={pendingCustomerCode}
+        phoneLast5={phoneLast5}
+        setPhoneLast5={setPhoneLast5}
+        loading={pinLoading}
+        error={pinError}
+        onClose={() => setPinModalOpen(false)}
+        onSubmit={handlePinSubmit}
+      />
+
+      {/* Customer Invoice List View (when verified via Customer ID + 5 last phone digits) */}
+      {customerResult && (
+        <CustomerTrackingInvoiceList
+          result={customerResult}
+          selectedInvoice={selectedCustomerInvoice}
+          onSelectInvoice={setSelectedCustomerInvoice}
+          onResetSession={handleResetCustomerSession}
+          copiedResi={copiedResi}
+          onCopyResi={handleCopyResi}
+        />
+      )}
+
+      {/* Direct Single Order / Invoice / Resi Tracking View */}
+      {data && !customerResult && (
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8 animate-rise">
           <TrackingOrderHeader
             data={data}

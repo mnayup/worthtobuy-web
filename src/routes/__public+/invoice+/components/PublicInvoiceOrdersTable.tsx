@@ -1,7 +1,7 @@
 import React from 'react';
 import { MessageSquareText } from 'lucide-react';
 import { money } from '~/lib/format';
-import { parseProductPriceRules } from '~/lib/pricing-rules';
+import { parseProductPriceRules, findMatchingVariantPrice } from '~/lib/pricing-rules';
 
 interface PublicInvoiceOrdersTableProps {
   orders: any[];
@@ -39,13 +39,26 @@ function groupPublicOrderItems(items: any[]): GroupedPublicInvoiceItem[] {
     );
     const bundleKey = bundleName ? `${productId}___${bundleName}` : '';
     const qty = Number(item.quantity || 1);
-    const unitPrice = Number(
+    const rawUnitPrice = Number(
       item.unit_price_foreign ??
         item.unitPriceForeign ??
         item.target_price_idr ??
         item.targetPriceIdr ??
         0
     );
+    const prodSellingPrice = Number(
+      item.product?.selling_price ?? item.product?.sellingPrice ?? 0
+    );
+    const prodRules = parseProductPriceRules(
+      item.product?.variant_prices || item.product?.variantPrices
+    );
+    const resolvedSellPrice = findMatchingVariantPrice(
+      prodRules,
+      item.variation || item.variant || '',
+      item.size || '',
+      prodSellingPrice
+    );
+    const unitPrice = rawUnitPrice > 0 ? rawUnitPrice : resolvedSellPrice;
     const subtotal = unitPrice * qty;
     const photo =
       item.photo_url ||
@@ -315,15 +328,9 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                 }
 
                 const item = row.items[0];
-                const unitPrice = Number(
-                  item.unit_price_foreign ??
-                    item.unitPriceForeign ??
-                    item.target_price_idr ??
-                    item.targetPriceIdr ??
-                    0
-                );
                 const qty = row.totalQty;
                 const subtotal = row.totalSubtotal;
+                const unitPrice = qty > 0 ? Math.round(subtotal / qty) : 0;
                 const photo = row.photoUrl;
 
                 return (

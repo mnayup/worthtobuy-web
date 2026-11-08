@@ -62,6 +62,8 @@ export function SetTrackingCourierFields({
   setShippingCounterId,
 }: SetTrackingCourierFieldsProps) {
   const selectedCounter = shippingCounters.find((sc) => sc.id === shippingCounterId);
+  const effectiveCourier = courier === 'Other' ? customCourier.trim() : courier;
+  const isShopee = effectiveCourier.toLowerCase().includes('shopee');
 
   const courierOptions: Option[] = [
     ...(shippingCounters.length > 0
@@ -84,21 +86,23 @@ export function SetTrackingCourierFields({
 
   return (
     <>
-      {/* Destination Address */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-brand-700 flex items-center gap-1.5">
-          <MapPin size={13} className="text-brand-500" />
-          Destination Address <span className="text-cherry-500">*</span>
-        </label>
-        <textarea
-          rows={2}
-          required
-          className="input !py-2 text-xs leading-relaxed"
-          placeholder="Full destination address for delivery"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-      </div>
+      {/* Destination Address (hidden for Shopee) */}
+      {!isShopee && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-brand-700 flex items-center gap-1.5">
+            <MapPin size={13} className="text-brand-500" />
+            Destination Address <span className="text-cherry-500">*</span>
+          </label>
+          <textarea
+            rows={2}
+            required
+            className="input !py-2 text-xs leading-relaxed"
+            placeholder="Full destination address for delivery"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+      )}
 
       {/* Courier & Service Grid */}
       <div className="grid gap-4 sm:grid-cols-2">

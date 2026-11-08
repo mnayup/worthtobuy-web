@@ -1,4 +1,4 @@
-import { AlertCircle, Search, Truck } from 'lucide-react';
+import { AlertCircle, Search, ShieldCheck, Truck } from 'lucide-react';
 
 interface TrackingSearchBoxProps {
   inputCode: string;
@@ -26,9 +26,15 @@ export function TrackingSearchBox({
         }
       >
         <form onSubmit={onSubmit} className="space-y-4">
-          <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-            Nomor Invoice / Order ID / Nomor Resi Kurir
-          </label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+              Nomor Invoice / Order ID / Customer ID / Nomor Resi Kurir
+            </label>
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200/70">
+              <ShieldCheck size={12} className="text-indigo-600" />
+              Customer ID (CUS-... / CUST-...) dilindungi verifikasi 5 digit No. Telepon
+            </span>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
             <div className="relative flex-1">
@@ -40,7 +46,7 @@ export function TrackingSearchBox({
                 type="text"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
-                placeholder="Contoh: INV-2026-0001 atau ORD-2026-0002 atau 004289104829..."
+                placeholder="Contoh: CUS-20261103-... atau INV-2026-0001 atau ORD-2026-0002 atau Resi..."
                 className={
                   'w-full rounded-2xl border-2 border-slate-200 bg-slate-50/80 ' +
                   'py-3.5 pl-11 pr-4 text-sm font-bold text-slate-900 outline-none ' +
@@ -80,7 +86,7 @@ export function TrackingSearchBox({
               onClick={() => onSelectSample('INV-2026-0001')}
               className={
                 'rounded-lg border border-rose-200 bg-rose-50/70 px-2.5 py-1 ' +
-                'text-xs font-black text-rose-700 hover:bg-rose-100 transition'
+                'text-xs font-black text-rose-700 hover:bg-rose-100 transition cursor-pointer'
               }
             >
               INV-2026-0001 (Belanja di Event)
@@ -90,7 +96,7 @@ export function TrackingSearchBox({
               onClick={() => onSelectSample('004289104829')}
               className={
                 'rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 ' +
-                'text-xs font-black text-emerald-700 hover:bg-emerald-100 transition'
+                'text-xs font-black text-emerald-700 hover:bg-emerald-100 transition cursor-pointer'
               }
             >
               004289104829 (SiCepat Resi)

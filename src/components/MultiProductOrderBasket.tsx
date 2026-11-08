@@ -3,6 +3,7 @@ import { Plus, Trash2, ShoppingBag } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 import { OrderVariantQuantitySelector, type VariantQuantityItem } from './OrderVariantQuantitySelector';
 import { loadProducts } from '~/routes/__post-auth+/operations+/orders+/helpers/order-options.helper';
+import { parseProductPriceRules, findMatchingVariantPrice } from '~/lib/pricing-rules';
 import { money } from '~/lib/format';
 import type { Option } from '~/types';
 
@@ -139,12 +140,32 @@ export function MultiProductOrderBasket({
                 form={entryForm}
                 placeholder="Search catalog or ready-stock product..."
                 onChange={(val, opt) => {
-                  const unitPrice = opt?.price ?? 0;
+                  const unitPrice = Number(opt?.price ?? opt?.raw?.selling_price ?? opt?.raw?.sellingPrice ?? 0);
+                  const rawProd = opt?.raw;
+                  const priceRules = parseProductPriceRules(rawProd?.variant_prices || rawProd?.variantPrices);
+                  const availStocks: Array<{ variant: string; size: string; available: number }> =
+                    Array.isArray(rawProd?.available_variant_stocks) ? rawProd.available_variant_stocks : [];
+                  const firstAvail = availStocks.find((s) => s.available > 0);
+                  const initVariant = firstAvail ? firstAvail.variant : '';
+                  const initSize = firstAvail ? firstAvail.size : '';
+                  const matchedPrice = findMatchingVariantPrice(
+                    priceRules,
+                    initVariant,
+                    initSize,
+                    unitPrice
+                  );
                   updateEntry(index, {
                     productId: val,
                     productOption: opt || null,
                     unitPriceForeign: unitPrice,
-                    variantItems: [{ variant: '', size: '', quantity: 1, price: unitPrice }],
+                    variantItems: [
+                      {
+                        variant: initVariant,
+                        size: initSize,
+                        quantity: 1,
+                        price: matchedPrice,
+                      },
+                    ],
                   });
                 }}
               />

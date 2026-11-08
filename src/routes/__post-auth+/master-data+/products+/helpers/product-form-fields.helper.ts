@@ -38,7 +38,11 @@ export function getProductFields(): FieldConfig[] {
       searchable: true,
       loadOptions: async (search) => {
         const res = await api.get(`/periods?search=${search}&limit=50&status=OPEN`);
-        return res.data.data.map((p: any) => ({ label: p.name, value: p.id }));
+        return res.data.data.map((p: any) => ({
+          label: `${p.name}${p.type === 'LIVE_SHOPPING' ? ' (Live Shopping)' : ''}`,
+          value: p.id,
+          raw: p,
+        }));
       },
       dependsOn: (form) => form.stockMode === 'EVENT',
       required: true,
@@ -48,7 +52,10 @@ export function getProductFields(): FieldConfig[] {
       label: 'Physical stock',
       type: 'number',
       defaultValue: 0,
-      dependsOn: (form) => form.stockMode === 'READY_STOCK',
+      dependsOn: (form) =>
+        form.stockMode === 'READY_STOCK' ||
+        form.periodId_option?.raw?.type === 'LIVE_SHOPPING' ||
+        form.period?.type === 'LIVE_SHOPPING',
     },
     { name: 'buyPrice', label: 'Buy price', type: 'currency', defaultValue: 0 },
     { name: 'sellingPrice', label: 'Selling price (Base Price)', type: 'currency', defaultValue: 0 },
@@ -81,6 +88,11 @@ export function prepareProductSubmit(form: Record<string, any>) {
     : [];
   const primaryImg = imgs[0] || form.imageUrl || form.image_url || null;
 
+  const isLiveShopping =
+    periodId_option?.raw?.type === 'LIVE_SHOPPING' ||
+    form.period?.type === 'LIVE_SHOPPING';
+  const rawStockQty = Number(form.stock_quantity ?? form.stockQuantity ?? 0);
+
   return {
     ...rest,
     stockMode: sMode,
@@ -94,12 +106,12 @@ export function prepareProductSubmit(form: Record<string, any>) {
     variantPrices: form.variantPrices ?? form.variant_prices ?? null,
     variant_prices: form.variantPrices ?? form.variant_prices ?? null,
     stockQuantity:
-      sMode === 'READY_STOCK'
-        ? Number(form.stock_quantity ?? form.stockQuantity ?? 0)
+      sMode === 'READY_STOCK' || isLiveShopping || rawStockQty > 0
+        ? rawStockQty
         : 0,
     stock_quantity:
-      sMode === 'READY_STOCK'
-        ? Number(form.stock_quantity ?? form.stockQuantity ?? 0)
+      sMode === 'READY_STOCK' || isLiveShopping || rawStockQty > 0
+        ? rawStockQty
         : 0,
     variant: form.variant || form.variation || null,
     size: form.size || null,
