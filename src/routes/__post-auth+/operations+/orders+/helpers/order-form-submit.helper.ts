@@ -145,7 +145,7 @@ function buildNewProductPayload(form: any, periodOption: any, unitPriceForeign: 
   const primaryImg = imgs[0] || undefined;
 
   return {
-    name: form.newProductName.trim(),
+    name: form.newProductName?.trim() || '',
     brand_name: form.newProductBrand?.trim() || undefined,
     category: form.newProductCategory?.trim() || undefined,
     store_location: form.newProductStoreLocation?.trim() || undefined,
@@ -191,21 +191,12 @@ export function prepareSubmitOrder(form: any) {
     });
   }
 
-  const isCreatingProduct = productId === '__NEW_PRODUCT__';
-  if (isCreatingProduct && !newProductName?.trim()) {
-    throw new Error('Please enter a name for the new product.');
-  }
-
   const orderDateObj = order.orderDate ? new Date(order.orderDate) : new Date();
   const periodOption = form.periodId_option;
   const isLiveOrReadyPeriod =
     periodOption?.type === 'LIVE_SHOPPING' ||
     periodOption?.raw?.type === 'LIVE_SHOPPING' ||
     periodOption?.code === 'READY-STOCK';
-
-  const isReadyStock = isCreatingProduct
-    ? isLiveOrReadyPeriod
-    : isLiveOrReadyPeriod || form.productId_option?.stockMode === 'READY_STOCK';
 
   if (periodOption) {
     const rawStatus = (periodOption.raw?.status || periodOption.status || '').toUpperCase();
@@ -216,10 +207,6 @@ export function prepareSubmitOrder(form: any) {
       throw new Error('Order date cannot be later than event order closing date.');
     }
   }
-
-  const newProductPayload = isCreatingProduct
-    ? buildNewProductPayload(form, periodOption, Number(unitPriceForeign || 0))
-    : undefined;
 
   const isPriority = form.customerId_option?.segment === 'PRIORITY';
   const hasInitialDp = Number(order.initialPaymentAmount || 0) > 0;
@@ -234,10 +221,17 @@ export function prepareSubmitOrder(form: any) {
   let items: any[] = [];
 
   const basket = form.orderBasket;
-  if (!isCreatingProduct && Array.isArray(basket) && basket.length > 0) {
+  if (Array.isArray(basket) && basket.length > 0) {
+    let pIdx = 1;
     for (const entry of basket) {
       const entryPid = entry.productId;
       if (!entryPid) continue;
+
+      const isEntryNewProduct = entryPid === '__NEW_PRODUCT__';
+      if (isEntryNewProduct && !entry.newProductName?.trim()) {
+        throw new Error(`Please enter a name for Product #${pIdx}.`);
+      }
+
       const isEntryReadyStock =
         isLiveOrReadyPeriod || entry.productOption?.stockMode === 'READY_STOCK';
       const entryVariantRows = Array.isArray(entry.variantItems) && entry.variantItems.length > 0
@@ -250,8 +244,28 @@ export function prepareSubmitOrder(form: any) {
             ? Number(vi.price)
             : Number(entry.unitPriceForeign || 0);
 
+        const itemNewProductPayload = isEntryNewProduct
+          ? buildNewProductPayload(
+              {
+                ...form,
+                newProductName: entry.newProductName,
+                newProductBrand: entry.newProductBrand,
+                newProductCategory: entry.newProductCategory,
+                newProductStoreLocation: entry.newProductStoreLocation,
+                newProductBuyPrice: entry.newProductBuyPrice,
+                newProductImageUrls: entry.newProductImageUrls,
+                newProductNotes: entry.newProductNotes,
+              },
+              periodOption,
+              Number(entry.unitPriceForeign || itemPrice || 0)
+            )
+          : undefined;
+
         items.push({
-          productId: entryPid,
+          productId: isEntryNewProduct ? undefined : entryPid,
+          newProduct: itemNewProductPayload,
+          manualProductName: isEntryNewProduct ? entry.newProductName?.trim() : undefined,
+          brandName: isEntryNewProduct ? entry.newProductBrand?.trim() || undefined : undefined,
           variation: vi.variant?.trim() || undefined,
           size: vi.size?.trim() || undefined,
           sourceType: isEntryReadyStock ? 'READY_STOCK' : 'CATALOG',
@@ -262,11 +276,25 @@ export function prepareSubmitOrder(form: any) {
           bundleName: vi.bundleName || undefined,
         });
       }
+      pIdx++;
     }
   }
 
   // Fallback to single product if basket is empty
   if (items.length === 0) {
+    const isCreatingProduct = productId === '__NEW_PRODUCT__';
+    if (isCreatingProduct && !newProductName?.trim()) {
+      throw new Error('Please enter a name for the new product.');
+    }
+
+    const isReadyStock = isCreatingProduct
+      ? isLiveOrReadyPeriod
+      : isLiveOrReadyPeriod || form.productId_option?.stockMode === 'READY_STOCK';
+
+    const newProductPayload = isCreatingProduct
+      ? buildNewProductPayload(form, periodOption, Number(unitPriceForeign || 0))
+      : undefined;
+
     const rows: Array<{
       variant?: string;
       size?: string;

@@ -47,6 +47,7 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
         options={field.options}
         loadOptions={field.loadOptions}
         disabled={disabled}
+        allowCustom={field.allowCustom}
         onChange={(value, option) => {
           set(field.name, value);
           if (option) set(`${field.name}_option`, option);
@@ -198,6 +199,7 @@ export function FormModalField({ field, form, set, entityType }: FormModalFieldP
           }
         }}
         form={form}
+        setFormValue={set}
         disabled={disabled}
       />
     );

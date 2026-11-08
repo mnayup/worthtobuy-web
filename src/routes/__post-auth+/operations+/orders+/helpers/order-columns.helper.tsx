@@ -1,6 +1,6 @@
 import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import { MessageCircle, ReceiptText } from 'lucide-react';
+import { MessageCircle, ReceiptText, RefreshCw } from 'lucide-react';
 import { money } from '~/lib/format';
 import { StatusBadge } from '~/components/StatusBadge';
 
@@ -184,14 +184,58 @@ export function getOrderColumns() {
 export function renderOrderActions(
   row: any,
   navigate: NavigateFunction,
-  setInvoiceModal: (id: number) => void
+  setInvoiceModal: (id: number) => void,
+  onChangeStatus?: (row: any) => void
 ) {
   const invoiceId =
     row.invoice_links?.[0]?.invoice_id ??
     row.invoice_links?.[0]?.invoiceId ??
     row.invoiceLinks?.[0]?.invoiceId;
+
+  const linkedInvoice =
+    row.invoice_links?.[0]?.invoice ||
+    row.invoiceLinks?.[0]?.invoice;
+
+  const isFullPaymentInvoice =
+    linkedInvoice &&
+    (linkedInvoice.billing_model === 'FULL_PAYMENT' ||
+      linkedInvoice.billingModel === 'FULL_PAYMENT' ||
+      linkedInvoice.status === 'PAID' ||
+      Number(linkedInvoice.outstanding_amount ?? linkedInvoice.outstandingAmount ?? 0) <= 0);
+
+  const items: any[] = row.items || [];
+  const activeItems = items.filter(
+    (i) => (i.fulfillment_status || i.fulfillmentStatus) !== 'UNAVAILABLE'
+  );
+  const isItemsPurchased =
+    activeItems.length > 0 &&
+    activeItems.every((i) =>
+      ['AVAILABLE', 'KEPT', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED'].includes(
+        i.fulfillment_status || i.fulfillmentStatus || ''
+      ) || (i.purchase_status || i.purchaseStatus) === 'PURCHASED'
+    );
+
+  // Button only appears if the order is Full Payment AND its items have already been purchased (e.g. from Purchase Sorting / Summary)
+  const canManuallyChangeStatus =
+    isFullPaymentInvoice &&
+    (isItemsPurchased || row.status === 'PURCHASED' || row.status === 'WAITING_SETTLEMENT') &&
+    row.status !== 'READY_TO_SHIP' &&
+    row.status !== 'SHIPPED' &&
+    row.status !== 'COMPLETED' &&
+    row.status !== 'CANCELLED';
+
   return (
     <div className="flex gap-1.5">
+      {canManuallyChangeStatus && onChangeStatus && (
+        <button
+          onClick={() => onChangeStatus(row)}
+          className="inline-flex items-center justify-center px-2.5 py-1.5 h-8 min-w-[34px] rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 shadow-2xs hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition cursor-pointer"
+          title="Ubah Status Pesanan (Khusus Full Payment)"
+          aria-label="Ubah Status Pesanan (Khusus Full Payment)"
+        >
+          <RefreshCw size={14} />
+        </button>
+      )}
       <button
         onClick={() => {
           if (invoiceId) {

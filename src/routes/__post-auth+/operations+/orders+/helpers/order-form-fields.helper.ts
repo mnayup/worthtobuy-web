@@ -10,6 +10,19 @@ import {
 
 export { prepareInitialOrder, prepareSubmitOrder } from './order-form-submit.helper';
 
+export const productCategoryOptions = [
+  { label: 'Fashion & Apparel', value: 'Fashion' },
+  { label: 'Beauty & Skincare', value: 'Skincare' },
+  { label: 'Shoes & Footwear', value: 'Shoes' },
+  { label: 'Bags & Accessories', value: 'Bags' },
+  { label: 'Food & Snacks', value: 'Snack' },
+  { label: 'Electronics & Gadgets', value: 'Electronics' },
+  { label: 'Houseware & Home', value: 'HOUSEWARE' },
+  { label: 'Toys & Hobbies', value: 'TOYS' },
+  { label: 'Mukena & Prayer Sets', value: 'MUKENA' },
+  { label: 'Other', value: 'Other' },
+];
+
 export function getOrderFields(user: any): FieldConfig[] {
   return [
     {
@@ -96,100 +109,7 @@ export function getOrderFields(user: any): FieldConfig[] {
       label: 'Products, Variants & Bundle Deals',
       type: 'order-product-basket',
       colSpan: 2,
-      dependsOn: (form) => Boolean(form.periodId) && form.productId !== '__NEW_PRODUCT__',
-    },
-    {
-      name: 'productId',
-      label: 'Create Custom / New Product',
-      type: 'select',
-      options: [
-        { value: '', label: 'Select from catalog above (standard)' },
-        { value: '__NEW_PRODUCT__', label: '+ Create / Register Brand New Product' },
-      ],
-      colSpan: 2,
-      dependsOn: (form) => Boolean(form.periodId) && form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductName',
-      label: 'Product Name',
-      placeholder: 'e.g. Pop Mart Labubu, Coach Tabby Bag, etc.',
-      type: 'text',
-      required: true,
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductBrand',
-      label: 'Brand Name',
-      placeholder: 'e.g. Pop Mart, Coach, Nike, Gentle Monster',
-      type: 'text',
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductCategory',
-      label: 'Category',
-      placeholder: 'e.g. Collectibles, Bags, Skincare, Shoes',
-      type: 'text',
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductStoreLocation',
-      label: 'Store Location / Tenant',
-      placeholder: 'e.g. Takashimaya Shinjuku, Mega Don Quijote',
-      type: 'text',
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductVariant',
-      label: 'Available Variants (Colors / Patterns)',
-      placeholder: 'Type variant & press Enter (e.g. Crimson, Navy Blue)',
-      type: 'tags',
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductSize',
-      label: 'Available Sizes',
-      placeholder: 'Type size & press Enter (e.g. S, M, L, XL, 42)',
-      type: 'tags',
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductImageUrls',
-      label: 'Product Photos (Variant / Color / Details)',
-      type: 'images',
-      entityType: 'products',
-      placeholder: 'Upload multiple product photos...',
-      colSpan: 2,
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductNotes',
-      label: 'Product Notes',
-      type: 'textarea',
-      placeholder: 'Special instructions or general notes...',
-      colSpan: 2,
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'newProductBuyPrice',
-      label: 'Store Buy Price / Modal (IDR)',
-      type: 'currency',
-      placeholder: 'Store cost to purchase item',
-      defaultValue: 0,
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'unitPriceForeign',
-      label: 'Customer Selling Price (IDR)',
-      type: 'currency',
-      placeholder: 'Price billed to customer (for invoice)',
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
-    },
-    {
-      name: 'variantItems',
-      label: 'Variant, Size & Quantities',
-      type: 'variant-quantities',
-      colSpan: 2,
-      dependsOn: (form) => form.productId === '__NEW_PRODUCT__',
+      dependsOn: (form) => Boolean(form.periodId),
     },
     {
       name: 'adminId',

@@ -50,6 +50,7 @@ export type FieldConfig={
   colSpan?:2;
   defaultValue?:unknown | (() => unknown);
   searchable?:boolean;
+  allowCustom?:boolean;
   loadOptions?:(search:string, form?:Record<string,any>, page?:number)=>Promise<Option[]>;
   dependsOn?:(form:Record<string,any>)=>boolean;
   max?:number | string | ((form:Record<string,any>)=>number | string | undefined);
