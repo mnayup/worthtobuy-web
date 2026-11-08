@@ -16,7 +16,6 @@ import { OrderStatusCards } from './components/order-status-cards';
 import { getOrderColumns, renderOrderActions } from './helpers/order-columns.helper';
 import { CreateInvoiceModal } from '../../finance+/invoices+/components/create-invoice-modal';
 import { BulkIssueInvoicesModal } from './components/bulk-issue-invoices-modal';
-import { ChangeOrderStatusModal } from './components/change-order-status-modal';
 
 export async function loader() {
   const [periodsRes, customersRes, productsRes, usersRes] = await Promise.allSettled([
@@ -89,7 +88,6 @@ export default function OrdersRoute() {
   const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [invoiceModal, setInvoiceModal] = useState<number | null>(null);
-  const [statusChangeOrder, setStatusChangeOrder] = useState<any | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
@@ -211,11 +209,7 @@ export default function OrdersRoute() {
           const directPaid = Number(row.paid_amount ?? row.paidAmount ?? 0);
           return directPaid === 0 && ['NEW', 'WAITING_DP'].includes(row.status);
         }}
-        renderActions={(row) =>
-          renderOrderActions(row, navigate, setInvoiceModal, (targetRow) =>
-            setStatusChangeOrder(targetRow)
-          )
-        }
+        renderActions={(row) => renderOrderActions(row, navigate, setInvoiceModal)}
         renderBulkActions={({ selectedIds, selectedRows, clearSelection, reload }) => (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-honey-200 bg-honey-50/80 p-4 shadow-sm">
             <div className="flex items-center gap-2">
@@ -269,16 +263,6 @@ export default function OrdersRoute() {
           } else if (invoiceIds.length > 1) {
             navigate('/invoices');
           }
-        }}
-      />
-      <ChangeOrderStatusModal
-        open={Boolean(statusChangeOrder)}
-        order={statusChangeOrder}
-        onClose={() => setStatusChangeOrder(null)}
-        onSuccess={() => {
-          setStatusChangeOrder(null);
-          fetchSummary();
-          reloadCallback?.();
         }}
       />
     </>
