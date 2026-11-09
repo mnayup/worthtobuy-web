@@ -21,13 +21,20 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
 
   useEffect(() => {
     if (!open || !invoice) return;
-    const currentUsed = Number(invoice.depositAmount || 0);
+    const currentUsed = Number(invoice.deposit_amount ?? invoice.depositAmount ?? 0);
     setUseDeposit(currentUsed > 0);
     setDepositAmount(currentUsed);
     setLoading(true);
     setError('');
 
-    api.get(`/customers/${invoice.customerId}/deposit-balance?excludeInvoiceId=${invoice.id}`)
+    const custId = invoice.customer_id ?? invoice.customerId ?? invoice.customer?.id;
+    if (!custId) {
+      setAvailableDeposit(0);
+      setLoading(false);
+      return;
+    }
+
+    api.get(`/customers/${custId}/deposit-balance?excludeInvoiceId=${invoice.id}`)
       .then((res) => {
         setAvailableDeposit(Number(res.data?.availableDeposit || 0));
       })
@@ -41,7 +48,7 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
 
   if (!open || !invoice) return null;
 
-  const totalBill = Number(invoice.totalBill || 0);
+  const totalBill = Number(invoice.total_bill ?? invoice.totalBill ?? 0);
   const maxCanUse = Math.min(availableDeposit, totalBill);
 
   async function submit(e: React.FormEvent) {
@@ -75,7 +82,9 @@ export function DepositModal({ open, invoice, onClose, onSaved }: DepositModalPr
               <h2 className="text-base font-black text-brand-950">
                 Manage Customer Deposit Balance (Saldo Deposit)
               </h2>
-              <p className="text-xs text-brand-500">{invoice.invoiceNumber} • {invoice.customer?.fullName}</p>
+              <p className="text-xs text-brand-500">
+                {invoice.invoice_number || invoice.invoiceNumber} • {invoice.customer?.fullName || invoice.customer?.full_name || invoice.customer?.name}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-xl p-2 text-brand-400 hover:bg-brand-100 hover:text-brand-700 transition">
