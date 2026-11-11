@@ -196,58 +196,102 @@ export function InvoiceA4OrdersTable({ orders }: InvoiceA4OrdersTableProps) {
         const orderDate = order.order_date || order.orderDate;
         const periodCode = order.period?.code || '';
         const periodName = order.period?.name || '';
-        const totalAmount = Number(
+        const isOrderUnavailable =
+          order.status === 'UNAVAILABLE' ||
+          (Array.isArray(order.items) &&
+            order.items.length > 0 &&
+            order.items.every((it: any) => (it.fulfillment_status || it.fulfillmentStatus) === 'UNAVAILABLE'));
+        const totalAmount = isOrderUnavailable
+          ? 0
+          : Number(
+              link.snapshot_amount ??
+                link.snapshotAmount ??
+                order.total_bill ??
+                order.totalBill ??
+                0
+            );
+        const originalAmount = Number(
           link.snapshot_amount ??
             link.snapshotAmount ??
             order.total_bill ??
             order.totalBill ??
             0
         );
-        const serviceFee = Number(order.service_fee ?? order.serviceFee ?? 0);
-        const shippingCost = Number(
-          order.customer_shipping ??
-            order.customerShipping ??
-            order.local_shipping ??
-            order.localShipping ??
-            0
-        );
+        const serviceFee = isOrderUnavailable ? 0 : Number(order.service_fee ?? order.serviceFee ?? 0);
+        const shippingCost = isOrderUnavailable
+          ? 0
+          : Number(
+              order.customer_shipping ??
+                order.customerShipping ??
+                order.local_shipping ??
+                order.localShipping ??
+                0
+            );
         const rawAdditionalFees = order.additional_fees ?? order.additionalFees;
-        const additionalFeesList: any[] = Array.isArray(rawAdditionalFees)
+        const additionalFeesList: any[] = isOrderUnavailable
+          ? []
+          : Array.isArray(rawAdditionalFees)
           ? rawAdditionalFees
           : Number(order.additional_fee ?? order.additionalFee ?? 0) > 0
           ? [{ type: 'Additional Surcharge', amount: Number(order.additional_fee ?? order.additionalFee) }]
           : [];
         const totalAdditionalFee = additionalFeesList.reduce((sum, f) => sum + Number(f.amount || 0), 0);
 
-        const productSubtotal = Number(
-          order.product_subtotal_idr ??
-            order.productSubtotalIdr ??
-            Math.max(0, totalAmount - serviceFee - shippingCost - totalAdditionalFee)
-        );
+        const productSubtotal = isOrderUnavailable
+          ? 0
+          : Number(
+              order.product_subtotal_idr ??
+                order.productSubtotalIdr ??
+                Math.max(0, totalAmount - serviceFee - shippingCost - totalAdditionalFee)
+            );
 
         const customerNotes = order.customer_notes || order.customerNotes;
 
         return (
-          <section key={link.id} className="overflow-hidden rounded-xl border border-brand-200">
+          <section
+            key={link.id}
+            className={`overflow-hidden rounded-xl border ${
+              isOrderUnavailable ? 'border-rose-200 bg-rose-50/20' : 'border-brand-200'
+            }`}
+          >
             <div
-              className={
-                'flex flex-col gap-1.5 bg-brand-50 px-3.5 py-2 sm:flex-row ' +
-                'sm:items-center sm:justify-between border-b border-brand-200'
-              }
+              className={`flex flex-col gap-1.5 px-3.5 py-2 sm:flex-row sm:items-center sm:justify-between border-b ${
+                isOrderUnavailable
+                  ? 'bg-rose-50/80 border-rose-200'
+                  : 'bg-brand-50 border-brand-200'
+              }`}
             >
               <div>
-                <p className="font-extrabold text-brand-900 text-xs">
-                  {orderNumber}
-                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p
+                    className={`font-extrabold text-xs ${
+                      isOrderUnavailable ? 'line-through text-rose-900' : 'text-brand-900'
+                    }`}
+                  >
+                    {orderNumber}
+                  </p>
+                  {isOrderUnavailable && (
+                    <span className="rounded bg-rose-100 text-rose-700 border border-rose-300 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider">
+                      Barang Kosong / Dibatalkan
+                    </span>
+                  )}
+                </div>
                 <p className="text-[11px] font-semibold text-brand-500">
                   {[periodCode, periodName, orderDate ? date(orderDate) : null]
                     .filter(Boolean)
                     .join(' • ')}
                 </p>
               </div>
-              <p className="font-black text-brand-900 text-xs">
-                {money(totalAmount)}
-              </p>
+              <div className="flex items-center gap-2">
+                {isOrderUnavailable && (
+                  <span className="line-through text-xs text-rose-400 font-medium">
+                    {money(originalAmount)}
+                  </span>
+                )}
+                <p className={`font-black text-xs ${isOrderUnavailable ? 'text-rose-700' : 'text-brand-900'}`}>
+                  {money(totalAmount)}
+                </p>
+              </div>
             </div>
             {customerNotes && (
               <div className="flex items-start gap-2 bg-amber-50/70 border-b border-amber-200/80 px-3.5 py-2 text-xs">

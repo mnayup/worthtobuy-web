@@ -16,6 +16,7 @@ interface GroupedPublicInvoiceItem {
   photoUrl?: string;
   totalQty: number;
   totalSubtotal: number;
+  fulfillmentStatus?: string;
   items: any[];
 }
 
@@ -99,6 +100,7 @@ function groupPublicOrderItems(items: any[]): GroupedPublicInvoiceItem[] {
         photoUrl: photo,
         totalQty: qty,
         totalSubtotal: subtotal,
+        fulfillmentStatus: item.fulfillment_status || item.fulfillmentStatus,
         items: [item],
       });
     }
@@ -146,6 +148,7 @@ function groupPublicOrderItems(items: any[]): GroupedPublicInvoiceItem[] {
             photoUrl: firstItem._photo,
             totalQty: currentPackPcs,
             totalSubtotal: packSubtotal,
+            fulfillmentStatus: firstItem.fulfillment_status || firstItem.fulfillmentStatus,
             items: currentPackItems,
           });
           currentPackItems = [];
@@ -169,6 +172,7 @@ function groupPublicOrderItems(items: any[]): GroupedPublicInvoiceItem[] {
         photoUrl: firstItem._photo,
         totalQty: currentPackPcs,
         totalSubtotal: packSubtotal,
+        fulfillmentStatus: firstItem.fulfillment_status || firstItem.fulfillmentStatus,
         items: currentPackItems,
       });
     }
@@ -191,43 +195,72 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
         const orderNum = order.order_number || order.orderNumber || `Order #${link.order_id}`;
         const periodCode = order.period?.code;
         const periodName = order.period?.name;
-        const totalAmount = Number(
+        const isOrderUnavailable =
+          order.status === 'UNAVAILABLE' ||
+          (Array.isArray(order.items) &&
+            order.items.length > 0 &&
+            order.items.every((it: any) => it.fulfillment_status === 'UNAVAILABLE'));
+        const totalAmount = isOrderUnavailable
+          ? 0
+          : Number(link.snapshot_amount ?? link.snapshotAmount ?? order.total_bill ?? order.totalBill ?? 0);
+        const originalAmount = Number(
           link.snapshot_amount ?? link.snapshotAmount ?? order.total_bill ?? order.totalBill ?? 0
         );
-        const serviceFee = Number(order.service_fee ?? order.serviceFee ?? 0);
-        const shippingCost = Number(
-          order.customer_shipping ??
-            order.customerShipping ??
-            order.local_shipping ??
-            order.localShipping ??
-            0
-        );
+        const serviceFee = isOrderUnavailable ? 0 : Number(order.service_fee ?? order.serviceFee ?? 0);
+        const shippingCost = isOrderUnavailable
+          ? 0
+          : Number(
+              order.customer_shipping ??
+                order.customerShipping ??
+                order.local_shipping ??
+                order.localShipping ??
+                0
+            );
 
         return (
           <div
             key={link.id || order.id}
-            className="overflow-hidden rounded-2xl border border-brand-200/90 bg-white shadow-2xs"
+            className={`overflow-hidden rounded-2xl border bg-white shadow-2xs ${
+              isOrderUnavailable ? 'border-rose-200 opacity-90' : 'border-brand-200/90'
+            }`}
           >
             <div
-              className={
-                'flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 ' +
-                'bg-brand-50/70 px-4 py-2.5 border-b border-brand-200 text-xs'
-              }
+              className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 px-4 py-2.5 border-b text-xs ${
+                isOrderUnavailable
+                  ? 'bg-rose-50/80 border-rose-200 text-rose-950'
+                  : 'bg-brand-50/70 border-brand-200'
+              }`}
             >
-              <div>
-                <span className="font-extrabold text-brand-900">{orderNum}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`font-extrabold ${isOrderUnavailable ? 'line-through text-rose-900' : 'text-brand-900'}`}>
+                  {orderNum}
+                </span>
                 {periodCode && (
                   <span
                     className={
-                      'ml-2 inline-block rounded-md bg-white border border-brand-200 ' +
+                      'inline-block rounded-md bg-white border border-brand-200 ' +
                       'px-2 py-0.5 text-[10px] font-bold text-brand-700'
                     }
                   >
                     {periodCode} {periodName ? `• ${periodName}` : ''}
                   </span>
                 )}
+                {isOrderUnavailable && (
+                  <span className="rounded bg-rose-100 text-rose-700 border border-rose-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                    Barang Kosong / Dibatalkan
+                  </span>
+                )}
               </div>
-              <span className="font-black text-brand-950">{money(totalAmount)}</span>
+              <div className="flex items-center gap-2">
+                {isOrderUnavailable && (
+                  <span className="line-through text-xs text-rose-400 font-medium">
+                    {money(originalAmount)}
+                  </span>
+                )}
+                <span className={`font-black ${isOrderUnavailable ? 'text-rose-700' : 'text-brand-950'}`}>
+                  {money(totalAmount)}
+                </span>
+              </div>
             </div>
 
             {(() => {
@@ -246,13 +279,18 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
 
             <div className="divide-y divide-brand-100">
               {groupPublicOrderItems(order.items || []).map((row) => {
+                const isItemUnavailable =
+                  row.fulfillmentStatus === 'UNAVAILABLE' || isOrderUnavailable;
+
                 if (row.isBundle) {
                   return (
                     <div
                       key={row.id}
-                      className="flex items-start justify-between gap-3 p-3.5 text-xs hover:bg-brand-50/30 transition-colors"
+                      className={`flex items-start justify-between gap-3 p-3.5 text-xs transition-colors ${
+                        isItemUnavailable ? 'bg-rose-50/30' : 'hover:bg-brand-50/30'
+                      }`}
                     >
-                      <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         {row.photoUrl ? (
                           <img
                             src={row.photoUrl}
@@ -264,14 +302,23 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                             WTB
                           </div>
                         )}
-                        <div className="min-w-0 space-y-1.5">
+                        <div className="min-w-0 flex-1 space-y-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-black text-brand-950 uppercase tracking-wide">
+                            <span
+                              className={`font-black uppercase tracking-wide break-words ${
+                                isItemUnavailable ? 'line-through text-rose-800' : 'text-brand-950'
+                              }`}
+                            >
                               {row.name}
                             </span>
                             <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider shrink-0">
                               Bundle Promo
                             </span>
+                            {isItemUnavailable && (
+                              <span className="rounded bg-rose-100 text-rose-700 px-1.5 py-0.5 text-[9px] font-bold shrink-0">
+                                Dibatalkan
+                              </span>
+                            )}
                           </div>
 
                           <div className="rounded-lg bg-brand-50/80 border border-brand-100/90 px-2.5 py-1.5 text-[11px] space-y-1 text-brand-700">
@@ -297,15 +344,15 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                               return (
                                 <div key={idx} className="flex items-center gap-2">
                                   <span className="text-brand-400">•</span>
-                                  <span className="font-semibold text-brand-900">
+                                  <span className="font-semibold text-brand-900 break-words">
                                     {itName}
                                   </span>
                                   {itSpecs && (
-                                    <span className="text-brand-500 text-[10px]">
+                                    <span className="text-brand-500 text-[10px] break-words">
                                       ({itSpecs})
                                     </span>
                                   )}
-                                  <span className="font-bold text-brand-800 ml-auto pl-2">
+                                  <span className="font-bold text-brand-800 ml-auto pl-2 shrink-0">
                                     x{itQty}
                                   </span>
                                 </div>
@@ -319,9 +366,20 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="font-black text-brand-900 text-sm">
-                          {money(row.totalSubtotal)}
-                        </span>
+                        {isItemUnavailable ? (
+                          <div>
+                            <span className="line-through text-xs text-rose-400 mr-1.5">
+                              {money(row.totalSubtotal)}
+                            </span>
+                            <span className="font-black text-rose-700 text-sm">
+                              {money(0)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-black text-brand-900 text-sm">
+                            {money(row.totalSubtotal)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
@@ -336,32 +394,40 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                 return (
                   <div
                     key={row.id}
-                    className="flex items-center justify-between gap-3 p-3.5 text-xs"
+                    className={`flex items-start sm:items-center justify-between gap-3 p-3.5 text-xs ${
+                      isItemUnavailable ? 'bg-rose-50/20' : ''
+                    }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
                       {photo ? (
                         <img
                           src={photo}
                           alt=""
-                          className={
-                            'h-11 w-11 rounded-xl object-cover ring-1 ring-brand-100 shrink-0'
-                          }
+                          className="h-11 w-11 rounded-xl object-cover ring-1 ring-brand-100 shrink-0 mt-0.5 sm:mt-0"
                         />
                       ) : (
                         <div
-                          className={
-                            'h-11 w-11 rounded-xl bg-brand-100/70 grid place-items-center ' +
-                            'text-brand-400 font-bold shrink-0'
-                          }
+                          className="h-11 w-11 rounded-xl bg-brand-100/70 grid place-items-center text-brand-400 font-bold shrink-0 mt-0.5 sm:mt-0"
                         >
                           WTB
                         </div>
                       )}
-                      <div className="min-w-0">
-                        <p className="font-extrabold text-brand-950 truncate flex items-center gap-1.5">
-                          <span>{row.name}</span>
-                        </p>
-                        <p className="text-[11px] text-brand-400 truncate mt-0.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p
+                            className={`font-extrabold break-words leading-tight ${
+                              isItemUnavailable ? 'line-through text-rose-800' : 'text-brand-950'
+                            }`}
+                          >
+                            {row.name}
+                          </p>
+                          {isItemUnavailable && (
+                            <span className="rounded bg-rose-100 text-rose-700 px-1.5 py-0.5 text-[9px] font-bold shrink-0">
+                              Dibatalkan
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-brand-500 break-words leading-snug mt-0.5">
                           {[
                             row.brand,
                             item.variant || item.variation,
@@ -377,7 +443,18 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="font-black text-brand-900">{money(subtotal)}</span>
+                      {isItemUnavailable ? (
+                        <div>
+                          <span className="line-through text-xs text-rose-400 block sm:inline sm:mr-1.5">
+                            {money(subtotal)}
+                          </span>
+                          <span className="font-black text-rose-700">
+                            {money(0)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-black text-brand-900">{money(subtotal)}</span>
+                      )}
                     </div>
                   </div>
                 );
@@ -398,6 +475,7 @@ export function PublicInvoiceOrdersTable({ orders }: PublicInvoiceOrdersTablePro
                 </div>
               )}
               {(() => {
+                if (isOrderUnavailable) return null;
                 const raw = order.additional_fees ?? order.additionalFees;
                 const fees: any[] = Array.isArray(raw)
                   ? raw

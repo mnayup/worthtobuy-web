@@ -26,28 +26,41 @@ export function PublicInvoiceFinancialCard({
     dpAmount > 0;
   const depositUsed = Number(invoice?.deposit_amount ?? invoice?.depositAmount ?? 0);
 
+  const isOrderUnavailable = (ord: any) =>
+    ord?.status === 'UNAVAILABLE' ||
+    (Array.isArray(ord?.items) &&
+      ord.items.length > 0 &&
+      ord.items.every((it: any) => it.fulfillment_status === 'UNAVAILABLE'));
+
   const totalShipping = (invoice?.orders || []).reduce(
-    (sum: number, link: any) =>
-      sum +
-      Number(
-        link.order?.customer_shipping ??
-          link.order?.customerShipping ??
-          link.order?.local_shipping ??
-          link.order?.localShipping ??
-          0
-      ),
+    (sum: number, link: any) => {
+      if (isOrderUnavailable(link.order)) return sum;
+      return (
+        sum +
+        Number(
+          link.order?.customer_shipping ??
+            link.order?.customerShipping ??
+            link.order?.local_shipping ??
+            link.order?.localShipping ??
+            0
+        )
+      );
+    },
     0
   );
 
   const totalServiceFee = (invoice?.orders || []).reduce(
-    (sum: number, link: any) =>
-      sum + Number(link.order?.service_fee ?? link.order?.serviceFee ?? 0),
+    (sum: number, link: any) => {
+      if (isOrderUnavailable(link.order)) return sum;
+      return sum + Number(link.order?.service_fee ?? link.order?.serviceFee ?? 0);
+    },
     0
   );
 
   // Aggregate all additional fees across orders
   const allAdditionalFees: Array<{ name: string; amount: number }> = [];
   (invoice?.orders || []).forEach((link: any) => {
+    if (isOrderUnavailable(link.order)) return;
     const raw = link.order?.additional_fees ?? link.order?.additionalFees;
     if (Array.isArray(raw)) {
       raw.forEach((f: any) => {

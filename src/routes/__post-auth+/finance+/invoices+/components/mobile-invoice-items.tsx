@@ -103,11 +103,19 @@ export function MobileInvoiceItems({
             const qty = Number(item.quantity || 1);
             const subtotal = unitPrice * qty;
 
+            const isUnavailable =
+              item.fulfillment_status === 'UNAVAILABLE' ||
+              item.fulfillmentStatus === 'UNAVAILABLE';
+
             return (
               <div
                 key={item.id || idx}
                 className={
-                  'flex items-start gap-2 rounded-lg bg-brand-50/70 p-2 border border-brand-200/80'
+                  `flex items-start gap-2 rounded-lg p-2 border transition-colors ${
+                    isUnavailable
+                      ? 'bg-rose-50/70 border-rose-200'
+                      : 'bg-brand-50/70 border-brand-200/80'
+                  }`
                 }
               >
                 {item.photo_url ||
@@ -121,33 +129,50 @@ export function MobileInvoiceItems({
                       item.product?.image_url ||
                       item.product?.imageUrl
                     }
-                    className="h-8 w-8 rounded-md object-cover ring-1 ring-brand-200 shrink-0"
+                    className="h-8 w-8 rounded-md object-cover ring-1 ring-brand-200 shrink-0 mt-0.5"
                     alt=""
                   />
                 ) : (
                   <div
                     className={
                       'grid h-8 w-8 place-items-center rounded-md bg-brand-200/70 ' +
-                      'text-brand-600 text-[9px] font-bold shrink-0'
+                      'text-brand-600 text-[9px] font-bold shrink-0 mt-0.5'
                     }
                   >
                     Item
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-black text-brand-950 truncate">
-                    {item.product?.name ||
-                      item.manual_product_name ||
-                      item.manualProductName ||
-                      'Item Pesanan'}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p
+                      className={`text-[11px] font-black break-words leading-tight ${
+                        isUnavailable ? 'line-through text-rose-800' : 'text-brand-950'
+                      }`}
+                    >
+                      {item.product?.name ||
+                        item.manual_product_name ||
+                        item.manualProductName ||
+                        'Item Pesanan'}
+                    </p>
+                    {isUnavailable && (
+                      <span className="rounded bg-rose-100 text-rose-700 px-1 py-0.2 text-[8px] font-black uppercase tracking-wider shrink-0">
+                        Dibatalkan
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[9px] font-medium text-brand-500 break-words leading-snug mt-0.5">
+                    {subtitle}
                   </p>
-                  <p className="text-[9px] font-medium text-brand-500 truncate">{subtitle}</p>
                   <div className="mt-0.5 flex items-center justify-between text-[10px]">
                     <span className="font-bold text-brand-600">
                       {qty}x {money(unitPrice)}
                     </span>
-                    <span className="font-black text-brand-950">
-                      {money(subtotal)}
+                    <span
+                      className={`font-black ${
+                        isUnavailable ? 'line-through text-rose-600' : 'text-brand-950'
+                      }`}
+                    >
+                      {money(isUnavailable ? 0 : subtotal)}
                     </span>
                   </div>
                 </div>
